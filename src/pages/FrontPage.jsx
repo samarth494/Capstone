@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Swords, Trophy, Users, Code, Zap, Target, Clock, TrendingUp } from 'lucide-react';
 
 export default function Frontpage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
 
   const stats = [
@@ -64,8 +66,8 @@ export default function Frontpage() {
               <a href="#" className="text-gray-700 hover:text-gray-900">Community</a>
             </nav>
             <div className="flex items-center space-x-4">
-              <button className="text-gray-700 hover:text-gray-900 font-medium">Sign In</button>
-              <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 font-medium">
+              <button onClick={() => navigate('/signup')} className="text-gray-700 hover:text-gray-900 font-medium">Sign In</button>
+              <button onClick={() => navigate('/signup')} className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 font-medium">
                 Get Started
               </button>
             </div>
@@ -117,11 +119,10 @@ export default function Frontpage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-4 px-2 font-medium border-b-2 transition-colors ${
-                  activeTab === tab
-                    ? 'border-orange-500 text-orange-500'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
+                className={`py-4 px-2 font-medium border-b-2 transition-colors ${activeTab === tab
+                  ? 'border-orange-500 text-orange-500'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
