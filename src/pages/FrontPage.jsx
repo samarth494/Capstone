@@ -66,7 +66,7 @@ export default function Frontpage() {
               <a href="#" className="text-gray-700 hover:text-gray-900">Community</a>
             </nav>
             <div className="flex items-center space-x-4">
-              <button onClick={() => navigate('/signup')} className="text-gray-700 hover:text-gray-900 font-medium">Sign In</button>
+              <button onClick={() => navigate('/login')} className="text-gray-700 hover:text-gray-900 font-medium">Sign In</button>
               <button onClick={() => navigate('/signup')} className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 font-medium">
                 Get Started
               </button>
@@ -246,7 +246,7 @@ export default function Frontpage() {
           <p className="text-xl text-white mb-8 opacity-90">
             Join thousands of developers competing daily. Start your journey to the top today.
           </p>
-          <button className="bg-white text-orange-500 px-8 py-3 rounded-lg hover:bg-gray-100 font-semibold text-lg">
+          <button onClick={() => navigate('/signup')} className="bg-white text-orange-500 px-8 py-3 rounded-lg hover:bg-gray-100 font-semibold text-lg">
             Create Free Account
           </button>
         </div>

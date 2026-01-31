@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Terminal, Code, User, Mail, Lock, Check, ArrowRight, Shield } from 'lucide-react';
 
 export default function SignupPage() {
@@ -214,9 +215,9 @@ export default function SignupPage() {
 
           <div className="mt-8 text-center text-sm text-slate-500">
             Already have an account?{' '}
-            <a href="#" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
+            <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
               Log in to Terminal
-            </a>
+            </Link>
           </div>
 
         </div>
