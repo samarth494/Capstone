@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Swords, Trophy, Users, Code, Zap, Target, Clock, TrendingUp, Activity } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import CodeArenaIntro from '../components/CodeArenaIntro';
 
 export default function Frontpage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [showIntro, setShowIntro] = useState(true);
 
   const features = [
     {
@@ -38,19 +41,36 @@ export default function Frontpage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Cinematic Intro */}
+      <AnimatePresence>
+        {showIntro && <CodeArenaIntro onComplete={() => setShowIntro(false)} />}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <Swords className="w-8 h-8 text-blue-600" />
-              <h1 className="text-xl font-bold text-slate-900 font-mono tracking-tighter">CodeArena_</h1>
+              {!showIntro && (
+                <>
+                  <motion.div layoutId="logo-icon" className="text-blue-600">
+                    <Swords className="w-8 h-8" />
+                  </motion.div>
+                  <motion.h1 
+                    layoutId="logo-text" 
+                    className="text-xl font-bold text-slate-900 font-mono tracking-tighter"
+                  >
+                    CodeArena_
+                  </motion.h1>
+                </>
+              )}
             </div>
             <nav className="hidden md:flex space-x-8 font-mono text-sm">
-              <a href="#" className="text-slate-500 hover:text-blue-600 transition-colors">./Prob</a>
+              <a href="#" className="text-slate-500 hover:text-blue-600 transition-colors">./Problems</a>
               <a href="#" className="text-slate-500 hover:text-blue-600 transition-colors">./Battle</a>
               <a href="#" className="text-slate-500 hover:text-blue-600 transition-colors">./Leaderboard</a>
               <a href="#" className="text-slate-500 hover:text-blue-600 transition-colors">./Community</a>
+              <a href="#" className="text-slate-500 hover:text-blue-600 transition-colors">./About Us</a>
             </nav>
             <div className="flex items-center space-x-4">
               <button onClick={() => navigate('/login')} className="text-gray-700 hover:text-gray-900 font-medium">Sign In</button>
@@ -68,9 +88,10 @@ export default function Frontpage() {
           <h2 className="text-4xl md:text-6xl font-bold text-slate-900 mb-6 font-mono tracking-tight">
             <span className="text-blue-600 mr-2">&gt;</span>INIT_BATTLE_MODE()<span className="animate-pulse">_</span>
           </h2>
-          <p className="text-lg md:text-xl text-slate-500 mb-10 max-w-2xl mx-auto font-mono leading-relaxed">
-            Real-time 1v1. Syntax highlights on. Compilation errors off.<br />
-            <span className="text-blue-600">const</span> winner = <span className="text-blue-600">await</span> code.execute();
+          <p className="text-lg md:text-xl text-slate-600 mb-10 max-w-3xl mx-auto font-mono leading-relaxed">
+            Think Fast. Code Fast.<br />
+            Real-Time 1v1 Coding Battles.<br />
+            {/* <span className="text-blue-600">const</span> winner = <span className="text-blue-600">await</span> code.execute(); */}
           </p>
           <div className="flex justify-center space-x-6">
             <button className="bg-blue-600 text-white px-8 py-4 rounded-sm hover:bg-blue-700 font-mono text-lg flex items-center shadow-lg hover:translate-y-1 transition-all">
