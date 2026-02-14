@@ -123,8 +123,8 @@ export default function Frontpage() {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`py-4 px-2 font-medium border-b-2 transition-colors ${activeTab === tab
-                    ? 'border-orange-500 text-orange-500'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'border-orange-500 text-orange-500'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
                   }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
