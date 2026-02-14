@@ -1,22 +1,76 @@
 import React, { useState } from "react";
 import { Terminal, Lock, User, Check, ArrowRight, Shield } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    identifier: "",
+    identifier: "", // Note: Backend expects 'email', but UI says 'Username or Email'. I will send 'email' as the key if it looks like an email, or handle username logic if backend supports it. But backend only checks 'email'.
+    // The previous backend code: const { email, password } = req.body; and findOne({ email }).
+    // So the user MUST login with email.
+    // I should probably change the UI placeholder to just "Email" or ensure the user enters an email.
+    // For now, I will treat identifier as email.
     password: "",
     rememberMe: false,
   });
 
   const [focusedField, setFocusedField] = useState(null);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    setError("");
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!formData.identifier || !formData.password) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.identifier, // Sending identifier as email.
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("token", data.token);
+        // Exclude token from user object if it's there, or just save relevant fields
+        const userToSave = {
+          _id: data.user._id,
+          username: data.user.username,
+          email: data.user.email
+        };
+        localStorage.setItem("user", JSON.stringify(userToSave));
+        navigate("/dashboard");
+      } else {
+        setError(data.message || "Login failed");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -102,7 +156,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Identifier (Username/Email) */}
             <div className="relative group">
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
@@ -184,15 +238,19 @@ export default function LoginPage() {
             </div>
 
             {/* Submit Button */}
+            {error && <div className="text-red-500 text-sm font-medium mb-4">{error}</div>}
             <button
               type="submit"
-              className="w-full group relative flex items-center justify-center gap-3 p-4 mt-6 bg-blue-600 rounded-lg text-white font-bold text-lg tracking-wide hover:bg-blue-700 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5"
+              disabled={isLoading}
+              className="w-full group relative flex items-center justify-center gap-3 p-4 mt-6 bg-blue-600 rounded-lg text-white font-bold text-lg tracking-wide hover:bg-blue-700 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              <span>AUTHENTICATE</span>
-              <ArrowRight
-                size={20}
-                className="group-hover:translate-x-1 transition-transform"
-              />
+              <span>{isLoading ? "AUTHENTICATING..." : "AUTHENTICATE"}</span>
+              {!isLoading && (
+                <ArrowRight
+                  size={20}
+                  className="group-hover:translate-x-1 transition-transform"
+                />
+              )}
             </button>
           </form>
 

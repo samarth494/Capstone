@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Terminal, Code, User, Mail, Lock, Check, ArrowRight, Shield } from 'lucide-react';
 
 export default function SignupPage() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -12,13 +13,68 @@ export default function SignupPage() {
   });
 
   const [focusedField, setFocusedField] = useState(null);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    setError('');
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (!formData.agreed) {
+      setError('You must agree to the Rules & Fair Play Policy');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        const userToSave = {
+          _id: data.user._id,
+          username: data.user.username,
+          email: data.user.email
+        };
+        localStorage.setItem('user', JSON.stringify(userToSave));
+
+        navigate('/dashboard');
+
+      } else {
+        setError(data.message || 'Registration failed');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -101,7 +157,7 @@ export default function SignupPage() {
             <p className="text-slate-500">Enter your credentials to access the arena.</p>
           </div>
 
-          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-5" onSubmit={handleSubmit}>
 
             {/* Username */}
             <div className="relative group">
@@ -204,12 +260,14 @@ export default function SignupPage() {
             </div>
 
             {/* Submit Button */}
+            {error && <div className="text-red-500 text-sm font-medium mb-4">{error}</div>}
             <button
               type="submit"
-              className="w-full group relative flex items-center justify-center gap-3 p-4 mt-6 bg-blue-600 rounded-lg text-white font-bold text-lg tracking-wide hover:bg-blue-700 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5"
+              disabled={isLoading}
+              className="w-full group relative flex items-center justify-center gap-3 p-4 mt-6 bg-blue-600 rounded-lg text-white font-bold text-lg tracking-wide hover:bg-blue-700 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              <span>CREATE ACCOUNT</span>
-              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              <span>{isLoading ? 'CREATING...' : 'CREATE ACCOUNT'}</span>
+              {!isLoading && <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />}
             </button>
           </form>
 

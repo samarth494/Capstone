@@ -18,6 +18,22 @@ const userSchema = mongoose.Schema({
     isAdmin: {
         type: Boolean,
         default: false
+    },
+    battlesPlayed: {
+        type: Number,
+        default: 0
+    },
+    wins: {
+        type: Number,
+        default: 0
+    },
+    losses: {
+        type: Number,
+        default: 0
+    },
+    rank: {
+        type: String,
+        default: 'Bronze'
     }
 }, {
     timestamps: true
