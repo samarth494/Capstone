@@ -6,7 +6,6 @@ import CodeArenaIntro from '../components/CodeArenaIntro';
 
 export default function Frontpage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
   const [showIntro, setShowIntro] = useState(true);
 
   const features = [
@@ -32,12 +31,6 @@ export default function Frontpage() {
     }
   ];
 
-  const problemCategories = [
-    { name: 'Arrays', difficulty: 'Easy to Hard' },
-    { name: 'Dynamic Programming', difficulty: 'Medium to Hard' },
-    { name: 'Trees & Graphs', difficulty: 'Easy to Hard' },
-    { name: 'String Manipulation', difficulty: 'Easy to Medium' }
-  ];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -106,106 +99,33 @@ export default function Frontpage() {
       </section>
 
 
-      {/* Navigation Tabs */}
-      <section className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
-            {['overview', 'problems', 'battles'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-4 px-2 font-medium border-b-2 transition-colors ${activeTab === tab
-                  ? 'border-orange-500 text-orange-500'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Main Content */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {activeTab === 'overview' && (
-            <div className="space-y-12">
-              {/* Features Grid */}
-              <div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-6">Why CodeArena?</h3>
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {features.map((feature, idx) => (
-                    <div key={idx} className="bg-white p-6 rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all">
-                      <feature.icon className="w-10 h-10 text-blue-600 mb-4" />
-                      <h4 className="text-lg font-semibold text-slate-900 mb-2">{feature.title}</h4>
-                      <p className="text-slate-500 text-sm">{feature.description}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Recent Battles - Coming Soon */}
-              <div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-6">Live Arena Feed</h3>
-                <div className="bg-white rounded-sm border border-slate-200 p-12 text-center">
-                  <Activity className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500 font-mono">Real-time battle data will appear here as matches begin.</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'problems' && (
+          <div className="space-y-12">
+            {/* Features Grid */}
             <div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">Problem Categories</h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                {problemCategories.map((category, idx) => (
+              <h3 className="text-2xl font-bold text-slate-900 mb-6">Why CodeArena?</h3>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {features.map((feature, idx) => (
                   <div key={idx} className="bg-white p-6 rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all">
-                    <div className="flex justify-between items-start mb-3">
-                      <h4 className="text-xl font-semibold text-slate-900">{category.name}</h4>
-                    </div>
-                    <p className="text-slate-500 text-sm mb-4">Difficulty: {category.difficulty}</p>
-                    <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-                      View Problems →
-                    </button>
+                    <feature.icon className="w-10 h-10 text-blue-600 mb-4" />
+                    <h4 className="text-lg font-semibold text-slate-900 mb-2">{feature.title}</h4>
+                    <p className="text-slate-500 text-sm">{feature.description}</p>
                   </div>
                 ))}
               </div>
             </div>
-          )}
 
-          {activeTab === 'battles' && (
+            {/* Recent Battles - Coming Soon */}
             <div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">Battle Modes</h3>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="bg-white p-8 rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all text-center">
-                  <Zap className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                  <h4 className="text-xl font-semibold text-slate-900 mb-2">Quick Match</h4>
-                  <p className="text-slate-500 text-sm mb-6">Get matched instantly with an opponent of similar skill level</p>
-                  <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">
-                    Find Match
-                  </button>
-                </div>
-                <div className="bg-white p-8 rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all text-center">
-                  <Trophy className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                  <h4 className="text-xl font-semibold text-slate-900 mb-2">Tournament</h4>
-                  <p className="text-slate-500 text-sm mb-6">Compete in bracket-style tournaments for glory and prizes</p>
-                  <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">
-                    Join Tournament
-                  </button>
-                </div>
-                <div className="bg-white p-8 rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all text-center">
-                  <Users className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                  <h4 className="text-xl font-semibold text-slate-900 mb-2">Private Battle</h4>
-                  <p className="text-slate-500 text-sm mb-6">Challenge your friends to a custom coding duel</p>
-                  <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">
-                    Create Room
-                  </button>
-                </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-6">Live Arena Feed</h3>
+              <div className="bg-white rounded-sm border border-slate-200 p-12 text-center">
+                <Activity className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500 font-mono">Real-time battle data will appear here as matches begin.</p>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </section>
 
