@@ -6,6 +6,8 @@ import {
   Play, Target, Activity, Terminal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import LoginModal from '../components/LoginModal';
+import SignupModal from '../components/SignupModal';
 
 const problems = [
   // 🟢 Beginner Tier (1-5)
@@ -167,6 +169,20 @@ export default function DataStructureBattlePage() {
   const navigate = useNavigate();
   const [selectedTier, setSelectedTier] = useState('all');
   const [hoveredProblem, setHoveredProblem] = useState(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
+
+  const switchToSignup = () => {
+    setShowLoginModal(false);
+    setTimeout(() => setShowSignupModal(true), 300); // Small delay for smooth transition or invoke immediately based on preference. Framer motion exit might take time.
+    // Actually, setting state immediately is fine if AnimatePresence handles it.
+    setShowSignupModal(true);
+  };
+
+  const switchToLogin = () => {
+    setShowSignupModal(false);
+    setShowLoginModal(true);
+  };
 
   const filteredProblems =
     selectedTier === 'all'
@@ -316,6 +332,16 @@ export default function DataStructureBattlePage() {
 
       {/* Problems List */}
       <section className="py-8">
+        <LoginModal 
+          isOpen={showLoginModal} 
+          onClose={() => setShowLoginModal(false)} 
+          onSwitchToSignup={switchToSignup}
+        />
+        <SignupModal 
+          isOpen={showSignupModal} 
+          onClose={() => setShowSignupModal(false)} 
+          onSwitchToLogin={switchToLogin}
+        />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <AnimatePresence mode="wait">
             <motion.div
@@ -391,6 +417,7 @@ export default function DataStructureBattlePage() {
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
+                          onClick={() => setShowLoginModal(true)}
                           className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                             isHovered
                               ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'

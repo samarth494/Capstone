@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Swords, Trophy, Users, Code, Zap, Target, Clock, 
@@ -31,6 +31,14 @@ export default function Frontpage() {
     target: targetRef,
     offset: ["start end", "end start"]
   });
+
+  // Scroll to top on refresh
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+  }, []);
 
   const features = [
     {
