@@ -39,12 +39,17 @@ const CodeArenaIntro = ({ onComplete }) => {
 
   return (
     <motion.div 
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-50"
-      initial="start"
-      animate={stage}
-      exit={{ opacity: 0, transition: { duration: 0.5 } }} 
+      className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
     >
-      <div className="relative flex items-center justify-center">
+      {/* Background Layer - Fades out */}
+      <motion.div 
+        className="absolute inset-0 bg-slate-50"
+        initial={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.8, ease: "easeInOut" }}
+      />
+
+      <div className="relative flex items-center justify-center z-10">
         <div className="flex items-center space-x-4">
             
             {/* The Logo Container (transitioning using layoutId) */}
