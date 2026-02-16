@@ -142,10 +142,10 @@ export default function Frontpage() {
             <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6">
               <button 
                 className="group bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 font-mono text-lg flex items-center justify-center shadow-lg hover:shadow-blue-500/30 transition-all"
-                onClick={() => navigate('/signup')} 
+                onClick={() => navigate('/blind-coding-lobby')} 
               >
                 <Zap className="w-5 h-5 mr-3 group-hover:text-yellow-300 transition-colors" />
-                Initialize_Battle()
+                Join Blind Championship
               </button>
               <button className="text-slate-700 bg-white px-8 py-4 rounded-lg border border-slate-200 hover:border-blue-400 hover:text-blue-600 font-mono text-lg transition-all flex items-center justify-center">
                 <Terminal className="w-5 h-5 mr-3" />

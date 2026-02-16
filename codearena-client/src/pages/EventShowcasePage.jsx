@@ -207,7 +207,7 @@ export default function EventShowcasePage() {
           >
             <motion.div variants={fadeInUp} className="inline-flex items-center px-4 py-2 rounded-full bg-purple-50 border border-purple-100 text-purple-600 text-xs font-bold uppercase tracking-widest mb-8">
               <span className="w-2 h-2 rounded-full bg-purple-600 mr-2 animate-pulse"></span>
-              Season 4 Finale
+              Technovia 8.0
             </motion.div>
             
             <motion.h1 variants={fadeInUp} className="text-5xl md:text-7xl font-bold text-slate-900 mb-6 tracking-tight leading-tight font-mono">
@@ -379,7 +379,7 @@ export default function EventShowcasePage() {
             >
               {[
                 { step: "01", title: "Registration", desc: "Sign up and join the lobby before the timer hits zero." },
-                { step: "02", title: "Blackout", desc: "For 30 minutes, your editor goes dark. You can type, but you can't see." },
+                { step: "02", title: "Blackout", desc: "For 15 minutes, your editor goes dark. You can type, but you can't see." },
                 { step: "03", title: "Revelation", desc: "At the buzzer, visibility returns. One compile. One run. Does it pass?" }
               ].map((s, i) => (
                 <motion.div key={i} variants={fadeInUp} className="flex group">
