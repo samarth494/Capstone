@@ -97,6 +97,7 @@ export default function Frontpage() {
             <nav className="hidden md:flex space-x-8 font-mono text-sm">
               <a href="#features" className="text-slate-500 hover:text-blue-600 transition-colors">./Features</a>
               <a href="#battles" className="text-slate-500 hover:text-blue-600 transition-colors">./Battle</a>
+              <a href="#events" className="text-slate-500 hover:text-blue-600 transition-colors">./Events</a>
               <a href="#community" className="text-slate-500 hover:text-blue-600 transition-colors">./Community</a>
             </nav>
             <div className="flex items-center space-x-4">
