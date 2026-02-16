@@ -21,6 +21,11 @@ export default function EventsPage() {
   const navigate = useNavigate();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSignupOpen, setIsSignupOpen] = useState(false);
+
+  const [user, setUser] = useState(() => {
+      const savedUser = localStorage.getItem('user');
+      return savedUser ? JSON.parse(savedUser) : null;
+  });
   
   const openLogin = () => { setIsLoginOpen(true); setIsSignupOpen(false); };
   const closeLogin = () => setIsLoginOpen(false);
@@ -150,12 +155,15 @@ export default function EventsPage() {
                     <div className="p-2 bg-slate-50 rounded-lg mr-3">
                         <Users className="w-5 h-5 text-green-600" />
                     </div>
-                    <span>124 Registered</span>
+                    <span>Limit: 30</span>
                   </div>
                 </div>
 
-                <button onClick={openLogin} className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-slate-500/20 flex items-center group-hover:translate-x-1">
-                  Register Now <ArrowRight className="w-5 h-5 ml-2" />
+                <button 
+                  onClick={() => navigate('/lobby')} 
+                  className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-slate-500/20 flex items-center group-hover:translate-x-1"
+                >
+                  Join Competition <ArrowRight className="w-5 h-5 ml-2" />
                 </button>
               </div>
               
@@ -172,42 +180,7 @@ export default function EventsPage() {
           </div>
         </motion.div>
 
-        {/* Other Events Grid */}
-        <div className="grid md:grid-cols-2 gap-8">
-          {events.slice(1).map((event, idx) => (
-            <motion.div
-              key={event.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 + (idx * 0.1) }}
-              className="bg-white border border-slate-200 rounded-xl p-8 hover:border-blue-200 hover:shadow-lg transition-all group"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div className={`w-14 h-14 rounded-xl ${event.bgColor} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                  <event.icon className={`w-7 h-7 ${event.color}`} />
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${event.status === 'Upcoming' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-green-50 text-green-600 border-green-100'}`}>
-                  {event.status}
-                </span>
-              </div>
-              
-              <h3 className="text-xl font-bold text-slate-900 mb-3 font-mono">{event.title}</h3>
-              <p className="text-slate-500 text-base mb-8 leading-relaxed min-h-[3rem]">
-                {event.description}
-              </p>
-              
-              <div className="flex items-center justify-between pt-6 border-t border-slate-100">
-                <div className="flex items-center text-sm font-medium text-slate-500">
-                  <Clock className="w-4 h-4 mr-2 text-slate-400" />
-                  {event.date}
-                </div>
-                <button className="text-blue-600 text-sm font-bold hover:text-blue-700 flex items-center transition-colors group-hover:translate-x-1">
-                  Details <ArrowRight className="w-4 h-4 ml-1" />
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+
       </main>
 
       {/* Modals */}

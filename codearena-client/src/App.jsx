@@ -12,6 +12,7 @@ import ProfilePage from "./pages/ProfilePage";
 import ReplayPage from "./pages/ReplayPage";
 import DataStructureBattlePage from "./pages/DataStructureBattlePage";
 import EventsPage from "./pages/EventsPage";
+import EventShowcasePage from "./pages/EventShowcasePage";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
@@ -25,7 +26,8 @@ function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/battle/data-structures" element={<DataStructureBattlePage />} />
-        <Route path="/events" element={<EventsPage />} />
+        <Route path="/events" element={<EventShowcasePage />} />
+
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
@@ -37,6 +39,7 @@ function App() {
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/profile/:userId" element={<ProfilePage />} />
           <Route path="/replay/:battleId" element={<ReplayPage />} />
+          <Route path="/dashboard/events" element={<EventsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
