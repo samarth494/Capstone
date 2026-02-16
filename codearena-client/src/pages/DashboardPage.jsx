@@ -95,6 +95,7 @@ export default function DashboardPage() {
 
                         <nav className="hidden md:flex space-x-8 font-mono text-sm">
                             <button onClick={() => navigate('/dashboard')} className="text-blue-600 transition-colors">./Dashboard</button>
+                            <button onClick={() => navigate('/events')} className="text-slate-500 hover:text-blue-600 transition-colors">./Events</button>
                             <button onClick={() => navigate(`/profile/${user._id}`)} className="text-slate-500 hover:text-blue-600 transition-colors">./Profile</button>
                             <button onClick={() => navigate('/leaderboard')} className="text-slate-500 hover:text-blue-600 transition-colors">./Leaderboard</button>
                         </nav>
