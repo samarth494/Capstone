@@ -271,12 +271,15 @@ export default function SignupPage() {
             </button>
           </form>
 
-          <div className="mt-8 text-center text-sm text-slate-500">
-            Already have an account?{' '}
-            <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
-              Log in to Terminal
-            </Link>
-          </div>
+           <div className="mt-8 text-center text-sm text-slate-500">
+                      Already have an account ?{" "}
+                      <Link
+                        to="/login"
+                        className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                      >
+                        Log in
+                      </Link>
+                    </div>  
 
         </div>
       </div>

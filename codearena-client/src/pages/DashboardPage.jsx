@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Navbar from '../components/Navbar';
 import {
     Swords,
     Trophy,
@@ -7,7 +8,6 @@ import {
     Code,
     Zap,
     Target,
-    LogOut,
     Activity,
     GitBranch,
     Terminal as TerminalIcon
@@ -19,7 +19,6 @@ export default function DashboardPage() {
         const savedUser = localStorage.getItem('user');
         return savedUser ? JSON.parse(savedUser) : null;
     });
-    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -28,13 +27,14 @@ export default function DashboardPage() {
         }
     }, [navigate, user]);
 
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/login');
-    };
-
     if (!user) return null; // Or a loading spinner
+
+    const navItems = [
+        { label: './Dashboard', path: '/dashboard', action: () => navigate('/dashboard') },
+        { label: './Events', path: '/dashboard/events', action: () => navigate('/dashboard/events') },
+        { label: './Profile', path: `/profile/${user._id}`, action: () => navigate(`/profile/${user._id}`) },
+        { label: './Leaderboard', path: '/leaderboard', action: () => navigate('/leaderboard') }
+    ];
 
     const stats = [
         { icon: Swords, label: 'Battles Won', value: '0' },
@@ -51,7 +51,7 @@ export default function DashboardPage() {
             color: 'text-blue-600',
             bgColor: 'bg-blue-50',
             borderColor: 'hover:border-blue-500',
-            action: () => navigate('/lobby')
+            action: () => navigate('/battle/data-structures')
         },
         {
             title: 'Practice Problems',
@@ -84,68 +84,7 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] font-['JetBrains_Mono']">
-            {/* Header */}
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
-                            <Swords className="w-8 h-8 text-blue-600" />
-                            <h1 className="text-xl font-bold text-slate-900 font-mono tracking-tighter">CodeArena_</h1>
-                        </div>
-
-                        <nav className="hidden md:flex space-x-8 font-mono text-sm">
-                            <button onClick={() => navigate('/dashboard')} className="text-blue-600 transition-colors">./Dashboard</button>
-                            <button onClick={() => navigate('/dashboard/events')} className="text-slate-500 hover:text-blue-600 transition-colors">./Events</button>
-                            <button onClick={() => navigate(`/profile/${user._id}`)} className="text-slate-500 hover:text-blue-600 transition-colors">./Profile</button>
-                            <button onClick={() => navigate('/leaderboard')} className="text-slate-500 hover:text-blue-600 transition-colors">./Leaderboard</button>
-                        </nav>
-
-                        <div className="flex items-center space-x-4">
-                            <button
-                                onClick={() => navigate(`/profile/${user._id}`)}
-                                className="hidden md:flex items-center space-x-2 text-sm text-slate-600 mr-4 hover:text-blue-600 transition-colors"
-                            >
-                                <TerminalIcon size={16} />
-                                <span>{user.username}</span>
-                            </button>
-                            <button
-                                onClick={() => setShowLogoutConfirm(true)}
-                                className="flex items-center space-x-2 text-slate-500 hover:text-red-600 transition-colors text-sm font-medium"
-                            >
-                                <LogOut size={18} />
-                                <span>Logout</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            {/* Logout Confirmation Modal */}
-            {showLogoutConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-6 max-w-sm w-full mx-4 transform transition-all scale-100">
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">Confirm Logout</h3>
-                        <p className="text-slate-500 mb-6">
-                            Are you sure you want to terminate your session?
-                        </p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setShowLogoutConfirm(false)}
-                                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleLogout}
-                                className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg font-medium transition-colors flex items-center gap-2"
-                            >
-                                <LogOut size={16} />
-                                <span>Logout</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Navbar items={navItems} user={user} />
 
             {/* Welcome Section */}
             <section className="bg-white border-b border-slate-200 py-12 px-4 relative overflow-hidden">

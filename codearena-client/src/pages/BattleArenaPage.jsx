@@ -117,7 +117,7 @@ export default function BattleArenaPage() {
                 socket.on('battle:error', ({ message }) => {
                     console.error("Battle error:", message);
                     alert(message);
-                    navigate('/lobby');
+                    navigate('/dashboard');
                 });
 
                 socket.on('battle:result', ({ winnerId, winnerName, reason }) => {
@@ -422,7 +422,7 @@ export default function BattleArenaPage() {
                                     Enter Dashboard
                                 </button>
                                 <button
-                                    onClick={() => navigate('/lobby')}
+                                    onClick={() => navigate('/dashboard')}
                                     className="w-full py-4 text-slate-500 hover:text-blue-600 font-black uppercase tracking-widest rounded-2xl transition-all"
                                 >
                                     Seek New Rival

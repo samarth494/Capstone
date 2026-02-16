@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
+import Navbar from '../components/Navbar';
 import { 
   Calendar, 
   EyeOff, 
@@ -179,27 +180,16 @@ export default function EventsPage() {
         transition={{ duration: 0.8 }}
         className="min-h-screen bg-[#F8FAFC] font-['JetBrains_Mono']"
       >
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-                <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
-                    <Swords className="w-8 h-8 text-blue-600" />
-                    <h1 className="text-xl font-bold text-slate-900 font-mono tracking-tighter">CodeArena_</h1>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className="flex items-center space-x-2 px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors text-sm font-medium border border-transparent hover:border-slate-200"
-                    >
-                        <LayoutDashboard size={18} />
-                        <span>Dashboard</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-      </header>
+      {/* Navbar */}
+      <Navbar 
+        items={[
+             { label: './Dashboard', path: '/dashboard', action: () => navigate('/dashboard') },
+             { label: './Events', path: '/dashboard/events', action: () => navigate('/dashboard/events') }, 
+             { label: './Profile', path: user ? `/profile/${user._id}` : '#', action: () => user && navigate(`/profile/${user._id}`) },
+             { label: './Leaderboard', path: '/leaderboard', action: () => navigate('/leaderboard') }
+        ]} 
+        user={user} 
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
@@ -266,7 +256,7 @@ export default function EventsPage() {
                 </div>
 
                 <button 
-                  onClick={() => navigate('/lobby')} 
+                  onClick={() => navigate('/dashboard')} 
                   className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-slate-500/20 flex items-center group-hover:translate-x-1"
                 >
                   Join Competition <ArrowRight className="w-5 h-5 ml-2" />

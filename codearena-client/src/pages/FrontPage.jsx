@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Swords, Trophy, Users, Code, Zap, Target, Clock, 
   TrendingUp, Activity, Terminal, Shield, Cpu, Globe, 
-  CheckCircle, ChevronRight
+  CheckCircle, ChevronRight, Menu, X
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import CodeArenaIntro from '../components/CodeArenaIntro';
@@ -26,6 +26,7 @@ const staggerContainer = {
 export default function Frontpage() {
   const navigate = useNavigate();
   const [showIntro, setShowIntro] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const targetRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: targetRef,
@@ -94,23 +95,99 @@ export default function Frontpage() {
                 </>
               )}
             </div>
-            <nav className="hidden md:flex space-x-8 font-mono text-sm">
-              <a href="#features" className="text-slate-500 hover:text-blue-600 transition-colors">./Features</a>
-              <a href="#battles" className="text-slate-500 hover:text-blue-600 transition-colors">./Battle</a>
-              <button onClick={() => navigate('/events')} className="text-slate-500 hover:text-blue-600 transition-colors">./Events</button>
-              <a href="#community" className="text-slate-500 hover:text-blue-600 transition-colors">./Community</a>
+            
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex space-x-8 font-mono text-sm h-full">
+              {[
+                { label: './Features', href: '#features' },
+                { label: './Battle', href: '#battles' },
+                { label: './Events', action: () => navigate('/events') },
+                { label: './Community', href: '#community' }
+              ].map((item, index) => (
+                item.action ? (
+                  <button 
+                    key={index}
+                    onClick={item.action} 
+                    className="group relative flex items-center h-full text-slate-600 hover:text-blue-600 font-medium transition-colors"
+                  >
+                    {item.label}
+                    <span className="absolute bottom-0 left-0 w-full h-[3px] bg-blue-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out"></span>
+                  </button>
+                ) : (
+                  <a 
+                    key={index}
+                    href={item.href} 
+                    className="group relative flex items-center h-full text-slate-600 hover:text-blue-600 font-medium transition-colors"
+                  >
+                    {item.label}
+                    <span className="absolute bottom-0 left-0 w-full h-[3px] bg-blue-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out"></span>
+                  </a>
+                )
+              ))}
             </nav>
+
             <div className="flex items-center space-x-4">
-              <button onClick={() => navigate('/login')} className="text-slate-600 hover:text-slate-900 font-medium font-mono text-sm">Log_In</button>
+              <div className="hidden md:flex items-center space-x-4">
+                  <button onClick={() => navigate('/login')} className="text-slate-600 hover:text-slate-900 font-medium font-mono text-sm">Log_In</button>
+                  <button 
+                    onClick={() => navigate('/signup')} 
+                    className="bg-slate-900 text-white px-5 py-2 rounded-md hover:bg-slate-800 font-medium shadow-lg shadow-slate-200 transition-all hover:shadow-xl active:scale-95"
+                  >
+                    Get Started
+                  </button>
+              </div>
+
+              {/* Mobile Menu Toggle */}
               <button 
-                onClick={() => navigate('/signup')} 
-                className="bg-slate-900 text-white px-5 py-2 rounded-md hover:bg-slate-800 font-medium shadow-lg shadow-slate-200 transition-all hover:shadow-xl active:scale-95"
+                className="md:hidden text-slate-600 hover:text-blue-600 transition-colors"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
-                Get Started
+                  {isMenuOpen ? <X /> : <Menu />}
               </button>
             </div>
           </div>
         </div>
+
+        {/* Mobile Menu - Classic & Premium */}
+        <AnimatePresence>
+            {isMenuOpen && (
+                <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="md:hidden absolute top-16 left-0 w-full bg-white/95 backdrop-blur-xl border-b border-slate-200 shadow-2xl z-30 overflow-hidden"
+                >
+                    <div className="px-6 py-8 space-y-6 font-mono">
+                        <div className="space-y-4">
+                            <a href="#features" onClick={() => setIsMenuOpen(false)} className="block px-4 text-slate-600 hover:text-blue-600 transition-colors font-medium text-lg">
+                                ./Features
+                            </a>
+                            <a href="#battles" onClick={() => setIsMenuOpen(false)} className="block px-4 text-slate-600 hover:text-blue-600 transition-colors font-medium text-lg">
+                                ./Battle_Arena
+                            </a>
+                            <button onClick={() => { navigate('/events'); setIsMenuOpen(false); }} className="w-full text-left px-4 text-slate-600 hover:text-blue-600 transition-colors font-medium text-lg">
+                                ./Events
+                            </button>
+                            <a href="#community" onClick={() => setIsMenuOpen(false)} className="block px-4 text-slate-600 hover:text-blue-600 transition-colors font-medium text-lg">
+                                ./Community
+                            </a>
+                        </div>
+                        
+                        <div className="h-px bg-slate-100 w-full my-6"></div>
+
+                        <div className="grid grid-cols-2 gap-4 px-2">
+                            <button onClick={() => navigate('/login')} className="flex items-center justify-center py-3 text-slate-600 font-bold border border-slate-200 rounded-lg hover:border-slate-400 hover:text-slate-900 transition-all">
+                                Log_In
+                            </button>
+                            <button onClick={() => navigate('/signup')} className="flex items-center justify-center py-3 text-slate-900 font-bold border-2 border-slate-900 rounded-lg hover:bg-slate-50 transition-all">
+                                Sign_Up
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
       </header>
 
       {/* Hero Section */}
@@ -141,13 +218,16 @@ export default function Frontpage() {
             
             <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6">
               <button 
-                className="group bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 font-mono text-lg flex items-center justify-center shadow-lg hover:shadow-blue-500/30 transition-all"
-                onClick={() => navigate('/blind-coding-lobby')} 
+                onClick={() => navigate('/battle/data-structures')} 
+                className="group bg-transparent text-slate-900 border-2 border-slate-200 px-8 py-4 rounded-lg hover:border-slate-900 hover:bg-slate-50 font-mono text-lg flex items-center justify-center transition-all"
               >
-                <Zap className="w-5 h-5 mr-3 group-hover:text-yellow-300 transition-colors" />
-                Join Blind Championship
+                <Zap className="w-5 h-5 mr-3 text-slate-400 group-hover:text-yellow-500 transition-colors" />
+                Start Battle
               </button>
-              <button className="text-slate-700 bg-white px-8 py-4 rounded-lg border border-slate-200 hover:border-blue-400 hover:text-blue-600 font-mono text-lg transition-all flex items-center justify-center">
+              <button 
+                onClick={() => document.getElementById('battles').scrollIntoView({ behavior: 'smooth' })}
+                className="text-slate-700 bg-white px-8 py-4 rounded-lg border border-slate-200 hover:border-blue-400 hover:text-blue-600 font-mono text-lg transition-all flex items-center justify-center"
+              >
                 <Terminal className="w-5 h-5 mr-3" />
                 Explore Problems
               </button>
