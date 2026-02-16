@@ -21,11 +21,21 @@ export default function EventsPage() {
   const navigate = useNavigate();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSignupOpen, setIsSignupOpen] = useState(false);
+  const [showContent, setShowContent] = useState(false);
 
   const [user, setUser] = useState(() => {
       const savedUser = localStorage.getItem('user');
       return savedUser ? JSON.parse(savedUser) : null;
   });
+
+  // Animation complete hone ke baad content show karo
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowContent(true);
+    }, 3500); // 3.5 seconds animation
+
+    return () => clearTimeout(timer);
+  }, []);
   
   const openLogin = () => { setIsLoginOpen(true); setIsSignupOpen(false); };
   const closeLogin = () => setIsLoginOpen(false);
@@ -72,7 +82,103 @@ export default function EventsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-['JetBrains_Mono']">
+    <>
+      {/* Opening Logo Animation - Full Screen */}
+      {!showContent && (
+        <motion.div
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="fixed inset-0 z-[9999] bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center"
+        >
+          <div className="relative">
+            {/* Background Circle */}
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="relative w-80 h-80 bg-white rounded-full flex items-center justify-center border-8 border-slate-100 shadow-2xl"
+            >
+              {/* Eye Icon with entrance animation */}
+              <motion.div
+                initial={{ scale: 0, rotate: -180, opacity: 0 }}
+                animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                transition={{
+                  duration: 1,
+                  delay: 0.3,
+                  ease: [0.34, 1.56, 0.64, 1],
+                  opacity: { duration: 0.4, delay: 0.3 }
+                }}
+                className="relative z-10"
+              >
+                <EyeOff className="w-32 h-32 text-slate-300" />
+              </motion.div>
+
+              {/* Dashed Circle with draw animation */}
+              <motion.div
+                initial={{ scale: 0, opacity: 0, rotate: -90 }}
+                animate={{
+                  scale: 1,
+                  opacity: 1,
+                  rotate: 0,
+                }}
+                transition={{
+                  duration: 1.2,
+                  delay: 1.3,
+                  ease: "easeInOut"
+                }}
+                className="absolute inset-0 rounded-full border-4 border-dashed border-slate-300"
+              >
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{
+                    duration: 20,
+                    repeat: Infinity,
+                    ease: "linear",
+                    delay: 2.5
+                  }}
+                  className="w-full h-full"
+                />
+              </motion.div>
+
+              {/* Code Badge */}
+              <motion.div
+                initial={{ scale: 0, y: -20, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                transition={{
+                  duration: 0.6,
+                  delay: 2.2,
+                  type: "spring",
+                  stiffness: 200
+                }}
+                className="absolute -right-6 top-4 bg-gradient-to-br from-purple-500 to-indigo-600 p-5 rounded-2xl shadow-2xl"
+              >
+                <Code className="w-10 h-10 text-white" />
+              </motion.div>
+            </motion.div>
+
+            {/* Title Text */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 2.5 }}
+              className="text-center mt-8"
+            >
+              <h2 className="text-3xl font-bold text-slate-900 font-mono">Blind Coding</h2>
+              <p className="text-slate-500 mt-2">Loading Event...</p>
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Main Page Content - Fades in after animation */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: showContent ? 1 : 0 }}
+        transition={{ duration: 0.8 }}
+        className="min-h-screen bg-[#F8FAFC] font-['JetBrains_Mono']"
+      >
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -168,13 +274,69 @@ export default function EventsPage() {
               </div>
               
               <div className="w-full md:w-1/3 flex justify-center">
-                <div className="relative w-64 h-64 bg-slate-50 rounded-full flex items-center justify-center border-8 border-slate-100 shadow-inner">
-                  <EyeOff className="w-24 h-24 text-slate-300" />
-                  <div className="absolute inset-0 rounded-full border-4 border-dashed border-slate-200 animate-[spin_20s_linear_infinite]"></div>
-                  <div className="absolute -right-4 top-0 bg-white p-4 rounded-xl shadow-lg border border-slate-100 animation-bounce">
+                <motion.div 
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className="relative w-64 h-64 bg-slate-50 rounded-full flex items-center justify-center border-8 border-slate-100 shadow-inner"
+                >
+                  {/* Eye Icon with entrance animation */}
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180, opacity: 0 }}
+                    animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                    transition={{ 
+                      duration: 1,
+                      delay: 0.3,
+                      ease: [0.34, 1.56, 0.64, 1], // Bouncy ease
+                      opacity: { duration: 0.4, delay: 0.3 }
+                    }}
+                    className="relative z-10"
+                  >
+                    <EyeOff className="w-24 h-24 text-slate-300" />
+                  </motion.div>
+
+                  {/* Dashed Circle with draw animation */}
+                  <motion.div 
+                    initial={{ scale: 0, opacity: 0, rotate: -90 }}
+                    animate={{ 
+                      scale: 1, 
+                      opacity: 1, 
+                      rotate: 0,
+                    }}
+                    transition={{
+                      duration: 1.2,
+                      delay: 1.3,
+                      ease: "easeInOut"
+                    }}
+                    className="absolute inset-0 rounded-full border-4 border-dashed border-slate-200"
+                  >
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{
+                        duration: 20,
+                        repeat: Infinity,
+                        ease: "linear",
+                        delay: 2.5
+                      }}
+                      className="w-full h-full"
+                    />
+                  </motion.div>
+
+                  {/* Code Badge */}
+                  <motion.div 
+                    initial={{ scale: 0, y: -20, opacity: 0 }}
+                    animate={{ scale: 1, y: 0, opacity: 1 }}
+                    transition={{
+                      duration: 0.6,
+                      delay: 2.2,
+                      type: "spring",
+                      stiffness: 200
+                    }}
+                    className="absolute -right-4 top-0 bg-white p-4 rounded-xl shadow-lg border border-slate-100"
+                  >
                     <Code className="w-8 h-8 text-purple-600" />
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               </div>
             </div>
           </div>
@@ -186,6 +348,7 @@ export default function EventsPage() {
       {/* Modals */}
       <LoginModal isOpen={isLoginOpen} onClose={closeLogin} onSwitchToSignup={openSignup} />
       <SignupModal isOpen={isSignupOpen} onClose={closeSignup} onSwitchToLogin={openLogin} />
-    </div>
+      </motion.div>
+    </>
   );
 }
