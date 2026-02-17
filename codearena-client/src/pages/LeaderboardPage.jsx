@@ -94,6 +94,7 @@ export default function LeaderboardPage() {
                                     <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest w-24">RANK</th>
                                     <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">WARRIOR</th>
                                     <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">TIER</th>
+                                    <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">XP</th>
                                     <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">WINS</th>
                                     <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">LOSSES</th>
                                     <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">WIN RATE</th>
@@ -103,13 +104,13 @@ export default function LeaderboardPage() {
                             <tbody className="divide-y divide-slate-100">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan="6" className="px-8 py-20 text-center text-slate-400 font-sans italic">
+                                        <td colSpan="8" className="px-8 py-20 text-center text-slate-400 font-sans italic">
                                             Scanning battle records...
                                         </td>
                                     </tr>
                                 ) : leaderboard.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="px-8 py-20 text-center text-slate-400 font-sans italic">
+                                        <td colSpan="8" className="px-8 py-20 text-center text-slate-400 font-sans italic">
                                             The hall of fame is currently empty. Start a battle to make history.
                                         </td>
                                     </tr>
@@ -131,12 +132,17 @@ export default function LeaderboardPage() {
                                             </td>
                                             <td className="px-8 py-5 text-center">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-widest border ${user.rank === 'Diamond' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                                                        user.rank === 'Platinum' ? 'bg-purple-50 text-purple-600 border-purple-100' :
-                                                            user.rank === 'Gold' ? 'bg-yellow-50 text-yellow-600 border-yellow-100' :
-                                                                user.rank === 'Silver' ? 'bg-slate-100 text-slate-600 border-slate-200' :
-                                                                    'bg-orange-50 text-orange-600 border-orange-100'
+                                                    user.rank === 'Platinum' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                                                        user.rank === 'Gold' ? 'bg-yellow-50 text-yellow-600 border-yellow-100' :
+                                                            user.rank === 'Silver' ? 'bg-slate-100 text-slate-600 border-slate-200' :
+                                                                'bg-orange-50 text-orange-600 border-orange-100'
                                                     }`}>
                                                     {user.rank?.toUpperCase() || 'BRONZE'}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-center">
+                                                <span className="text-sm font-bold text-yellow-600 font-mono tracking-tighter shadow-sm border border-yellow-100 bg-yellow-50 px-2.5 py-0.5 rounded-full">
+                                                    {user.xp} XP
                                                 </span>
                                             </td>
                                             <td className="px-8 py-5 text-center">

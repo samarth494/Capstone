@@ -4,6 +4,7 @@ import SignupPage from "./pages/SignupPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import PracticePage from "./pages/PracticePage";
+import SingleplayerPage from "./pages/SingleplayerPage";
 import ProblemSolverPage from "./pages/ProblemSolverPage";
 import BattleArenaPage from "./pages/BattleArenaPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
@@ -34,6 +35,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/practice" element={<PracticePage />} />
+          <Route path="/singleplayer" element={<SingleplayerPage />} />
           <Route path="/lobby" element={<BattleLobbyPage />} />
           <Route path="/problem/:problemId" element={<ProblemSolverPage />} />
           <Route path="/battle/:roomId" element={<BattleArenaPage />} />

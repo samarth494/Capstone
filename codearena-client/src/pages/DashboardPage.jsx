@@ -54,13 +54,13 @@ export default function DashboardPage() {
             action: () => navigate('/lobby')
         },
         {
-            title: 'Practice Problems',
-            description: 'Hone your skills with our collection of algorithmic challenges.',
+            title: 'Singleplayer',
+            description: 'Master Fundamentals and Data Structures to level up your XP.',
             icon: Code,
             color: 'text-green-600',
             bgColor: 'bg-green-50',
             borderColor: 'hover:border-green-500',
-            action: () => navigate('/practice')
+            action: () => navigate('/singleplayer')
         },
         {
             title: 'Leaderboard',
