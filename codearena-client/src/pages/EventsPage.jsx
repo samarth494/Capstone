@@ -22,7 +22,9 @@ export default function EventsPage() {
   const navigate = useNavigate();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSignupOpen, setIsSignupOpen] = useState(false);
-  const [showContent, setShowContent] = useState(false);
+  const [showContent, setShowContent] = useState(() => {
+    return !!sessionStorage.getItem('hasSeenDashboardEventsIntro');
+  });
 
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('user');
@@ -31,12 +33,15 @@ export default function EventsPage() {
 
   // Animation complete hone ke baad content show karo
   React.useEffect(() => {
+    if (showContent) return;
+
     const timer = setTimeout(() => {
       setShowContent(true);
+      sessionStorage.setItem('hasSeenDashboardEventsIntro', 'true');
     }, 3500); // 3.5 seconds animation
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [showContent]);
 
   const openLogin = () => { setIsLoginOpen(true); setIsSignupOpen(false); };
   const closeLogin = () => setIsLoginOpen(false);

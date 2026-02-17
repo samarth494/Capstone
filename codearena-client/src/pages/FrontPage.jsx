@@ -25,7 +25,9 @@ const staggerContainer = {
 
 export default function Frontpage() {
   const navigate = useNavigate();
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(() => {
+    return !sessionStorage.getItem('hasSeenIntro');
+  });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const targetRef = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -68,7 +70,10 @@ export default function Frontpage() {
     <div className="min-h-screen bg-slate-50 overflow-x-hidden selection:bg-blue-200 selection:text-blue-900">
       {/* Cinematic Intro */}
       <AnimatePresence>
-        {showIntro && <CodeArenaIntro onComplete={() => setShowIntro(false)} />}
+        {showIntro && <CodeArenaIntro onComplete={() => {
+          setShowIntro(false);
+          sessionStorage.setItem('hasSeenIntro', 'true');
+        }} />}
       </AnimatePresence>
 
       {/* Header */}

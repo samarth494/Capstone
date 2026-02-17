@@ -23,9 +23,8 @@ export default function CompetitionLobbyPage() {
     });
 
     const [players, setPlayers] = useState([]);
-    const [hostId, setHostId] = useState(null);
-    const [selectedLanguage, setSelectedLanguage] = useState(null);
-    const [showLanguageSelector, setShowLanguageSelector] = useState(true);
+
+    const [selectedLanguage, setSelectedLanguage] = useState('cpp'); // Default to cpp or allow user to change later
     const [leaderboard, setLeaderboard] = useState([
         { id: 1, username: 'ZenithCode', xp: 12500, rank: 'Platinum' },
         { id: 2, username: 'ByteMaster', xp: 11200, rank: 'Gold' },
@@ -49,9 +48,9 @@ export default function CompetitionLobbyPage() {
             socket = getSocket();
         }
 
-        if (socket && selectedLanguage) {
-            // Join competition with selected language
-            socket.emit('competition:join', { eventId, user, language: selectedLanguage });
+        if (socket) {
+            // Join competition directly
+            socket.emit('competition:join', { eventId, user, language: 'cpp' });
 
             // Listen for player updates
             socket.on('competition:updatePlayers', (updatedPlayers) => {
@@ -63,11 +62,6 @@ export default function CompetitionLobbyPage() {
                 setTimeLeft(time);
             });
 
-            // Listen for host info
-            socket.on('competition:hostInfo', ({ hostId }) => {
-                setHostId(hostId);
-            });
-
             // Listen for start event
             socket.on('competition:roundStarted', (data) => {
                 setIsStarting(true);
@@ -75,7 +69,7 @@ export default function CompetitionLobbyPage() {
                     navigate('/problem/blind-coding', {
                         state: {
                             blindMode: true,
-                            language: selectedLanguage
+                            language: 'cpp'
                         }
                     });
                 }, 2000);
@@ -98,22 +92,7 @@ export default function CompetitionLobbyPage() {
                 socket.off('competition:error');
             }
         };
-    }, [eventId, navigate, user, selectedLanguage]);
-
-    const handleLanguageSelect = (lang) => {
-        setSelectedLanguage(lang);
-        setShowLanguageSelector(false);
-    };
-
-    // Admin function to start round
-    const handleStartRound = () => {
-        const socket = getSocket();
-        if (socket) {
-            socket.emit('competition:startRound', { eventId });
-        }
-    };
-
-    const isHost = getSocket()?.id === hostId;
+    }, [eventId, navigate, user]);
 
     const formatTime = (seconds) => {
         const m = Math.floor(seconds / 60);
@@ -124,10 +103,7 @@ export default function CompetitionLobbyPage() {
     return (
         <div className="min-h-screen bg-[#F8FAFC] font-['JetBrains_Mono']">
             <Navbar
-                items={[
-                    { label: './Events', path: '/dashboard/events', action: () => navigate('/dashboard/events') },
-                    { label: './Profile', path: user ? `/profile/${user._id}` : '#', action: () => user && navigate(`/profile/${user._id}`) }
-                ]}
+                items={[]}
                 user={user}
             />
 
@@ -184,7 +160,6 @@ export default function CompetitionLobbyPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <AnimatePresence>
                                         {(players.length > 0 ? players : [{ username: user?.username || 'You', isMe: true, socketId: getSocket()?.id }]).map((player, idx) => {
-                                            const isPlayerHost = player.socketId === hostId;
                                             const isMe = player.socketId === getSocket()?.id;
 
                                             return (
@@ -208,11 +183,6 @@ export default function CompetitionLobbyPage() {
                                                                 <div className="font-bold text-slate-900 truncate max-w-[120px]">
                                                                     {player.username}
                                                                 </div>
-                                                                {isPlayerHost && (
-                                                                    <div className="bg-amber-100 text-amber-700 text-[8px] font-black px-1.5 py-0.5 rounded border border-amber-200 flex items-center gap-1 uppercase">
-                                                                        <Crown size={8} /> Host
-                                                                    </div>
-                                                                )}
                                                             </div>
                                                             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                                                                 {isMe ? 'Your Status' : 'Ready'}
@@ -228,40 +198,28 @@ export default function CompetitionLobbyPage() {
                                     </AnimatePresence>
                                 </div>
 
-                                {isHost ? (
-                                    <div className="mt-10 p-8 border-2 border-dashed border-blue-200 bg-blue-50/30 rounded-3xl flex flex-col items-center text-center">
-                                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                                            <Crown className="w-8 h-8 text-blue-600" />
-                                        </div>
-                                        <h3 className="font-bold text-slate-900 mb-2">You are the Lobby Host</h3>
-                                        <p className="text-sm text-slate-500 max-w-xs leading-relaxed">
-                                            You have the authority to start the competition for everyone once the minimum player count is reached.
-                                        </p>
-
-                                        <button
-                                            onClick={handleStartRound}
-                                            className="mt-6 bg-slate-900 hover:bg-slate-800 text-white px-10 py-4 rounded-xl font-bold flex items-center gap-2 transition-all hover:shadow-xl active:scale-95 group"
-                                        >
-                                            <Play size={18} fill="currentColor" className="group-hover:translate-x-0.5 transition-transform" />
-                                            Start Competition
-                                        </button>
+                                <div className="mt-10 p-8 border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center text-center">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                                        <Users className="w-8 h-8 text-slate-300" />
                                     </div>
-                                ) : (
-                                    <div className="mt-10 p-8 border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center text-center">
-                                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                                            <Swords className="w-8 h-8 text-slate-300" />
-                                        </div>
-                                        <h3 className="font-bold text-slate-900 mb-2">Waiting for host to start...</h3>
-                                        <p className="text-sm text-slate-500 max-w-xs leading-relaxed">
-                                            The competition will begin as soon as the host initiates the round. Prepare your logic.
-                                        </p>
+                                    <h3 className="font-bold text-slate-900 mb-2">Waiting for challengers...</h3>
+                                    <p className="text-sm text-slate-500 max-w-xs leading-relaxed">
+                                        The battle will commence automatically when 30 warriors have entered the arena.
+                                    </p>
 
-                                        <div className="mt-6 flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                            <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-pulse"></span>
-                                            System: Synchronizing Players
+                                    <div className="mt-6 w-full max-w-md">
+                                        <div className="flex justify-between text-xs font-bold text-slate-500 mb-2 uppercase tracking-widest">
+                                            <span>Lobby Status</span>
+                                            <span>{players.length || 1}/30 Ready</span>
+                                        </div>
+                                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                            <div 
+                                                className="h-full bg-blue-500 transition-all duration-500 ease-out"
+                                                style={{ width: `${((players.length || 1) / 30) * 100}%` }}
+                                            ></div>
                                         </div>
                                     </div>
-                                )}
+                                </div>
                             </div>
                         </section>
                     </div>
@@ -316,47 +274,7 @@ export default function CompetitionLobbyPage() {
                 </div>
             </main>
 
-            {/* Language Selection Overlay */}
-            <AnimatePresence>
-                {showLanguageSelector && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[110] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-6"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            className="bg-white rounded-[2.5rem] p-10 max-w-2xl w-full shadow-2xl border border-white/20"
-                        >
-                            <h2 className="text-3xl font-black text-slate-900 mb-2 text-center">Select Your Weapon</h2>
-                            <p className="text-slate-500 mb-10 text-center font-bold uppercase tracking-widest text-xs">Choose the language for this competition</p>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                {[
-                                    { id: 'c', name: 'C', icon: 'C', color: 'bg-blue-50 text-blue-600 border-blue-100' },
-                                    { id: 'cpp', name: 'C++', icon: 'C++', color: 'bg-indigo-50 text-indigo-600 border-indigo-100' },
-                                    { id: 'java', name: 'Java', icon: 'Java', color: 'bg-orange-50 text-orange-600 border-orange-100' }
-                                ].map((lang) => (
-                                    <button
-                                        key={lang.id}
-                                        onClick={() => handleLanguageSelect(lang.id)}
-                                        className={`${lang.color} p-8 rounded-3xl border-2 hover:scale-105 transition-all duration-300 flex flex-col items-center gap-4 group hover:shadow-xl`}
-                                    >
-                                        <div className="text-4xl font-black group-hover:rotate-12 transition-transform">{lang.icon}</div>
-                                        <span className="font-black text-lg uppercase tracking-tighter">{lang.name}</span>
-                                    </button>
-                                ))}
-                            </div>
-
-                            <p className="mt-10 text-center text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                                * selected language cannot be changed after joining
-                            </p>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
 
             {/* Starting Overlay */}
             <AnimatePresence>
