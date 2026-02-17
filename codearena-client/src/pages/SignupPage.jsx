@@ -42,7 +42,7 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch('http://10.252.225.132:5000/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -271,15 +271,15 @@ export default function SignupPage() {
             </button>
           </form>
 
-           <div className="mt-8 text-center text-sm text-slate-500">
-                      Already have an account ?{" "}
-                      <Link
-                        to="/login"
-                        className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                      >
-                        Log in
-                      </Link>
-                    </div>  
+          <div className="mt-8 text-center text-sm text-slate-500">
+            Already have an account ?{" "}
+            <Link
+              to="/login"
+              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              Log in
+            </Link>
+          </div>
 
         </div>
       </div>

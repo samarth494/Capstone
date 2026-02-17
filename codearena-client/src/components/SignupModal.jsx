@@ -43,7 +43,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/register", {
+      const response = await fetch("http://10.252.225.132:5000/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -88,7 +88,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
             onClick={onClose}
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
           />
-          
+
           <motion.div
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -96,7 +96,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
             className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden z-10 border border-slate-200  max-h-[90vh] overflow-y-auto"
           >
             {/* Close Button */}
-            <button 
+            <button
               onClick={onClose}
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-20"
             >
@@ -209,7 +209,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
 
                 {/* Error & Submit */}
                 {error && <div className="text-red-500 text-sm font-medium text-center bg-red-50 p-2 rounded">{error}</div>}
-                
+
                 <button
                   type="submit"
                   disabled={isLoading}

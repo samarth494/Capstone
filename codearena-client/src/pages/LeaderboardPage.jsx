@@ -19,7 +19,7 @@ export default function LeaderboardPage() {
     useEffect(() => {
         const fetchLeaderboard = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/leaderboard');
+                const response = await fetch('http://10.252.225.132:5000/api/leaderboard');
                 const data = await response.json();
                 setLeaderboard(data);
             } catch (error) {
@@ -131,10 +131,10 @@ export default function LeaderboardPage() {
                                             </td>
                                             <td className="px-8 py-5 text-center">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-widest border ${user.rank === 'Diamond' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                                                        user.rank === 'Platinum' ? 'bg-purple-50 text-purple-600 border-purple-100' :
-                                                            user.rank === 'Gold' ? 'bg-yellow-50 text-yellow-600 border-yellow-100' :
-                                                                user.rank === 'Silver' ? 'bg-slate-100 text-slate-600 border-slate-200' :
-                                                                    'bg-orange-50 text-orange-600 border-orange-100'
+                                                    user.rank === 'Platinum' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                                                        user.rank === 'Gold' ? 'bg-yellow-50 text-yellow-600 border-yellow-100' :
+                                                            user.rank === 'Silver' ? 'bg-slate-100 text-slate-600 border-slate-200' :
+                                                                'bg-orange-50 text-orange-600 border-orange-100'
                                                     }`}>
                                                     {user.rank?.toUpperCase() || 'BRONZE'}
                                                 </span>

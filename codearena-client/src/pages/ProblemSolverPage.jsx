@@ -31,7 +31,7 @@ export default function ProblemSolverPage() {
     const [isRunning, setIsRunning] = useState(false);
     const [language, setLanguage] = useState(location.state?.language || 'javascript');
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    
+
     // Timer state for 15 minutes
     const [timeLeft, setTimeLeft] = useState(15 * 60);
 
@@ -79,7 +79,7 @@ export default function ProblemSolverPage() {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/code/run', {
+            const response = await fetch('http://10.252.225.132:5000/api/code/run', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -253,10 +253,10 @@ export default function ProblemSolverPage() {
                         <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 font-mono text-sm my-4">
                             <p className="mb-2"><span className="font-bold text-slate-900">Input:</span> 15</p>
                             <p><span className="font-bold text-slate-900">Output:</span> Odd, Sum: 6</p>
-                             <p><span className="font-bold text-slate-900">Explanation:</span> 15 is odd. 1 + 5 = 6.</p>
+                            <p><span className="font-bold text-slate-900">Explanation:</span> 15 is odd. 1 + 5 = 6.</p>
                         </div>
 
-                         <h3 className="text-lg">Constraints:</h3>
+                        <h3 className="text-lg">Constraints:</h3>
                         <ul className="list-disc pl-5 space-y-1">
                             <li>Input will be a valid integer `n`.</li>
                             <li><code>-10^9 &lt;= n &lt;= 10^9</code></li>

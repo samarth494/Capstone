@@ -22,7 +22,7 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const response = await fetch(`http://localhost:5000/api/users/profile/${userId}`);
+                const response = await fetch(`http://10.252.225.132:5000/api/users/profile/${userId}`);
                 const result = await response.json();
                 setData(result);
             } catch (error) {
