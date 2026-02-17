@@ -12,6 +12,8 @@ import {
   Play
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import LoginModal from '../components/LoginModal';
+import SignupModal from '../components/SignupModal';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
@@ -59,6 +61,12 @@ export default function EventShowcasePage() {
   const [showContent, setShowContent] = React.useState(() => {
     return !!sessionStorage.getItem('hasSeenEventShowcaseIntro');
   });
+  const [isLoginOpen, setIsLoginOpen] = React.useState(false);
+  const [isSignupOpen, setIsSignupOpen] = React.useState(false);
+
+  const handleAcceptChallenge = () => {
+    setIsLoginOpen(true);
+  };
 
   // Animation complete hone ke baad content show karo
   React.useEffect(() => {
@@ -188,7 +196,7 @@ export default function EventShowcasePage() {
             </div>
             <div className="flex items-center space-x-4">
               <button 
-                onClick={() => navigate('/login')} 
+                onClick={handleAcceptChallenge} 
                 className="bg-slate-900 text-white px-6 py-2 rounded-full hover:bg-slate-800 font-medium shadow-lg shadow-slate-200 transition-all hover:shadow-xl active:scale-95 font-mono text-sm"
               >
                 Log_In
@@ -227,7 +235,7 @@ export default function EventShowcasePage() {
               <motion.button 
                 whileHover={{ scale: 1.05, boxShadow: "0 20px 25px -5px rgba(147, 51, 234, 0.3)" }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/login')} 
+                onClick={handleAcceptChallenge} 
                 className="px-8 py-4 bg-purple-600 text-white rounded-xl font-bold text-lg hover:bg-purple-700 transition-all flex items-center justify-center shadow-xl shadow-purple-200"
               >
                 Accept Challenge <ChevronRight className="w-5 h-5 ml-2" />
@@ -467,7 +475,7 @@ export default function EventShowcasePage() {
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/login')} 
+            onClick={handleAcceptChallenge} 
             className="bg-purple-600 text-white px-10 py-5 rounded-xl font-bold text-xl hover:bg-purple-700 transition-all shadow-[0_10px_40px_-10px_rgba(147,51,234,0.5)]"
           >
             Log In to Compete
@@ -485,6 +493,27 @@ export default function EventShowcasePage() {
         </div>
       </footer>
       </motion.div>
+
+
+      <LoginModal 
+        isOpen={isLoginOpen} 
+        onClose={() => setIsLoginOpen(false)} 
+        onSwitchToSignup={() => {
+          setIsLoginOpen(false);
+          setIsSignupOpen(true);
+        }}
+        redirectTo="/dashboard/events"
+      />
+
+      <SignupModal
+        isOpen={isSignupOpen}
+        onClose={() => setIsSignupOpen(false)}
+        onSwitchToLogin={() => {
+          setIsSignupOpen(false);
+          setIsLoginOpen(true);
+        }}
+        redirectTo="/dashboard/events"
+      />
     </>
   );
 }

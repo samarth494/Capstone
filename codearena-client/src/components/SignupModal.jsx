@@ -3,7 +3,7 @@ import { Terminal, Lock, User, Mail, Check, ArrowRight, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
+export default function SignupModal({ isOpen, onClose, onSwitchToLogin, redirectTo }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: "",
@@ -66,7 +66,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
         };
         localStorage.setItem("user", JSON.stringify(userToSave));
         onClose();
-        navigate("/dashboard");
+        navigate(redirectTo || "/dashboard");
       } else {
         setError(data.message || "Registration failed");
       }
