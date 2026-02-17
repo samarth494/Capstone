@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  Swords, Terminal as TerminalIcon, LogOut, Menu, X, User
+  Swords, Terminal as TerminalIcon, LogOut, Menu, X, User, ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -9,6 +9,7 @@ export default function Navbar({ items = [], user = null, onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = () => {
@@ -55,21 +56,54 @@ export default function Navbar({ items = [], user = null, onLogout }) {
             <div className="flex items-center space-x-4">
               {user ? (
                 // Authenticated View
+                // Authenticated View
                 <div className="hidden md:flex items-center space-x-4">
-                  <button
-                      onClick={() => navigate(`/profile/${user._id}`)}
-                      className="flex items-center space-x-2 text-sm text-slate-600 mr-4 hover:text-blue-600 transition-colors font-mono"
-                  >
-                      <TerminalIcon size={16} />
-                      <span>{user.username}</span>
-                  </button>
-                  <button
-                      onClick={() => setShowLogoutConfirm(true)}
-                      className="flex items-center space-x-2 text-slate-500 hover:text-red-600 transition-colors text-sm font-medium"
-                  >
-                      <LogOut size={18} />
-                      <span>Logout</span>
-                  </button>
+                  {/* Profile Dropdown */}
+                  <div className="relative">
+                      <button
+                          onClick={() => setIsProfileOpen(!isProfileOpen)}
+                          className="flex items-center gap-2 p-1 pr-3 rounded-full border border-slate-200 hover:border-blue-300 hover:bg-slate-50 transition-all group"
+                      >
+                          <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                              {user.username.charAt(0).toUpperCase()}
+                          </div>
+                          <ChevronDown size={16} className={`text-slate-400 group-hover:text-slate-600 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      <AnimatePresence>
+                          {isProfileOpen && (
+                              <motion.div
+                                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                  className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 py-2 overflow-hidden z-50 transform origin-top-right"
+                              >
+                                  <div className="px-4 py-3 border-b border-slate-50 bg-slate-50/50 mb-1">
+                                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Signed in as</p>
+                                      <p className="text-sm font-bold text-slate-900 truncate font-mono">{user.username}</p>
+                                  </div>
+                                  
+                                  <button
+                                      onClick={() => { navigate(`/profile/${user._id}`); setIsProfileOpen(false); }}
+                                      className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-3 transition-colors font-medium group"
+                                  >
+                                      <User size={16} className="text-slate-400 group-hover:text-blue-500" /> 
+                                      Profile
+                                  </button>
+
+                                  <div className="h-px bg-slate-100 my-1"></div>
+                                  
+                                  <button
+                                      onClick={() => { setShowLogoutConfirm(true); setIsProfileOpen(false); }}
+                                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors font-medium"
+                                  >
+                                      <LogOut size={16} /> 
+                                      Logout
+                                  </button>
+                              </motion.div>
+                          )}
+                      </AnimatePresence>
+                  </div>
                 </div>
               ) : (
                 // Public View

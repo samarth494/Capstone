@@ -14,79 +14,84 @@ import {
   ArrowRight,
   Code,
   Swords,
-  LayoutDashboard
+  LayoutDashboard,
+  ShieldCheck
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function EventsPage() {
   const navigate = useNavigate();
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isSignupOpen, setIsSignupOpen] = useState(false);
-  const [showContent, setShowContent] = useState(false);
-
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
+  const [showContent, setShowContent] = useState(() => {
+    return !!sessionStorage.getItem('hasSeenDashboardEventsIntro');
+  });
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isSignupOpen, setIsSignupOpen] = useState(false);
+
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
+  const [accessCode, setAccessCode] = useState('');
+  const [codeError, setCodeError] = useState('');
+
+  const handleJoinClick = () => {
+    setIsCodeModalOpen(true);
+    setAccessCode('');
+    setCodeError('');
+  };
+
+  const handleCodeSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('http://localhost:5000/api/events/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          eventId: 'blind-coding',
+          code: accessCode
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsCodeModalOpen(false);
+        navigate('/competition/blind-coding/lobby');
+      } else {
+        setCodeError(data.message || 'Invalid Access Code. Please try again.');
+      }
+    } catch (error) {
+      console.error(error);
+      setCodeError('Connection error. Please check your network.');
+    }
+  };
 
   // Animation complete hone ke baad content show karo
   React.useEffect(() => {
+    if (showContent) return;
+
     const timer = setTimeout(() => {
       setShowContent(true);
+      sessionStorage.setItem('hasSeenDashboardEventsIntro', 'true');
     }, 3500); // 3.5 seconds animation
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [showContent]);
 
   const openLogin = () => { setIsLoginOpen(true); setIsSignupOpen(false); };
   const closeLogin = () => setIsLoginOpen(false);
   const openSignup = () => { setIsSignupOpen(true); setIsLoginOpen(false); };
   const closeSignup = () => setIsSignupOpen(false);
 
-  const events = [
-    {
-      id: 'blind-coding',
-      title: 'Blind Coding',
-      description: 'The ultimate test of memory and logic. Write C/C++ code without seeing the editor. No syntax highlighting, no compilation until the end.',
-      icon: EyeOff,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      borderColor: 'border-purple-200',
-      date: 'Starting in 2h 30m',
-      participants: 124,
-      status: 'Registration Open'
-    },
-    {
-      id: 'debug-relay',
-      title: 'Speed Debugging',
-      description: 'Fix as many bugs as possible in 15 minutes. The code is broken, the clock is ticking.',
-      icon: Zap,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-50',
-      borderColor: 'border-yellow-200',
-      date: 'Tomorrow, 10:00 AM',
-      participants: 89,
-      status: 'Upcoming'
-    },
-    {
-      id: 'reverse-coding',
-      title: 'Reverse Coding',
-      description: 'We give you the input and output, you write the algorithm. Deduce the logic from test cases alone.',
-      icon: Code,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      borderColor: 'border-blue-200',
-      date: 'Sat, 18 Feb',
-      participants: 256,
-      status: 'Upcoming'
-    }
-  ];
-
   return (
     <>
       {/* Opening Logo Animation - Full Screen */}
       {!showContent && (
         <motion.div
+// ... (rest of animation code)
           initial={{ opacity: 1 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -178,7 +183,7 @@ export default function EventsPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: showContent ? 1 : 0 }}
         transition={{ duration: 0.8 }}
-        className="min-h-screen bg-[#F8FAFC] font-['JetBrains_Mono']"
+        className="min-h-screen bg-[#F8FAFC] font-['JetBrains_Mono'] relative"
       >
         {/* Navbar */}
         <Navbar
@@ -201,7 +206,7 @@ export default function EventsPage() {
             >
               <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-xs font-semibold uppercase tracking-wider mb-6">
                 <span className="flex h-2 w-2 rounded-full bg-blue-600 mr-2 animate-pulse"></span>
-                Competitive Season 2026
+                Technovia 8.0
               </div>
               <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 font-mono tracking-tight">
                 Special <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Events</span>
@@ -230,7 +235,7 @@ export default function EventsPage() {
                   <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4 font-mono tracking-tight">Blind Coding Competition</h2>
                   <p className="text-slate-600 text-lg mb-8 leading-relaxed">
                     The editor is blacked out. You can't see what you type.
-                    Rely on your muscle memory and pure logic to solve <span className="font-semibold text-slate-900">C/C++</span> algorithmic challenges.
+                    Rely on your muscle memory and pure logic to solve <span className="font-semibold text-slate-900">C</span> algorithmic challenges.
                     Top 3 winners get the exclusive "Daredevil" badge.
                   </p>
 
@@ -256,7 +261,7 @@ export default function EventsPage() {
                   </div>
 
                   <button
-                    onClick={() => navigate('/competition/blind-coding/lobby')}
+                    onClick={handleJoinClick}
                     className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-slate-500/20 flex items-center group-hover:translate-x-1"
                   >
                     Join Competition <ArrowRight className="w-5 h-5 ml-2" />
@@ -331,13 +336,79 @@ export default function EventsPage() {
               </div>
             </div>
           </motion.div>
-
-
         </main>
 
         {/* Modals */}
         <LoginModal isOpen={isLoginOpen} onClose={closeLogin} onSwitchToSignup={openSignup} />
         <SignupModal isOpen={isSignupOpen} onClose={closeSignup} onSwitchToLogin={openLogin} />
+
+        {/* Access Code Modal */}
+        {isCodeModalOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm"
+              onClick={() => setIsCodeModalOpen(false)}
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl overflow-hidden z-[1001]"
+            >
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <ShieldCheck className="w-8 h-8 text-purple-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 font-mono">Restricted Access</h3>
+                <p className="text-slate-500 mt-2 text-sm">
+                  This is a clear-listed event. Please enter your access code to verify your participation.
+                </p>
+              </div>
+
+              <form onSubmit={handleCodeSubmit} className="space-y-4">
+                <div>
+                  <input
+                    type="password"
+                    value={accessCode}
+                    onChange={(e) => {
+                      setAccessCode(e.target.value);
+                      setCodeError('');
+                    }}
+                    placeholder="Enter Access Code"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-center font-mono text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all placeholder:tracking-normal"
+                    autoFocus
+                    maxLength={6}
+                  />
+                  {codeError && (
+                    <p className="text-red-500 text-xs text-center mt-2 font-medium animate-pulse">
+                      {codeError}
+                    </p>
+                  )}
+                </div>
+                
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsCodeModalOpen(false)}
+                    className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-lg shadow-purple-500/20 transition-all"
+                  >
+                    Verify & Join
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
       </motion.div>
     </>
   );

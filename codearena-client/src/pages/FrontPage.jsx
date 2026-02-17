@@ -25,7 +25,9 @@ const staggerContainer = {
 
 export default function Frontpage() {
   const navigate = useNavigate();
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(() => {
+    return !sessionStorage.getItem('hasSeenIntro');
+  });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const targetRef = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -68,7 +70,10 @@ export default function Frontpage() {
     <div className="min-h-screen bg-slate-50 overflow-x-hidden selection:bg-blue-200 selection:text-blue-900">
       {/* Cinematic Intro */}
       <AnimatePresence>
-        {showIntro && <CodeArenaIntro onComplete={() => setShowIntro(false)} />}
+        {showIntro && <CodeArenaIntro onComplete={() => {
+          setShowIntro(false);
+          sessionStorage.setItem('hasSeenIntro', 'true');
+        }} />}
       </AnimatePresence>
 
       {/* Header */}
@@ -102,7 +107,9 @@ export default function Frontpage() {
                 { label: './Features', href: '#features' },
                 { label: './Battle', href: '#battles' },
                 { label: './Events', action: () => navigate('/events') },
-                { label: './Community', href: '#community' }
+
+                { label: './Community', href: '#community' },
+                { label: './About', action: () => navigate('/about') }
               ].map((item, index) => (
                 item.action ? (
                   <button
@@ -171,6 +178,10 @@ export default function Frontpage() {
                   <a href="#community" onClick={() => setIsMenuOpen(false)} className="block px-4 text-slate-600 hover:text-blue-600 transition-colors font-medium text-lg">
                     ./Community
                   </a>
+                  <button onClick={() => { navigate('/about'); setIsMenuOpen(false); }} className="w-full text-left px-4 text-slate-600 hover:text-blue-600 transition-colors font-medium text-lg">
+                    ./About
+                  </button>
+
                 </div>
 
                 <div className="h-px bg-slate-100 w-full my-6"></div>
@@ -270,30 +281,7 @@ export default function Frontpage() {
         </div>
       </section>
 
-      {/* Stats Banner */}
-      <section className="bg-white border-y border-slate-200 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {[
-              { label: 'Active Developers', value: '10,000+' },
-              { label: 'Daily Battles', value: '2,500+' },
-              { label: 'Problems Solved', value: '1M+' },
-              { label: 'Uptime', value: '99.9%' },
-            ].map((stat, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: false, amount: 0.5 }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <div className="text-3xl md:text-4xl font-bold text-slate-900 mb-1">{stat.value}</div>
-                <div className="text-slate-500 text-sm font-medium uppercase tracking-wider">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       {/* Detailed Features Section */}
       <section id="features" className="py-24 bg-slate-50">
@@ -603,7 +591,7 @@ export default function Frontpage() {
             <div>
               <h5 className="text-white font-bold mb-6 font-mono">Company</h5>
               <ul className="space-y-4">
-                <li><a href="#" className="hover:text-blue-400 transition-colors">About</a></li>
+                <li><button onClick={() => navigate('/about')} className="hover:text-blue-400 transition-colors">About</button></li>
                 <li><a href="#" className="hover:text-blue-400 transition-colors">Blog</a></li>
                 <li><a href="#" className="hover:text-blue-400 transition-colors">Careers</a></li>
                 <li><a href="#" className="hover:text-blue-400 transition-colors">Contact</a></li>

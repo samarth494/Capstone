@@ -56,16 +56,21 @@ const slideInRight = {
 
 export default function EventShowcasePage() {
   const navigate = useNavigate();
-  const [showContent, setShowContent] = React.useState(false);
+  const [showContent, setShowContent] = React.useState(() => {
+    return !!sessionStorage.getItem('hasSeenEventShowcaseIntro');
+  });
 
   // Animation complete hone ke baad content show karo
   React.useEffect(() => {
+    if (showContent) return;
+
     const timer = setTimeout(() => {
       setShowContent(true);
+      sessionStorage.setItem('hasSeenEventShowcaseIntro', 'true');
     }, 3500); // 3.5 seconds animation
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [showContent]);
 
   return (
     <>
@@ -181,16 +186,13 @@ export default function EventShowcasePage() {
               </motion.div>
               <span className="text-xl font-bold text-slate-900 tracking-tighter">CodeArena_Events</span>
             </div>
-            <div className="flex items-center space-x-6">
-              <button onClick={() => navigate('/login')} className="text-slate-500 hover:text-slate-900 transition-colors text-sm font-medium">Log In</button>
-              <motion.button 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/signup')} 
-                className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-lg hover:shadow-slate-500/20"
+            <div className="flex items-center space-x-4">
+              <button 
+                onClick={() => navigate('/login')} 
+                className="bg-slate-900 text-white px-6 py-2 rounded-full hover:bg-slate-800 font-medium shadow-lg shadow-slate-200 transition-all hover:shadow-xl active:scale-95 font-mono text-sm"
               >
-                Register
-              </motion.button>
+                Log_In
+              </button>
             </div>
           </div>
         </div>
@@ -225,7 +227,7 @@ export default function EventShowcasePage() {
               <motion.button 
                 whileHover={{ scale: 1.05, boxShadow: "0 20px 25px -5px rgba(147, 51, 234, 0.3)" }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/signup')} 
+                onClick={() => navigate('/login')} 
                 className="px-8 py-4 bg-purple-600 text-white rounded-xl font-bold text-lg hover:bg-purple-700 transition-all flex items-center justify-center shadow-xl shadow-purple-200"
               >
                 Accept Challenge <ChevronRight className="w-5 h-5 ml-2" />
@@ -465,10 +467,10 @@ export default function EventShowcasePage() {
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/signup')} 
+            onClick={() => navigate('/login')} 
             className="bg-purple-600 text-white px-10 py-5 rounded-xl font-bold text-xl hover:bg-purple-700 transition-all shadow-[0_10px_40px_-10px_rgba(147,51,234,0.5)]"
           >
-            Register for Blind Coding
+            Log In to Compete
           </motion.button>
         </motion.div>
       </section>
