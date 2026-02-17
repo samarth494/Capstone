@@ -9,7 +9,9 @@ import {
     ShieldCheck,
     Swords,
     Crown,
-    Play
+    Play,
+    Zap,
+    CheckCircle2
 } from 'lucide-react';
 import { getSocket, initiateSocketConnection } from '../services/socket';
 import Navbar from '../components/Navbar';
@@ -50,7 +52,7 @@ export default function CompetitionLobbyPage() {
 
         if (socket) {
             // Join competition directly
-            socket.emit('competition:join', { eventId, user, language: 'cpp' });
+            socket.emit('competition:join', { eventId, user, language: 'c' });
 
             // Listen for player updates
             socket.on('competition:updatePlayers', (updatedPlayers) => {
@@ -69,7 +71,7 @@ export default function CompetitionLobbyPage() {
                     navigate('/problem/blind-coding', {
                         state: {
                             blindMode: true,
-                            language: 'cpp'
+                            language: 'c'
                         }
                     });
                 }, 2000);
@@ -79,9 +81,6 @@ export default function CompetitionLobbyPage() {
             socket.on('competition:error', ({ message }) => {
                 alert(message);
             });
-
-            // For demo purposes if server is not fully wired yet
-            // setPlayers([{ username: user?.username, id: 'me' }, { username: 'Rival_Code', id: '2' }]);
         }
 
         return () => {
@@ -100,12 +99,59 @@ export default function CompetitionLobbyPage() {
         return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
+    const [countdown, setCountdown] = useState(null);
+
+    // Initial simple beep sound generator for "Get Ready" beeps
+    const playBeep = (freq = 440, duration = 100) => {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.type = 'sine';
+        oscillator.frequency.value = freq;
+        gainNode.gain.value = 0.1;
+
+        oscillator.start();
+        setTimeout(() => {
+            oscillator.stop();
+        }, duration);
+    };
+
+    const handleStartBattle = () => {
+        setIsStarting(true);
+        let count = 10;
+        setCountdown(count);
+        playBeep(800, 200); // Initial start beep
+
+        const interval = setInterval(() => {
+            count--;
+            setCountdown(count);
+            
+            if (count > 0) {
+                 playBeep(440, 150); // Tick beep
+            } else if (count === 0) {
+                 playBeep(880, 1000); // Level start beep (longer)
+            }
+
+            // Wait 3 seconds showing "Level 1 Start"
+            if (count < -3) {
+                clearInterval(interval);
+                navigate('/problem/blind-coding', {
+                    state: {
+                        blindMode: true,
+                        language: 'c'
+                    }
+                });
+            }
+        }, 1000);
+    };
+
     return (
         <div className="min-h-screen bg-[#F8FAFC] font-['JetBrains_Mono']">
-            <Navbar
-                items={[]}
-                user={user}
-            />
+            <Navbar items={[]} user={user} />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
                 {/* Header Section */}
@@ -143,6 +189,26 @@ export default function CompetitionLobbyPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-slate-900">
                     {/* Left: Player List */}
                     <div className="lg:col-span-8 space-y-6">
+                        {/* Admin Controls (TEMPORARY FOR TESTING) */}
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                             <div className="flex items-center gap-3">
+                                <div className="p-2 bg-purple-50 rounded-lg">
+                                    <Crown className="w-5 h-5 text-purple-600" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-900">Lobby Controls</h3>
+                                    <p className="text-xs text-slate-500">Only visible to host</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleStartBattle}
+                                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg shadow-purple-500/20"
+                            >
+                                <Play size={18} fill="currentColor" />
+                                Start Battle Now
+                            </button>
+                        </div>
+
                         <section className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
                             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                                 <div className="flex items-center gap-3">
@@ -228,45 +294,69 @@ export default function CompetitionLobbyPage() {
                     <div className="lg:col-span-4 space-y-6">
                         <section className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden sticky top-32">
                             <div className="p-6 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
-                                <div className="p-2 bg-yellow-50 rounded-lg">
-                                    <Trophy className="w-5 h-5 text-yellow-600" />
+                                <div className="p-2 bg-red-50 rounded-lg">
+                                    <Swords className="w-5 h-5 text-red-600" />
                                 </div>
-                                <h2 className="font-bold text-lg">Event Stats</h2>
+                                <h2 className="font-bold text-lg">Competition Rules</h2>
                             </div>
 
-                            <div className="p-6">
-                                <div className="space-y-4">
-                                    {leaderboard.map((item, idx) => (
-                                        <div key={item.id} className="flex items-center justify-between group">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-6 text-sm font-black text-slate-300 font-mono italic">
-                                                    {(idx + 1).toString().padStart(2, '0')}
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                                                        {item.username}
-                                                    </div>
-                                                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                                                        {item.rank}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="text-right flex flex-col items-end">
-                                                <div className="text-sm font-black text-slate-900">
-                                                    {item.xp} <span className="text-[10px] text-slate-400 ml-0.5">XP</span>
-                                                </div>
-                                                {idx === 0 && <Crown size={12} className="text-yellow-500" />}
-                                            </div>
-                                        </div>
-                                    ))}
+                            <div className="p-6 space-y-6">
+                                {/* Rule 1 */}
+                                <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                                    <div className="bg-slate-100 p-2 rounded-lg mt-1 min-w-[36px] flex items-center justify-center font-bold text-slate-600">
+                                        1
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900">Zero Visibility</h3>
+                                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                            The code editor will be blacked out. You will not see what you type. Rely on your muscle memory.
+                                        </p>
+                                    </div>
                                 </div>
 
-                                <div className="mt-8 pt-6 border-t border-slate-100">
-                                    <div className="bg-indigo-50 rounded-2xl p-5 border border-indigo-100">
-                                        <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Prize Pool</div>
-                                        <div className="text-2xl font-black text-indigo-700">5,000 XP</div>
-                                        <p className="text-[10px] text-indigo-500 mt-1 font-bold">Exclusive "Daredevil" Badge</p>
+                                {/* Rule 2 */}
+                                <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                                    <div className="bg-slate-100 p-2 rounded-lg mt-1 min-w-[36px] flex items-center justify-center font-bold text-slate-600">
+                                        2
                                     </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900">Single Compilation</h3>
+                                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                            You only get one chance to compile and run your code. Correctness is paramount.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Rule 3 */}
+                                <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                                    <div className="bg-slate-100 p-2 rounded-lg mt-1 min-w-[36px] flex items-center justify-center font-bold text-slate-600">
+                                        3
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900">No External Help</h3>
+                                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                            Switching tabs or using external documentation will result in immediate disqualification.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Rule 4 */}
+                                <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                                    <div className="bg-slate-100 p-2 rounded-lg mt-1 min-w-[36px] flex items-center justify-center font-bold text-slate-600">
+                                        4
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900">Time Limit</h3>
+                                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                            You have exactly 15 minutes to complete the challenge. Speed bonus applies.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-red-50 p-4 rounded-xl border border-red-100 mt-4">
+                                    <p className="text-xs text-red-600 font-bold text-center">
+                                        Violation of any rule leads to a ban.
+                                    </p>
                                 </div>
                             </div>
                         </section>
@@ -282,42 +372,78 @@ export default function CompetitionLobbyPage() {
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="fixed inset-0 z-[100] bg-slate-900 flex items-center justify-center p-6 text-center overflow-hidden"
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-white/90 backdrop-blur-xl flex items-center justify-center p-6 text-center overflow-hidden"
                     >
                         <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="relative z-10"
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                            className="relative z-10 max-w-4xl w-full"
                         >
-                            <div className="w-32 h-32 bg-purple-600 rounded-full mx-auto mb-10 flex items-center justify-center shadow-[0_0_50px_rgba(168,85,247,0.5)] animate-pulse">
-                                <Swords className="w-16 h-16 text-white" />
-                            </div>
-                            <h2 className="text-5xl md:text-7xl font-black text-white mb-4 italic tracking-tighter">BATTLE STARTING</h2>
-                            <p className="text-purple-400 text-xl font-bold uppercase tracking-[0.5em] animate-bounce">Prepare for Blind Coding...</p>
-                        </motion.div>
-
-                        {/* Background particles/elements */}
-                        <div className="absolute inset-0 opacity-20">
-                            {[...Array(20)].map((_, i) => (
-                                <motion.div
-                                    key={i}
-                                    initial={{
-                                        x: Math.random() * window.innerWidth,
-                                        y: Math.random() * window.innerHeight
-                                    }}
-                                    animate={{
-                                        y: [null, -1000],
-                                        opacity: [0, 1, 0]
-                                    }}
-                                    transition={{
-                                        duration: Math.random() * 5 + 5,
-                                        repeat: Infinity,
-                                        delay: Math.random() * 5
-                                    }}
-                                    className="absolute w-1 h-20 bg-purple-500 rounded-full"
+                            {/* Circle Container */}
+                            <div className="relative w-64 h-64 mx-auto mb-12 flex items-center justify-center">
+                                {/* Rotating Rings */}
+                                <motion.div 
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                                    className="absolute inset-0 rounded-full border border-slate-200 border-dashed"
                                 />
-                            ))}
-                        </div>
+                                <motion.div 
+                                    animate={{ rotate: -360 }}
+                                    transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                                    className="absolute inset-4 rounded-full border border-purple-100 border-dashed"
+                                />
+                                
+                                {/* Countdown Number / Icon */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <AnimatePresence mode="wait">
+                                        {countdown > 0 ? (
+                                            <motion.span 
+                                                key={countdown}
+                                                initial={{ y: 20, opacity: 0 }}
+                                                animate={{ y: 0, opacity: 1 }}
+                                                exit={{ y: -20, opacity: 0 }}
+                                                transition={{ duration: 0.4 }}
+                                                className="text-[8rem] font-black text-slate-900 tabular-nums leading-none tracking-tighter"
+                                            >
+                                                {countdown}
+                                            </motion.span>
+                                        ) : (
+                                            <motion.div
+                                                initial={{ scale: 0 }}
+                                                animate={{ scale: 1 }}
+                                                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                                            >
+                                                <Swords className="w-32 h-32 text-purple-600" />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </div>
+
+                            {/* Text Content */}
+                            <div className="space-y-6">
+                                <motion.h2 
+                                    key={countdown > 0 ? "prep" : "start"}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight uppercase"
+                                >
+                                    {countdown > 0 ? "System Auto-Calibration" : "Initialize Level 1"}
+                                </motion.h2>
+                                <motion.div 
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.2 }}
+                                    className="flex items-center justify-center gap-3 text-slate-500 font-mono text-sm uppercase tracking-widest"
+                                >
+                                    <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                                    {countdown > 0 ? "Syncing Logic Modules..." : "Blind Mode Protocol Engaged"}
+                                    <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                                </motion.div>
+                            </div>
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -10,7 +10,8 @@ import {
     RotateCcw,
     Save,
     Check,
-    AlertCircle
+    AlertCircle,
+    Clock
 } from 'lucide-react';
 
 export default function ProblemSolverPage() {
@@ -19,11 +20,41 @@ export default function ProblemSolverPage() {
     const location = useLocation();
     const [blindMode, setBlindMode] = useState(location.state?.blindMode || false);
     const [user, setUser] = useState(null);
-    const [code, setCode] = useState('// Write your solution here\nfunction solve(input) {\n  return input;\n}');
+    const [code, setCode] = useState(() => {
+        const lang = location.state?.language || 'javascript';
+        if (lang === 'cpp' || lang === 'c') {
+            return '#include <stdio.h>\n\nint main() {\n    // Write your code here\n    return 0;\n}';
+        }
+        return '// Write your solution here\nfunction solve(input) {\n  return input;\n}';
+    });
     const [output, setOutput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
     const [language, setLanguage] = useState(location.state?.language || 'javascript');
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    
+    // Timer state for 15 minutes
+    const [timeLeft, setTimeLeft] = useState(15 * 60);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    // Optionally auto-submit here
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, []);
+
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
@@ -138,6 +169,15 @@ export default function ProblemSolverPage() {
                             </div>
                         </div>
 
+                        {/* Timer Display */}
+                        <div className={`
+                            flex items-center space-x-2 px-4 py-1.5 rounded-lg border font-mono font-bold transition-all
+                            ${timeLeft < 60 ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-slate-50 text-slate-700 border-slate-200'}
+                        `}>
+                            <Clock size={16} className={timeLeft < 60 ? 'animate-bounce' : ''} />
+                            <span>{formatTime(timeLeft)}</span>
+                        </div>
+
                         <div className="flex items-center space-x-4">
                             {user && (
                                 <div className="hidden md:flex items-center space-x-2 text-sm text-slate-600 mr-4">
@@ -190,40 +230,36 @@ export default function ProblemSolverPage() {
                 {/* Left Panel: Problem Description */}
                 <div className="w-1/2 overflow-y-auto border-r border-slate-200 bg-white p-8">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold text-slate-900">1. Two Sum</h2>
+                        <h2 className="text-2xl font-bold text-slate-900">1. Even/Odd & Digit Sum</h2>
                         <span className="px-3 py-1 bg-green-50 text-green-600 border border-green-200 rounded-full text-xs font-bold">Easy</span>
                     </div>
 
                     <div className="prose prose-slate max-w-none prose-headings:font-mono prose-headings:font-bold prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none text-slate-600">
                         <p>
-                            Given an array of integers <code>nums</code> and an integer <code>target</code>, return <em>indices of the two numbers such that they add up to <code>target</code></em>.
+                            Write a C program to accept an integer from the user, check whether it is <strong>even or odd</strong>, and calculate the <strong>sum of its digits</strong>.
                         </p>
                         <p>
-                            You may assume that each input would have <strong>exactly one solution</strong>, and you may not use the same element twice.
-                        </p>
-                        <p>
-                            You can return the answer in any order.
+                            If the number is negative, treat it as a signed integer for the even/odd check, but sum the digits of its absolute value.
                         </p>
 
                         <h3 className="text-lg">Example 1:</h3>
                         <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 font-mono text-sm my-4">
-                            <p className="mb-2"><span className="font-bold text-slate-900">Input:</span> nums = [2,7,11,15], target = 9</p>
-                            <p className="mb-2"><span className="font-bold text-slate-900">Output:</span> [0,1]</p>
-                            <p><span className="font-bold text-slate-900">Explanation:</span> Because nums[0] + nums[1] == 9, we return [0, 1].</p>
+                            <p className="mb-2"><span className="font-bold text-slate-900">Input:</span> 12</p>
+                            <p className="mb-2"><span className="font-bold text-slate-900">Output:</span> Even, Sum: 3</p>
+                            <p><span className="font-bold text-slate-900">Explanation:</span> 12 is even. 1 + 2 = 3.</p>
                         </div>
 
                         <h3 className="text-lg">Example 2:</h3>
                         <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 font-mono text-sm my-4">
-                            <p className="mb-2"><span className="font-bold text-slate-900">Input:</span> nums = [3,2,4], target = 6</p>
-                            <p><span className="font-bold text-slate-900">Output:</span> [1,2]</p>
+                            <p className="mb-2"><span className="font-bold text-slate-900">Input:</span> 15</p>
+                            <p><span className="font-bold text-slate-900">Output:</span> Odd, Sum: 6</p>
+                             <p><span className="font-bold text-slate-900">Explanation:</span> 15 is odd. 1 + 5 = 6.</p>
                         </div>
 
-                        <h3 className="text-lg">Constraints:</h3>
+                         <h3 className="text-lg">Constraints:</h3>
                         <ul className="list-disc pl-5 space-y-1">
-                            <li><code>2 &lt;= nums.length &lt;= 10^4</code></li>
-                            <li><code>-10^9 &lt;= nums[i] &lt;= 10^9</code></li>
-                            <li><code>-10^9 &lt;= target &lt;= 10^9</code></li>
-                            <li><strong>Only one valid answer exists.</strong></li>
+                            <li>Input will be a valid integer `n`.</li>
+                            <li><code>-10^9 &lt;= n &lt;= 10^9</code></li>
                         </ul>
                     </div>
                 </div>

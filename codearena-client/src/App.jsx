@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import FrontPage from "./pages/FrontPage";
+import AboutPage from "./pages/AboutPage";
 import SignupPage from "./pages/SignupPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -28,6 +29,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/battle/data-structures" element={<DataStructureBattlePage />} />
         <Route path="/events" element={<EventShowcasePage />} />
+        <Route path="/about" element={<AboutPage />} />
 
 
         {/* Protected Routes */}
