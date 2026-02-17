@@ -1,0 +1,8 @@
+{
+    "ignore": [
+        "temp_code/*",
+        "temp_code/**/*.js",
+        "temp_code/**/*.py",
+        "temp_code/**/*.java"
+    ]
+}

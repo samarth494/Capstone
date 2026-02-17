@@ -1,4 +1,6 @@
-// @desc    Run code (Simulation)
+const { executeCode } = require('../utils/executor');
+
+// @desc    Run code
 // @route   POST /api/code/run
 // @access  Private (or Public for now)
 const runCode = async (req, res) => {
@@ -12,40 +14,58 @@ const runCode = async (req, res) => {
     }
 
     try {
-        // Simulate code execution delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        let wrappedCode = code;
 
-        // Basic mock logic based on input presence
-        // In a real scenario, this would send code to a Docker container or sandboxed environment
+        // Auto-wrap for JavaScript
+        // Check if 'solve' function is defined.
+        // We wrap if we see 'function solve' and likely no manual invocation (heuristically)
+        // or just basic detection that it's a function submission.
+        // The previous check failed because 'function solve(input)' contains 'solve('.
 
-        let output = '';
-        const inputStr = input ? input.toString() : '';
+        const hasSolveDefJS = code.includes('function solve');
+        const hasSolveDefPy = code.includes('def solve');
+        const solveCalls = (code.match(/solve\s*\(/g) || []).length;
 
-        // Simple mock response logic
-        if (code.includes('console.log')) {
-            // Extract what's inside console.log for a fake echo effect
-            const match = code.match(/console\.log\((.*)\)/);
-            output = match ? `> ${match[1].replace(/['"]/g, '')}` : 'Hello World';
-        } else if (inputStr) {
-            output = `Process finished.\nInput received: ${inputStr}\nCalculated result: 42`;
-        } else {
-            output = 'Process finished with exit code 0\nResult: undefined';
+        // If defined, and appears effectively once (definition only), or if we just want to be helpful:
+        // We'll proceed if it's defined and we don't see obvious manual stdin reading.
+
+        if (language === 'javascript' && hasSolveDefJS && !code.includes('readFileSync')) {
+            wrappedCode += `\n
+const fs = require('fs');
+try {
+    const input = fs.readFileSync(0, 'utf-8').trim();
+    const result = solve(input);
+    console.log(result);
+} catch (e) {
+    console.error(e);
+}
+            `;
+        }
+        // Auto-wrap for Python
+        else if (language === 'python' && hasSolveDefPy && !code.includes('sys.stdin')) {
+            wrappedCode += `\n
+import sys
+try:
+    input_data = sys.stdin.read().strip()
+    print(solve(input_data))
+except Exception as e:
+    print(e)
+            `;
         }
 
+        const { output, error, executionTime } = await executeCode(language, wrappedCode, input);
 
-        // Simulate occasional runtime error
-        if (code.includes('error')) {
+        if (error) {
             return res.status(200).json({
                 success: false,
-                output: 'ReferenceError: x is not defined\n    at Object.<anonymous> (script.js:3:5)',
-                executionTime: '0.04s',
+                message: output // Send error message here
             });
         }
 
         res.status(200).json({
             success: true,
             output: output,
-            executionTime: '0.012s',
+            executionTime: `${executionTime}ms`,
         });
 
     } catch (error) {
