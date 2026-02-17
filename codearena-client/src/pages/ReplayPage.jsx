@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import {
@@ -27,7 +28,7 @@ export default function ReplayPage() {
     useEffect(() => {
         const fetchReplay = async () => {
             try {
-                const response = await fetch(`http://localhost:5000/api/battles/${battleId}/replay`);
+                const response = await fetch(`${API_BASE_URL}/api/battles/${battleId}/replay`);
                 const data = await response.json();
                 setBattle(data);
 

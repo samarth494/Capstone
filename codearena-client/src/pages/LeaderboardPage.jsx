@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { API_BASE_URL } from '../config/api';
 import { useNavigate } from 'react-router-dom';
 import {
     Trophy,
@@ -19,7 +20,7 @@ export default function LeaderboardPage() {
     useEffect(() => {
         const fetchLeaderboard = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/leaderboard');
+                const response = await fetch(`${API_BASE_URL}/api/leaderboard`);
                 const data = await response.json();
                 setLeaderboard(data);
             } catch (error) {

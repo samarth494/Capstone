@@ -7,7 +7,7 @@ const { calculateRank } = require("../utils/rankUtils");
 const battleQueue = []; // Simple in-memory queue
 const activeBattles = {};
 const competitionRooms = {}; // Tracks players and host for each competition event
-const MAX_COMPETITION_PLAYERS = 10; // Maximum players per competition lobby
+const MAX_COMPETITION_PLAYERS = 2; // Maximum players per competition lobby
 const COUNTDOWN_SECONDS = 10; // Countdown duration before battle starts
 
 // Helper to persist results and update stats
@@ -357,6 +357,8 @@ const socketHandler = (server) => {
           hostId: socket.id,
           startTime: Date.now(),
           started: false,
+          submissions: {}, // Track submissions by user._id
+          battleStartedAt: null, // When the battle actually started
         };
         console.log(`Lobby Created for ${eventId}. Host: ${user.username}`);
       }
@@ -374,7 +376,7 @@ const socketHandler = (server) => {
       // If lobby is full, reject
       if (room.players.length >= MAX_COMPETITION_PLAYERS) {
         socket.emit("competition:error", {
-          message: "Lobby is full (max 10 players).",
+          message: "Lobby is full (max 2 players).",
         });
         return;
       }
@@ -461,6 +463,66 @@ const socketHandler = (server) => {
         problemId: "blind-coding-challenge",
       });
     });
+
+    // --- Competition Submission Handler ---
+    socket.on(
+      "competition:submit",
+      ({ eventId, userId, username, score, breakdown, timeTaken, status }) => {
+        const room = competitionRooms[eventId];
+        if (!room) return;
+
+        // Store this player's submission
+        room.submissions[userId] = {
+          userId,
+          username,
+          score,
+          breakdown: breakdown || {
+            correctCode: 0,
+            cleanCodeBonus: 0,
+            speedBonus: 0,
+          },
+          timeTaken,
+          status: status || "completed",
+        };
+
+        console.log(
+          `[Competition ${eventId}] ${username} submitted. Score: ${score}, Status: ${status}. Submissions: ${Object.keys(room.submissions).length}/${room.players.length}`,
+        );
+
+        // Notify all players that someone submitted
+        io.to(`competition_${eventId}`).emit("competition:playerSubmitted", {
+          userId,
+          username,
+          totalSubmitted: Object.keys(room.submissions).length,
+          totalPlayers: room.players.length,
+        });
+
+        // Check if ALL players have submitted
+        if (Object.keys(room.submissions).length >= room.players.length) {
+          // Build the final leaderboard sorted by score (desc), then timeTaken (asc)
+          const leaderboardData = Object.values(room.submissions)
+            .sort((a, b) => {
+              if (b.score !== a.score) return b.score - a.score;
+              return (a.timeTaken || Infinity) - (b.timeTaken || Infinity);
+            })
+            .map((entry, index) => ({
+              ...entry,
+              rank: index + 1,
+            }));
+
+          console.log(
+            `[Competition ${eventId}] All players submitted! Broadcasting leaderboard.`,
+          );
+          console.log(leaderboardData);
+
+          // Broadcast final leaderboard to all players in room
+          io.to(`competition_${eventId}`).emit("competition:finalLeaderboard", {
+            players: leaderboardData,
+            eventId,
+          });
+        }
+      },
+    );
 
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);

@@ -255,7 +255,7 @@ export default function CompetitionLobbyPage() {
                                     <h2 className="font-bold text-lg">Active Participants</h2>
                                 </div>
                                 <span className="px-3 py-1 bg-slate-900 text-white rounded-full text-[10px] font-black tracking-widest uppercase">
-                                    {players.length || 1} / 10 Joined
+                                    {players.length || 1} / 2 Joined
                                 </span>
                             </div>
 

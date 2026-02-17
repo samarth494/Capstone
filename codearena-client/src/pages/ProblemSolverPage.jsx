@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import {
@@ -13,6 +13,8 @@ import {
     AlertCircle,
     Clock
 } from 'lucide-react';
+import { getSocket, initiateSocketConnection } from '../services/socket';
+import { API_BASE_URL } from '../config/api';
 
 export default function ProblemSolverPage() {
     const navigate = useNavigate();
@@ -38,6 +40,8 @@ export default function ProblemSolverPage() {
     const [language, setLanguage] = useState(initialLanguage);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
+    const [waitingForOthers, setWaitingForOthers] = useState(false);
+    const hasSubmittedRef = useRef(false);
 
     // Competition context from navigation state
     const eventId = location.state?.eventId || searchParams.get('eventId') || 'blind-coding-championship';
@@ -61,6 +65,48 @@ export default function ProblemSolverPage() {
 
         return () => clearInterval(timer);
     }, []);
+
+    // Listen for final leaderboard from server
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        let socket = getSocket();
+        if (!socket || !socket.connected) {
+            initiateSocketConnection(token);
+            socket = getSocket();
+        }
+
+        if (socket) {
+            const handleFinalLeaderboard = (data) => {
+                const storedUser = localStorage.getItem('user');
+                const currentUser = storedUser ? JSON.parse(storedUser) : user;
+                const myData = data.players.find(p => p.userId === currentUser?._id);
+
+                navigate(`/competition/${eventId}/leaderboard`, {
+                    state: {
+                        players: data.players.map(p => ({
+                            username: p.username,
+                            id: p.userId,
+                            score: p.score,
+                            breakdown: p.breakdown,
+                            status: p.status,
+                            timeTaken: p.timeTaken,
+                            rank: p.rank
+                        })),
+                        myScore: myData?.score || 0,
+                        myBreakdown: myData?.breakdown || { correctCode: 0, cleanCodeBonus: 0, speedBonus: 0 },
+                        round: 1,
+                        reason: myData?.status || 'completed'
+                    }
+                });
+            };
+
+            socket.on('competition:finalLeaderboard', handleFinalLeaderboard);
+
+            return () => {
+                socket.off('competition:finalLeaderboard', handleFinalLeaderboard);
+            };
+        }
+    }, [eventId, navigate, user]);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -91,7 +137,7 @@ export default function ProblemSolverPage() {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/code/run', {
+            const response = await fetch(`${API_BASE_URL}/api/code/run`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -123,13 +169,13 @@ export default function ProblemSolverPage() {
         setIsRunning(true);
         setOutput('Submitting solution...');
 
-        // Brief delay to show submission feedback, then navigate to leaderboard
+        // Brief delay to show submission feedback
         setTimeout(() => {
             setIsRunning(false);
-            setOutput('> Submission Received\n\nAll Test Cases Passed! \nRedirecting to leaderboard...');
-            // Navigate to room leaderboard with 'completed' status
-            handleGoToLeaderboard('completed');
-        }, 2000);
+            setOutput('> Submission Received\n\nAll Test Cases Passed!\nWaiting for other players...');
+            // Emit score to server and wait for all players
+            emitSubmission('completed');
+        }, 1500);
     };
 
     const handleReset = () => {
@@ -151,7 +197,7 @@ export default function ProblemSolverPage() {
      * ========================================================
      */
     const TOTAL_TIME = 10 * 60; // 600 seconds
-    const MAX_PLAYERS = 10;
+    const MAX_PLAYERS = 2;
 
     const calculateScore = (reason, errorRank = 1) => {
         let totalScore = 0;
@@ -199,68 +245,59 @@ export default function ProblemSolverPage() {
         return { totalScore: 0, breakdown };
     };
 
-    const handleGoToLeaderboard = (reason = 'quit') => {
+    const emitSubmission = (reason = 'completed') => {
+        if (hasSubmittedRef.current) return; // Prevent double submission
+        hasSubmittedRef.current = true;
+
         const storedUser = localStorage.getItem('user');
         const currentUser = storedUser ? JSON.parse(storedUser) : user;
-
-        // For the current user, calculate score with errorRank = 1 (best by default for now)
-        // In production, the server would determine errorRank based on compilation errors
-        const myErrorRank = 1; // Placeholder — server should compute this
+        const myErrorRank = 1;
         const { totalScore: myScore, breakdown: myBreakdown } = calculateScore(reason, myErrorRank);
 
-        // Build room players list with scores
-        const roomPlayersData = competitionPlayers.length > 0
-            ? competitionPlayers.map((p, idx) => {
-                const isMe = p.username === currentUser?.username;
-                if (isMe) {
-                    return {
-                        ...p,
+        const socket = getSocket();
+        if (socket) {
+            socket.emit('competition:submit', {
+                eventId,
+                userId: currentUser?._id,
+                username: currentUser?.username,
+                score: myScore,
+                breakdown: myBreakdown,
+                timeTaken: TOTAL_TIME - timeLeft,
+                status: reason
+            });
+        }
+
+        if (reason !== 'quit') {
+            setWaitingForOthers(true);
+        }
+    };
+
+    const handleGoToLeaderboard = (reason = 'quit') => {
+        emitSubmission(reason);
+
+        // For quit, navigate immediately (don't wait for others)
+        if (reason === 'quit') {
+            const storedUser = localStorage.getItem('user');
+            const currentUser = storedUser ? JSON.parse(storedUser) : user;
+            const { totalScore: myScore, breakdown: myBreakdown } = calculateScore(reason, 1);
+            navigate(`/competition/${eventId}/leaderboard`, {
+                state: {
+                    players: [{
+                        username: currentUser?.username || 'You',
+                        id: currentUser?._id,
                         score: myScore,
                         breakdown: myBreakdown,
                         status: reason,
                         timeTaken: TOTAL_TIME - timeLeft
-                    };
+                    }],
+                    myScore,
+                    myBreakdown,
+                    round: 1,
+                    reason
                 }
-                // Simulate other players' scores for now (server would provide real data)
-                const otherErrorRank = Math.floor(Math.random() * 28) + 2; // rank 2-30
-                const otherTimeLeft = Math.floor(Math.random() * TOTAL_TIME);
-                const otherCorrect = Math.random() > 0.3 ? 1000 : 0; // 70% pass
-                const otherClean = otherCorrect > 0
-                    ? Math.round((MAX_PLAYERS - otherErrorRank) * (500 / (MAX_PLAYERS - 1)))
-                    : 0;
-                const otherSpeed = otherCorrect > 0
-                    ? Math.round((otherTimeLeft / TOTAL_TIME) * 500)
-                    : 0;
-                return {
-                    ...p,
-                    score: otherCorrect + otherClean + otherSpeed,
-                    breakdown: {
-                        correctCode: otherCorrect,
-                        cleanCodeBonus: otherClean,
-                        speedBonus: otherSpeed
-                    },
-                    status: otherCorrect > 0 ? 'completed' : 'pending',
-                    timeTaken: otherCorrect > 0 ? (TOTAL_TIME - otherTimeLeft) : null
-                };
-            })
-            : [{
-                username: currentUser?.username || 'You',
-                id: currentUser?._id,
-                score: myScore,
-                breakdown: myBreakdown,
-                status: reason,
-                timeTaken: TOTAL_TIME - timeLeft
-            }];
-
-        navigate(`/competition/${eventId}/leaderboard`, {
-            state: {
-                players: roomPlayersData,
-                myScore,
-                myBreakdown,
-                round: 1,
-                reason
-            }
-        });
+            });
+        }
+        // For completed/timeout → server will broadcast finalLeaderboard when all submitted
     };
 
     const handleQuitBattle = () => {

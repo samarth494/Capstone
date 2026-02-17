@@ -305,7 +305,7 @@ export default function RoomLeaderboardPage() {
                             <Star size={14} className="text-yellow-500" />
                             <strong>Scoring:</strong> Correct Code (+1000) + Clean Code Bonus (up to +500) + Speed Bonus (up to +500) = Max 2000 pts
                         </p>
-                        <p className="ml-6 text-[10px]">Speed Bonus = (TimeLeft / 600) × 500 &nbsp;|&nbsp; Clean Code = (10 - ErrorRank) × (500/9)</p>
+                        <p className="ml-6 text-[10px]">Speed Bonus = (TimeLeft / 600) × 500 &nbsp;|&nbsp; Clean Code = (2 - ErrorRank) × (500/1)</p>
                     </div>
 
                     <div className="flex gap-3">

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
 import { useNavigate } from 'react-router-dom';
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
@@ -44,7 +45,7 @@ export default function EventsPage() {
   const handleCodeSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/events/verify', {
+      const response = await fetch(`${API_BASE_URL}/api/events/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
