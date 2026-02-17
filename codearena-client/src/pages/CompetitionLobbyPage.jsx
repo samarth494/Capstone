@@ -64,17 +64,65 @@ export default function CompetitionLobbyPage() {
                 setTimeLeft(time);
             });
 
-            // Listen for start event
+            // Listen for start event (server-synced)
             socket.on('competition:roundStarted', (data) => {
                 setIsStarting(true);
-                setTimeout(() => {
-                    navigate('/problem/blind-coding', {
-                        state: {
-                            blindMode: true,
-                            language: 'c'
-                        }
-                    });
-                }, 2000);
+                // Store the server's absolute timestamp for when the battle begins
+                const { battleStartsAt, serverTime, countdownSeconds } = data;
+                // Calculate clock offset between client and server
+                const clockOffset = Date.now() - serverTime;
+                const adjustedBattleStartsAt = battleStartsAt + clockOffset;
+
+                // Use requestAnimationFrame for precise, synced countdown
+                const updateCountdown = () => {
+                    const now = Date.now();
+                    const msRemaining = adjustedBattleStartsAt - now;
+                    const secondsRemaining = Math.ceil(msRemaining / 1000);
+
+                    if (secondsRemaining > 0) {
+                        setCountdown(secondsRemaining);
+                        requestAnimationFrame(updateCountdown);
+                    } else if (secondsRemaining > -3) {
+                        // Show "Level 1 Start" for 3 seconds
+                        setCountdown(0);
+                        requestAnimationFrame(updateCountdown);
+                    } else {
+                        // Countdown finished + "Level 1 Start" shown → navigate
+                        navigate('/problem/blind-coding', {
+                            state: {
+                                blindMode: true,
+                                language: 'c',
+                                eventId: eventId,
+                                competitionPlayers: players.map(p => ({
+                                    username: p.username,
+                                    id: p.id,
+                                    rank: p.rank
+                                }))
+                            }
+                        });
+                    }
+                };
+
+                // Play initial beep and start synced countdown
+                playBeep(800, 200);
+                setCountdown(countdownSeconds);
+                requestAnimationFrame(updateCountdown);
+
+                // Play tick beeps on whole seconds
+                const beepInterval = setInterval(() => {
+                    const now = Date.now();
+                    const msRemaining = adjustedBattleStartsAt - now;
+                    const secondsRemaining = Math.ceil(msRemaining / 1000);
+                    
+                    if (secondsRemaining > 0) {
+                        playBeep(440, 150);
+                    } else if (secondsRemaining === 0) {
+                        playBeep(880, 1000);
+                        clearInterval(beepInterval);
+                    } else {
+                        clearInterval(beepInterval);
+                    }
+                }, 1000);
             });
 
             // Listen for errors
@@ -103,50 +151,39 @@ export default function CompetitionLobbyPage() {
 
     // Initial simple beep sound generator for "Get Ready" beeps
     const playBeep = (freq = 440, duration = 100) => {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            
+            const audioCtx = new AudioContext();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
 
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
 
-        oscillator.type = 'sine';
-        oscillator.frequency.value = freq;
-        gainNode.gain.value = 0.1;
+            oscillator.type = 'sine';
+            oscillator.frequency.value = freq;
+            gainNode.gain.value = 0.1;
 
-        oscillator.start();
-        setTimeout(() => {
-            oscillator.stop();
-        }, duration);
+            oscillator.start();
+            setTimeout(() => {
+                oscillator.stop();
+                audioCtx.close();
+            }, duration);
+        } catch (e) {
+            console.error("Audio playback failed:", e);
+        }
     };
 
     const handleStartBattle = () => {
-        setIsStarting(true);
-        let count = 10;
-        setCountdown(count);
-        playBeep(800, 200); // Initial start beep
-
-        const interval = setInterval(() => {
-            count--;
-            setCountdown(count);
-            
-            if (count > 0) {
-                 playBeep(440, 150); // Tick beep
-            } else if (count === 0) {
-                 playBeep(880, 1000); // Level start beep (longer)
-            }
-
-            // Wait 3 seconds showing "Level 1 Start"
-            if (count < -3) {
-                clearInterval(interval);
-                navigate('/problem/blind-coding', {
-                    state: {
-                        blindMode: true,
-                        language: 'c'
-                    }
-                });
-            }
-        }, 1000);
+        if (isStarting) return;
+        
+        // Host manually starts → emit to server, server will broadcast to all
+        const socket = getSocket();
+        if (socket) {
+            socket.emit('competition:startRound', { eventId });
+        }
     };
 
     return (
@@ -218,7 +255,7 @@ export default function CompetitionLobbyPage() {
                                     <h2 className="font-bold text-lg">Active Participants</h2>
                                 </div>
                                 <span className="px-3 py-1 bg-slate-900 text-white rounded-full text-[10px] font-black tracking-widest uppercase">
-                                    {players.length || 1} / 30 Joined
+                                    {players.length || 1} / 10 Joined
                                 </span>
                             </div>
 
@@ -348,7 +385,7 @@ export default function CompetitionLobbyPage() {
                                     <div>
                                         <h3 className="font-bold text-slate-900">Time Limit</h3>
                                         <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                            You have exactly 15 minutes to complete the challenge. Speed bonus applies.
+                                            You have exactly 10 minutes to complete the challenge. Speed bonus applies.
                                         </p>
                                     </div>
                                 </div>
