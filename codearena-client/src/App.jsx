@@ -12,7 +12,6 @@ import ReplayPage from "./pages/ReplayPage";
 import DataStructureBattlePage from "./pages/DataStructureBattlePage";
 import EventsPage from "./pages/EventsPage";
 import EventShowcasePage from "./pages/EventShowcasePage";
-
 import ProtectedRoute from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
 import BattleLobbyPage from "./pages/BattleLobbypage";  

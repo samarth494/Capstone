@@ -128,12 +128,11 @@ export default function Frontpage() {
 
             <div className="flex items-center space-x-4">
               <div className="hidden md:flex items-center space-x-4">
-                  <button onClick={() => navigate('/login')} className="text-slate-600 hover:text-slate-900 font-medium font-mono text-sm">Log_In</button>
                   <button 
-                    onClick={() => navigate('/signup')} 
-                    className="bg-slate-900 text-white px-5 py-2 rounded-md hover:bg-slate-800 font-medium shadow-lg shadow-slate-200 transition-all hover:shadow-xl active:scale-95"
+                    onClick={() => navigate('/login')} 
+                    className="bg-slate-900 text-white px-6 py-2 rounded-full hover:bg-slate-800 font-medium shadow-lg shadow-slate-200 transition-all hover:shadow-xl active:scale-95 font-mono text-sm"
                   >
-                    Get Started
+                    Log_In
                   </button>
               </div>
 
@@ -176,12 +175,9 @@ export default function Frontpage() {
                         
                         <div className="h-px bg-slate-100 w-full my-6"></div>
 
-                        <div className="grid grid-cols-2 gap-4 px-2">
-                            <button onClick={() => navigate('/login')} className="flex items-center justify-center py-3 text-slate-600 font-bold border border-slate-200 rounded-lg hover:border-slate-400 hover:text-slate-900 transition-all">
+                        <div className="px-2">
+                            <button onClick={() => navigate('/login')} className="w-full flex items-center justify-center py-3 text-white bg-slate-900 font-bold rounded-full hover:bg-slate-800 transition-all shadow-lg hover:shadow-xl active:scale-95">
                                 Log_In
-                            </button>
-                            <button onClick={() => navigate('/signup')} className="flex items-center justify-center py-3 text-slate-900 font-bold border-2 border-slate-900 rounded-lg hover:bg-slate-50 transition-all">
-                                Sign_Up
                             </button>
                         </div>
                     </div>
@@ -562,10 +558,10 @@ export default function Frontpage() {
               <br />0 compilations failed so far.
             </p>
             <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-6">
-              <button onClick={() => navigate('/signup')} className="w-full sm:w-auto bg-white text-slate-900 px-8 py-4 rounded-lg hover:bg-blue-50 font-bold text-lg transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)]">
-                Create Free Account
-              </button>
-              <button onClick={() => navigate('/login')} className="w-full sm:w-auto text-white border border-slate-700 px-8 py-4 rounded-lg hover:bg-slate-800 font-medium text-lg transition-colors">
+              <button 
+                onClick={() => navigate('/login')} 
+                className="w-full sm:w-auto bg-white text-slate-900 px-8 py-4 rounded-full hover:bg-slate-100 font-bold text-lg transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] active:scale-95"
+              >
                 Log In
               </button>
             </div>
