@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getUser, logout } from '../utils/auth';
 import Navbar from '../components/Navbar';
 import {
     Swords,
@@ -15,17 +16,18 @@ import {
 
 export default function DashboardPage() {
     const navigate = useNavigate();
-    const [user, setUser] = useState(() => {
-        const savedUser = localStorage.getItem('user');
-        return savedUser ? JSON.parse(savedUser) : null;
-    });
+    const [user, setUser] = useState(() => getUser());
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token || !user) {
-            navigate('/login');
+        if (!user) {
+            navigate('/');
         }
-    }, [navigate, user]);
+    }, [user, navigate]);
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     if (!user) return null; // Or a loading spinner
 

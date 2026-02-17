@@ -1,16 +1,12 @@
 import React, { useState } from "react";
 import { Terminal, Lock, User, Check, ArrowRight, Shield } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
-
+import { login } from "../utils/auth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    identifier: "", // Note: Backend expects 'email', but UI says 'Username or Email'. I will send 'email' as the key if it looks like an email, or handle username logic if backend supports it. But backend only checks 'email'.
-    // The previous backend code: const { email, password } = req.body; and findOne({ email }).
-    // So the user MUST login with email.
-    // I should probably change the UI placeholder to just "Email" or ensure the user enters an email.
-    // For now, I will treat identifier as email.
+    identifier: "",
     password: "",
     rememberMe: false,
   });
@@ -46,7 +42,7 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: formData.identifier, // Sending identifier as email.
+          email: formData.identifier,
           password: formData.password,
         }),
       });
@@ -54,15 +50,15 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("token", data.token);
-        // Exclude token from user object if it's there, or just save relevant fields
         const userToSave = {
           _id: data.user._id,
           username: data.user.username,
           email: data.user.email
         };
-        localStorage.setItem("user", JSON.stringify(userToSave));
-        navigate("/dashboard");
+        // Use the auth utility to login, respecting the rememberMe flag
+        login(data.token, userToSave, formData.rememberMe);
+
+        navigate("/dashboard", { replace: true });
       } else {
         setError(data.message || "Login failed");
       }
@@ -130,7 +126,7 @@ export default function LoginPage() {
                 <span className="text-yellow-600">Error</span>(
                 <span className="text-green-600">'Access Denied'</span>);
                 <br />
-                <span className="text-slate-800">{"}"}</span>
+                &nbsp;&nbsp;<span className="text-slate-800">{"}"}</span>
               </div>
             </div>
           </div>
@@ -260,7 +256,7 @@ export default function LoginPage() {
               to="/signup"
               className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
             >
-              Sign Up 
+              Sign Up
             </Link>
           </div>
         </div>

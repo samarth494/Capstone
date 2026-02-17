@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Terminal, Lock, User, Mail, Check, ArrowRight, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { login } from "../utils/auth";
 
 export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
   const navigate = useNavigate();
@@ -58,15 +59,16 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("token", data.token);
         const userToSave = {
           _id: data.user._id,
           username: data.user.username,
           email: data.user.email
         };
-        localStorage.setItem("user", JSON.stringify(userToSave));
+        // Default to remembering user for signups
+        login(data.token, userToSave, true);
+
         onClose();
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       } else {
         setError(data.message || "Registration failed");
       }
@@ -88,7 +90,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
             onClick={onClose}
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
           />
-          
+
           <motion.div
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -96,7 +98,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
             className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden z-10 border border-slate-200  max-h-[90vh] overflow-y-auto"
           >
             {/* Close Button */}
-            <button 
+            <button
               onClick={onClose}
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-20"
             >
@@ -209,7 +211,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
 
                 {/* Error & Submit */}
                 {error && <div className="text-red-500 text-sm font-medium text-center bg-red-50 p-2 rounded">{error}</div>}
-                
+
                 <button
                   type="submit"
                   disabled={isLoading}

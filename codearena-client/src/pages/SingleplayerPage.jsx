@@ -41,7 +41,7 @@ export default function SingleplayerPage() {
     const fetchProblems = async (category) => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:5000/api/problems?category=${category}`);
+            const response = await fetch(`http://127.0.0.1:5000/api/problems?category=${category}`);
             const data = await response.json();
             setProblems(data);
         } catch (error) {
@@ -131,12 +131,12 @@ export default function SingleplayerPage() {
                 </div>
 
                 {/* Category Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                     <div
                         onClick={() => setActiveCategory('Fundamentals')}
                         className={`cursor-pointer group relative p-6 rounded-2xl border transition-all duration-300 overflow-hidden shadow-sm hover:shadow-md ${activeCategory === 'Fundamentals'
-                                ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500'
-                                : 'bg-white border-slate-200 hover:border-blue-400'
+                            ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500'
+                            : 'bg-white border-slate-200 hover:border-blue-400'
                             }`}
                     >
                         <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity`}>
@@ -155,8 +155,8 @@ export default function SingleplayerPage() {
                     <div
                         onClick={() => setActiveCategory('Data Structures')}
                         className={`cursor-pointer group relative p-6 rounded-2xl border transition-all duration-300 overflow-hidden shadow-sm hover:shadow-md ${activeCategory === 'Data Structures'
-                                ? 'bg-purple-50 border-purple-500 ring-1 ring-purple-500'
-                                : 'bg-white border-slate-200 hover:border-purple-400'
+                            ? 'bg-purple-50 border-purple-500 ring-1 ring-purple-500'
+                            : 'bg-white border-slate-200 hover:border-purple-400'
                             }`}
                     >
                         <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity`}>
@@ -169,6 +169,26 @@ export default function SingleplayerPage() {
                             </div>
                             <h3 className="text-2xl font-bold text-slate-900 mb-2">Data Structures</h3>
                             <p className="text-slate-500 text-sm">Deep dive into Arrays, Linked Lists, Trees, Graphs, and Hash Maps.</p>
+                        </div>
+                    </div>
+
+                    <div
+                        onClick={() => setActiveCategory('Algorithms')}
+                        className={`cursor-pointer group relative p-6 rounded-2xl border transition-all duration-300 overflow-hidden shadow-sm hover:shadow-md ${activeCategory === 'Algorithms'
+                            ? 'bg-orange-50 border-orange-500 ring-1 ring-orange-500'
+                            : 'bg-white border-slate-200 hover:border-orange-400'
+                            }`}
+                    >
+                        <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity`}>
+                            <Cpu size={120} className="text-slate-900" />
+                        </div>
+                        <div className="relative z-10">
+                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${activeCategory === 'Algorithms' ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-orange-50 group-hover:text-orange-600'
+                                }`}>
+                                <Cpu size={24} />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-2">Algorithms</h3>
+                            <p className="text-slate-500 text-sm">Master Sorting, Searching, Dynamic Programming, and Greedy techniques.</p>
                         </div>
                     </div>
                 </div>
@@ -192,8 +212,8 @@ export default function SingleplayerPage() {
                                 key={filter}
                                 onClick={() => setDifficultyFilter(filter)}
                                 className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${difficultyFilter === filter
-                                        ? 'bg-slate-900 text-white shadow-md'
-                                        : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 hover:text-slate-700'
+                                    ? 'bg-slate-900 text-white shadow-md'
+                                    : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 hover:text-slate-700'
                                     }`}
                             >
                                 {filter}

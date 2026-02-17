@@ -28,7 +28,7 @@ function App() {
         <Route path="/" element={<FrontPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/battle/data-structures" element={<DataStructureBattlePage />} />
+
         <Route path="/events" element={<EventShowcasePage />} />
         <Route path="/about" element={<AboutPage />} />
 
@@ -40,6 +40,7 @@ function App() {
           <Route path="/singleplayer" element={<SingleplayerPage />} />
           <Route path="/lobby" element={<BattleLobbyPage />} />
           <Route path="/problem/:problemId" element={<ProblemSolverPage />} />
+          <Route path="/battle/data-structures" element={<DataStructureBattlePage />} />
           <Route path="/battle/:roomId" element={<BattleArenaPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/profile/:userId" element={<ProfilePage />} />

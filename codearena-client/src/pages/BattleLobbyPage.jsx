@@ -13,19 +13,20 @@ import {
 
 import { initiateSocketConnection, joinQueue, subscribeToMatchFound, disconnectSocket, getSocket } from '../services/socket';
 
+import { getUser, getAuthToken, logout } from '../utils/auth';
+
 export default function BattleLobbyPage() {
     const navigate = useNavigate();
     const [user, setUser] = useState(() => {
-        const savedUser = localStorage.getItem('user');
-        return savedUser ? JSON.parse(savedUser) : null;
+        return getUser();
     });
     const [isMatchmaking, setIsMatchmaking] = useState(false);
     const [matchmakingTime, setMatchmakingTime] = useState(0);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
+        const token = getAuthToken();
+        const storedUser = getUser();
 
         if (!token || !storedUser) {
             navigate('/login');
