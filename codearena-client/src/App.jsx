@@ -12,10 +12,11 @@ import ReplayPage from "./pages/ReplayPage";
 import DataStructureBattlePage from "./pages/DataStructureBattlePage";
 import EventsPage from "./pages/EventsPage";
 import EventShowcasePage from "./pages/EventShowcasePage";
+import CompetitionLobbyPage from "./pages/CompetitionLobbyPage";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
-import BattleLobbyPage from "./pages/BattleLobbypage";  
+import BattleLobbyPage from "./pages/BattleLobbypage";
 
 function App() {
   return (
@@ -33,13 +34,14 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/practice" element={<PracticePage />} />
-          <Route path="/lobby" element={<BattleLobbyPage />} /> 
+          <Route path="/lobby" element={<BattleLobbyPage />} />
           <Route path="/problem/:problemId" element={<ProblemSolverPage />} />
           <Route path="/battle/:roomId" element={<BattleArenaPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/profile/:userId" element={<ProfilePage />} />
           <Route path="/replay/:battleId" element={<ReplayPage />} />
           <Route path="/dashboard/events" element={<EventsPage />} />
+          <Route path="/competition/:eventId/lobby" element={<CompetitionLobbyPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

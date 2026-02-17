@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import {
     Swords,
@@ -16,10 +16,13 @@ import {
 export default function ProblemSolverPage() {
     const navigate = useNavigate();
     const { problemId } = useParams();
+    const location = useLocation();
+    const [blindMode, setBlindMode] = useState(location.state?.blindMode || false);
     const [user, setUser] = useState(null);
     const [code, setCode] = useState('// Write your solution here\nfunction solve(input) {\n  return input;\n}');
     const [output, setOutput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
+    const [language, setLanguage] = useState(location.state?.language || 'javascript');
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     useEffect(() => {
@@ -53,7 +56,7 @@ export default function ProblemSolverPage() {
                 },
                 body: JSON.stringify({
                     code: code,
-                    language: 'javascript',
+                    language: language,
                     input: '' // In the future, this could come from user input or test cases
                 }),
             });
@@ -90,7 +93,34 @@ export default function ProblemSolverPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] font-['JetBrains_Mono'] flex flex-col">
+        <div className={`min-h-screen bg-[#F8FAFC] font-['JetBrains_Mono'] flex flex-col ${blindMode ? 'blind-mode-active' : ''}`}>
+            <style>
+                {`
+                    .blind-mode-active .monaco-editor .view-line,
+                    .blind-mode-active .monaco-editor .mtk1,
+                    .blind-mode-active .monaco-editor .mtk2,
+                    .blind-mode-active .monaco-editor .mtk3,
+                    .blind-mode-active .monaco-editor .mtk4,
+                    .blind-mode-active .monaco-editor .mtk5,
+                    .blind-mode-active .monaco-editor .mtk6,
+                    .blind-mode-active .monaco-editor .mtk7,
+                    .blind-mode-active .monaco-editor .mtk8,
+                    .blind-mode-active .monaco-editor .mtk9 {
+                        color: transparent !important;
+                    }
+                    .blind-mode-active .monaco-editor .view-lines {
+                        opacity: 0 !important;
+                    }
+                    .blind-mode-active .monaco-editor .cursor {
+                        background-color: #ffffff !important;
+                        border-color: #ffffff !important;
+                        color: #ffffff !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        z-index: 100 !important;
+                    }
+                `}
+            </style>
             {/* Header */}
             <header className="bg-white border-b border-slate-200 sticky top-0 z-50 h-16 flex-none">
                 <div className="w-full px-4 sm:px-6 lg:px-8 h-full">
@@ -200,9 +230,18 @@ export default function ProblemSolverPage() {
 
                 {/* Right Panel: Editor & Console */}
                 <div className="w-1/2 flex flex-col bg-[#1e1e1e]">
+                    {blindMode && (
+                        <div className="bg-purple-600 text-white px-4 py-2 text-center text-xs font-bold uppercase tracking-wider animate-pulse flex items-center justify-center gap-2">
+                            <AlertCircle size={14} />
+                            Blind Mode Active: Code is hidden.
+                        </div>
+                    )}
+
                     {/* Toolbar */}
                     <div className="h-12 bg-[#252526] border-b border-[#3e3e42] flex items-center justify-between px-4">
-                        <div className="text-slate-400 text-xs font-mono">JavaScript (ES6)</div>
+                        <div className="text-slate-400 text-xs font-mono uppercase font-black tracking-widest">
+                            {language === 'cpp' ? 'C++ (GCC 11)' : language === 'c' ? 'C (GCC 11)' : language === 'java' ? 'Java (OpenJDK 17)' : 'JavaScript (ES6)'}
+                        </div>
                         <div className="flex gap-2">
                             <button
                                 onClick={handleReset}
@@ -218,7 +257,8 @@ export default function ProblemSolverPage() {
                     <div className="flex-1 overflow-hidden">
                         <Editor
                             height="100%"
-                            defaultLanguage="javascript"
+                            language={language === 'cpp' ? 'cpp' : language === 'c' ? 'cpp' : language}
+                            defaultLanguage={language}
                             value={code}
                             onChange={(value) => setCode(value)}
                             theme="vs-dark"
@@ -226,9 +266,16 @@ export default function ProblemSolverPage() {
                                 minimap: { enabled: false },
                                 fontSize: 14,
                                 fontFamily: 'JetBrains Mono',
-                                lineNumbers: 'on',
+                                lineNumbers: blindMode ? 'off' : 'on',
                                 scrollBeyondLastLine: false,
                                 automaticLayout: true,
+                                quickSuggestions: !blindMode,
+                                parameterHints: { enabled: !blindMode },
+                                suggestOnTriggerCharacters: !blindMode,
+                                wordBasedSuggestions: !blindMode,
+                                snippetSuggestions: blindMode ? 'none' : 'inline',
+                                foldGutter: !blindMode,
+                                glyphMargin: !blindMode,
                             }}
                         />
                     </div>
