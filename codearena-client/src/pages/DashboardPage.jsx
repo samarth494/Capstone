@@ -51,7 +51,7 @@ export default function DashboardPage() {
             color: 'text-blue-600',
             bgColor: 'bg-blue-50',
             borderColor: 'hover:border-blue-500',
-            action: () => navigate('/battle/data-structures')
+            action: () => navigate('/lobby')
         },
         {
             title: 'Practice Problems',
