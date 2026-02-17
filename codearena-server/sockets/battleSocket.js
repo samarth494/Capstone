@@ -6,6 +6,7 @@ const { calculateRank } = require('../utils/rankUtils');
 
 const battleQueue = []; // Simple in-memory queue
 const activeBattles = {};
+const competitionRooms = {}; // Tracks players and host for each competition event
 
 // Helper to persist results and update stats
 const addReplayEvent = (roomId, type, playerId, data) => {
@@ -295,9 +296,87 @@ const socketHandler = (server) => {
             }
         });
 
+        // --- Competition Lobby Logic ---
+
+        socket.on('competition:join', ({ eventId, user }) => {
+            if (!eventId || !user) return;
+
+            socket.join(`competition_${eventId}`);
+
+            if (!competitionRooms[eventId]) {
+                competitionRooms[eventId] = {
+                    players: [],
+                    hostId: socket.id,
+                    startTime: Date.now()
+                };
+                console.log(`Lobby Created for ${eventId}. Host: ${user.username}`);
+            }
+
+            const room = competitionRooms[eventId];
+
+            // Check if user already in room
+            const existingPlayerIndex = room.players.findIndex(p => p.socketId === socket.id);
+            if (existingPlayerIndex === -1) {
+                room.players.push({
+                    socketId: socket.id,
+                    username: user.username,
+                    rank: user.rank,
+                    id: user._id
+                });
+            }
+
+            // Sync everyone in room
+            io.to(`competition_${eventId}`).emit('competition:updatePlayers', room.players);
+            io.to(`competition_${eventId}`).emit('competition:hostInfo', { hostId: room.hostId });
+
+            console.log(`User ${user.username} joined competition ${eventId}. Total: ${room.players.length}`);
+        });
+
+        socket.on('competition:startRound', ({ eventId }) => {
+            const room = competitionRooms[eventId];
+            if (!room) return;
+
+            // Only host can start
+            if (room.hostId !== socket.id) {
+                console.warn(`Unauthorized start attempt by ${socket.id} for event ${eventId}`);
+                socket.emit('competition:error', { message: 'Only the lobby host can start the competition.' });
+                return;
+            }
+
+            console.log(`Competition ${eventId} started by host ${socket.id}`);
+            io.to(`competition_${eventId}`).emit('competition:roundStarted', {
+                startTime: Date.now(),
+                problemId: 'blind-coding-challenge'
+            });
+        });
+
         socket.on('disconnect', () => {
             console.log('Client disconnected:', socket.id);
-            // Remove from queue logic would go here
+
+            // Cleanup competition rooms
+            Object.keys(competitionRooms).forEach(eventId => {
+                const room = competitionRooms[eventId];
+                const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
+
+                if (playerIndex !== -1) {
+                    room.players.splice(playerIndex, 1);
+
+                    // If host disconnected, assign new host if players left
+                    if (room.hostId === socket.id) {
+                        if (room.players.length > 0) {
+                            room.hostId = room.players[0].socketId;
+                            console.log(`Host changed for ${eventId}: ${room.players[0].username}`);
+                        } else {
+                            delete competitionRooms[eventId];
+                            console.log(`Deleted empty room for ${eventId}`);
+                            return;
+                        }
+                    }
+
+                    io.to(`competition_${eventId}`).emit('competition:updatePlayers', room.players);
+                    io.to(`competition_${eventId}`).emit('competition:hostInfo', { hostId: room.hostId });
+                }
+            });
         });
     });
 };
