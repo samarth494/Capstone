@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Swords, ArrowLeft, Zap, Trophy, Clock, 
-  ChevronRight, Cpu, Star, Users, 
+import {
+  Swords, ArrowLeft, Zap, Trophy, Clock,
+  ChevronRight, Cpu, Star, Users,
   Play, Target, Activity, Terminal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -218,14 +218,14 @@ export default function DataStructureBattlePage() {
                 <Swords className="w-4 h-4 text-blue-500" />
                 <span><span className="text-slate-700 font-semibold">38</span> battles active</span>
               </div>
-              <button 
-                onClick={() => navigate('/login')} 
+              <button
+                onClick={() => navigate('/login')}
                 className="text-slate-600 hover:text-slate-900 font-medium font-mono text-sm"
               >
                 Log_In
               </button>
-              <button 
-                onClick={() => navigate('/signup')} 
+              <button
+                onClick={() => navigate('/signup')}
                 className="bg-slate-900 text-white px-5 py-2 rounded-md hover:bg-slate-800 font-medium shadow-lg shadow-slate-200 transition-all hover:shadow-xl active:scale-95"
               >
                 Get Started
@@ -303,11 +303,10 @@ export default function DataStructureBattlePage() {
           <div className="flex items-center space-x-1 py-3 overflow-x-auto">
             <button
               onClick={() => setSelectedTier('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                selectedTier === 'all'
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${selectedTier === 'all'
                   ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
                   : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
-              }`}
+                }`}
             >
               All Tiers
             </button>
@@ -315,11 +314,10 @@ export default function DataStructureBattlePage() {
               <button
                 key={tier.key}
                 onClick={() => setSelectedTier(tier.key)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 whitespace-nowrap ${
-                  selectedTier === tier.key
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 whitespace-nowrap ${selectedTier === tier.key
                     ? `${tierConfig[tier.key].bgLight} ${tierConfig[tier.key].text} border ${tierConfig[tier.key].border}`
                     : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
-                }`}
+                  }`}
               >
                 <span>{tier.icon}</span>
                 <span>{tier.label}</span>
@@ -332,14 +330,14 @@ export default function DataStructureBattlePage() {
 
       {/* Problems List */}
       <section className="py-8">
-        <LoginModal 
-          isOpen={showLoginModal} 
-          onClose={() => setShowLoginModal(false)} 
+        <LoginModal
+          isOpen={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
           onSwitchToSignup={switchToSignup}
         />
-        <SignupModal 
-          isOpen={showSignupModal} 
-          onClose={() => setShowSignupModal(false)} 
+        <SignupModal
+          isOpen={showSignupModal}
+          onClose={() => setShowSignupModal(false)}
           onSwitchToLogin={switchToLogin}
         />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -418,11 +416,10 @@ export default function DataStructureBattlePage() {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => setShowLoginModal(true)}
-                          className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                            isHovered
+                          className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${isHovered
                               ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
                               : 'bg-slate-100 text-slate-500 border border-slate-200'
-                          }`}
+                            }`}
                         >
                           <Play className="w-4 h-4" />
                           <span>Battle</span>
@@ -493,8 +490,8 @@ export default function DataStructureBattlePage() {
                 <Zap className="w-5 h-5" />
                 <span>Quick Match</span>
               </button>
-              <button 
-                onClick={() => navigate('/')} 
+              <button
+                onClick={() => navigate('/')}
                 className="w-full sm:w-auto text-white border border-slate-700 px-8 py-4 rounded-lg hover:bg-slate-800 font-medium text-lg transition-colors"
               >
                 Back to Home

@@ -53,15 +53,7 @@ export default function DashboardPage() {
             borderColor: 'hover:border-blue-500',
             action: () => navigate('/lobby')
         },
-        {
-            title: 'Practice Problems',
-            description: 'Hone your skills with our collection of algorithmic challenges.',
-            icon: Code,
-            color: 'text-green-600',
-            bgColor: 'bg-green-50',
-            borderColor: 'hover:border-green-500',
-            action: () => navigate('/practice')
-        },
+
         {
             title: 'Leaderboard',
             description: 'See where you stand among the top developers globally.',

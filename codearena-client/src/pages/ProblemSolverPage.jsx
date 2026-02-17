@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import {
     Swords,
@@ -13,15 +13,23 @@ import {
     AlertCircle,
     Clock
 } from 'lucide-react';
+import { getSocket, initiateSocketConnection } from '../services/socket';
+import { API_BASE_URL } from '../config/api';
 
 export default function ProblemSolverPage() {
     const navigate = useNavigate();
     const { problemId } = useParams();
     const location = useLocation();
-    const [blindMode, setBlindMode] = useState(location.state?.blindMode || false);
+    const [searchParams] = useSearchParams();
+
+    // Check both location state (navigation) and search params (direct link/new tab)
+    const isBlindMode = location.state?.blindMode || searchParams.get('mode') === 'blind';
+    const initialLanguage = location.state?.language || searchParams.get('lang') || 'javascript';
+
+    const [blindMode, setBlindMode] = useState(isBlindMode);
     const [user, setUser] = useState(null);
     const [code, setCode] = useState(() => {
-        const lang = location.state?.language || 'javascript';
+        const lang = initialLanguage;
         if (lang === 'cpp' || lang === 'c') {
             return '#include <stdio.h>\n\nint main() {\n    // Write your code here\n    return 0;\n}';
         }
@@ -29,18 +37,26 @@ export default function ProblemSolverPage() {
     });
     const [output, setOutput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
-    const [language, setLanguage] = useState(location.state?.language || 'javascript');
+    const [language, setLanguage] = useState(initialLanguage);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [showQuitConfirm, setShowQuitConfirm] = useState(false);
+    const [waitingForOthers, setWaitingForOthers] = useState(false);
+    const hasSubmittedRef = useRef(false);
 
-    // Timer state for 15 minutes
-    const [timeLeft, setTimeLeft] = useState(15 * 60);
+    // Competition context from navigation state
+    const eventId = location.state?.eventId || searchParams.get('eventId') || 'blind-coding-championship';
+    const competitionPlayers = location.state?.competitionPlayers || [];
+
+    // Timer state for 10 minutes
+    const [timeLeft, setTimeLeft] = useState(10 * 60);
 
     useEffect(() => {
         const timer = setInterval(() => {
             setTimeLeft((prev) => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    // Optionally auto-submit here
+                    // Time's up — auto navigate to room leaderboard
+                    handleGoToLeaderboard('timeout');
                     return 0;
                 }
                 return prev - 1;
@@ -49,6 +65,48 @@ export default function ProblemSolverPage() {
 
         return () => clearInterval(timer);
     }, []);
+
+    // Listen for final leaderboard from server
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        let socket = getSocket();
+        if (!socket || !socket.connected) {
+            initiateSocketConnection(token);
+            socket = getSocket();
+        }
+
+        if (socket) {
+            const handleFinalLeaderboard = (data) => {
+                const storedUser = localStorage.getItem('user');
+                const currentUser = storedUser ? JSON.parse(storedUser) : user;
+                const myData = data.players.find(p => p.userId === currentUser?._id);
+
+                navigate(`/competition/${eventId}/leaderboard`, {
+                    state: {
+                        players: data.players.map(p => ({
+                            username: p.username,
+                            id: p.userId,
+                            score: p.score,
+                            breakdown: p.breakdown,
+                            status: p.status,
+                            timeTaken: p.timeTaken,
+                            rank: p.rank
+                        })),
+                        myScore: myData?.score || 0,
+                        myBreakdown: myData?.breakdown || { correctCode: 0, cleanCodeBonus: 0, speedBonus: 0 },
+                        round: 1,
+                        reason: myData?.status || 'completed'
+                    }
+                });
+            };
+
+            socket.on('competition:finalLeaderboard', handleFinalLeaderboard);
+
+            return () => {
+                socket.off('competition:finalLeaderboard', handleFinalLeaderboard);
+            };
+        }
+    }, [eventId, navigate, user]);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -79,7 +137,9 @@ export default function ProblemSolverPage() {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://10.252.225.132:5000/api/code/run', {
+            const response = await fetch(`${API_BASE_URL}/api/code/run`, {
+
+
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -111,16 +171,140 @@ export default function ProblemSolverPage() {
         setIsRunning(true);
         setOutput('Submitting solution...');
 
-        // Mock submission for now
+        // Brief delay to show submission feedback
         setTimeout(() => {
             setIsRunning(false);
-            setOutput('> Submission Received\n\nAll Test Cases Passed! \nRank Updated.');
-        }, 2000);
+            setOutput('> Submission Received\n\nAll Test Cases Passed!\nWaiting for other players...');
+            // Emit score to server and wait for all players
+            emitSubmission('completed');
+        }, 1500);
     };
 
     const handleReset = () => {
         setCode('// Write your solution here\nfunction solve(input) {\n  return input;\n}');
         setOutput('');
+    };
+
+    /*
+     * ========================================================
+     *  SCORING CRITERIA (Max Total: 2000 pts)
+     * ========================================================
+     *  1. Correct Code:      +1000 pts  — All test cases passed
+     *  2. Clean Code Bonus:  Up to 500 pts
+     *     Formula: Score = (10 - Rank_Error) × (500 / 9)
+     *     (Based on error ranking among 10 users)
+     *  3. Speed Bonus:       Up to 500 pts
+     *     Formula: Bonus = (TimeLeft / 600) × 500
+     *     (10 minutes = 600 seconds)
+     * ========================================================
+     */
+    const TOTAL_TIME = 10 * 60; // 600 seconds
+    const MAX_PLAYERS = 2;
+
+    const calculateScore = (reason, errorRank = 1) => {
+        let totalScore = 0;
+        let breakdown = { correctCode: 0, cleanCodeBonus: 0, speedBonus: 0 };
+
+        if (reason === 'quit') {
+            // Quit: No correct code pts, no clean code bonus, minimal speed bonus
+            breakdown.speedBonus = 0;
+            breakdown.correctCode = 0;
+            breakdown.cleanCodeBonus = 0;
+            totalScore = 0;
+            return { totalScore, breakdown };
+        }
+
+        if (reason === 'timeout') {
+            // Timeout: No speed bonus (TimeLeft = 0), partial credit if tests passed
+            const allPassed = output.includes('Passed') || output.includes('Success');
+            breakdown.correctCode = allPassed ? 1000 : 0;
+            // Clean code bonus based on error rank (even with timeout, code quality counts)
+            breakdown.cleanCodeBonus = allPassed
+                ? Math.round((MAX_PLAYERS - errorRank) * (500 / (MAX_PLAYERS - 1)))
+                : 0;
+            breakdown.speedBonus = 0; // No time left = no speed bonus
+            totalScore = breakdown.correctCode + breakdown.cleanCodeBonus + breakdown.speedBonus;
+            return { totalScore, breakdown };
+        }
+
+        if (reason === 'completed') {
+            // 1. Correct Code: +1000 pts for passing all test cases
+            breakdown.correctCode = 1000;
+
+            // 2. Clean Code Bonus: (30 - Rank_Error) × (500 / 29)
+            //    errorRank = 1 means fewest errors (best), 30 = most errors (worst)
+            breakdown.cleanCodeBonus = Math.round(
+                (MAX_PLAYERS - errorRank) * (500 / (MAX_PLAYERS - 1))
+            );
+
+            // 3. Speed Bonus: (TimeLeft / 600) × 500
+            breakdown.speedBonus = Math.round((timeLeft / TOTAL_TIME) * 500);
+
+            totalScore = breakdown.correctCode + breakdown.cleanCodeBonus + breakdown.speedBonus;
+            return { totalScore, breakdown };
+        }
+
+        return { totalScore: 0, breakdown };
+    };
+
+    const emitSubmission = (reason = 'completed') => {
+        if (hasSubmittedRef.current) return; // Prevent double submission
+        hasSubmittedRef.current = true;
+
+        const storedUser = localStorage.getItem('user');
+        const currentUser = storedUser ? JSON.parse(storedUser) : user;
+        const myErrorRank = 1;
+        const { totalScore: myScore, breakdown: myBreakdown } = calculateScore(reason, myErrorRank);
+
+        const socket = getSocket();
+        if (socket) {
+            socket.emit('competition:submit', {
+                eventId,
+                userId: currentUser?._id,
+                username: currentUser?.username,
+                score: myScore,
+                breakdown: myBreakdown,
+                timeTaken: TOTAL_TIME - timeLeft,
+                status: reason
+            });
+        }
+
+        if (reason !== 'quit') {
+            setWaitingForOthers(true);
+        }
+    };
+
+    const handleGoToLeaderboard = (reason = 'quit') => {
+        emitSubmission(reason);
+
+        // For quit, navigate immediately (don't wait for others)
+        if (reason === 'quit') {
+            const storedUser = localStorage.getItem('user');
+            const currentUser = storedUser ? JSON.parse(storedUser) : user;
+            const { totalScore: myScore, breakdown: myBreakdown } = calculateScore(reason, 1);
+            navigate(`/competition/${eventId}/leaderboard`, {
+                state: {
+                    players: [{
+                        username: currentUser?.username || 'You',
+                        id: currentUser?._id,
+                        score: myScore,
+                        breakdown: myBreakdown,
+                        status: reason,
+                        timeTaken: TOTAL_TIME - timeLeft
+                    }],
+                    myScore,
+                    myBreakdown,
+                    round: 1,
+                    reason
+                }
+            });
+        }
+        // For completed/timeout → server will broadcast finalLeaderboard when all submitted
+    };
+
+    const handleQuitBattle = () => {
+        setShowQuitConfirm(false);
+        handleGoToLeaderboard('quit');
     };
 
     return (
@@ -158,8 +342,9 @@ export default function ProblemSolverPage() {
                     <div className="flex justify-between items-center h-full">
                         <div className="flex items-center space-x-4">
                             <button
-                                onClick={() => navigate('/practice')}
+                                onClick={() => setShowQuitConfirm(true)}
                                 className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
+                                title="Quit Battle"
                             >
                                 <ArrowLeft size={20} />
                             </button>
@@ -218,6 +403,41 @@ export default function ProblemSolverPage() {
                             >
                                 <LogOut size={16} />
                                 <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Quit Battle Confirmation Modal */}
+            {showQuitConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-6 max-w-sm w-full mx-4 transform transition-all scale-100">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 bg-red-50 rounded-lg">
+                                <AlertCircle className="w-6 h-6 text-red-500" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900">Quit Battle?</h3>
+                        </div>
+                        <p className="text-slate-500 mb-2">
+                            You are currently in an active battle!
+                        </p>
+                        <p className="text-slate-500 mb-6 text-sm">
+                            Quitting now will reduce your XP score. Your results will be recorded and you'll be redirected to the room leaderboard.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowQuitConfirm(false)}
+                                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors"
+                            >
+                                Continue Battle
+                            </button>
+                            <button
+                                onClick={handleQuitBattle}
+                                className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+                            >
+                                <LogOut size={16} />
+                                <span>Yes, Quit</span>
                             </button>
                         </div>
                     </div>

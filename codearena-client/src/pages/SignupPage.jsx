@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Terminal, Code, User, Mail, Lock, Check, ArrowRight, Shield } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 export default function SignupPage() {
   const navigate = useNavigate();
