@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import ReactMarkdown from 'react-markdown';
 import { getUser, getAuthToken, updateUser } from '../utils/auth';
+import API_BASE from '../config/api';
 import {
     Swords,
     LogOut,
@@ -99,7 +100,7 @@ export default function ProblemSolverPage() {
     const fetchProblem = async () => {
         try {
             if (!problemId) return;
-            const response = await fetch(`http://127.0.0.1:5000/api/problems/${problemId}`);
+            const response = await fetch(`${API_BASE}/api/problems/${problemId}`);
             if (!response.ok) throw new Error('Problem not found');
             const data = await response.json();
             setProblem(data);
@@ -120,7 +121,7 @@ export default function ProblemSolverPage() {
             const token = getAuthToken();
             if (!token) return;
 
-            const response = await fetch(`http://127.0.0.1:5000/api/problems/${problemId}/submissions`, {
+            const response = await fetch(`${API_BASE}/api/problems/${problemId}/submissions`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -148,7 +149,7 @@ export default function ProblemSolverPage() {
 
         try {
             const token = getAuthToken();
-            const response = await fetch('http://127.0.0.1:5000/api/code/run', {
+            const response = await fetch(`${API_BASE}/api/code/run`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -194,7 +195,7 @@ export default function ProblemSolverPage() {
 
         try {
             const token = getAuthToken();
-            const response = await fetch(`http://127.0.0.1:5000/api/problems/${problemId}/submit`, {
+            const response = await fetch(`${API_BASE}/api/problems/${problemId}/submit`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
+import API_BASE from '../config/api';
 import {
     Play,
     Pause,
@@ -27,7 +28,7 @@ export default function ReplayPage() {
     useEffect(() => {
         const fetchReplay = async () => {
             try {
-                const response = await fetch(`http://localhost:5000/api/battles/${battleId}/replay`);
+                const response = await fetch(`${API_BASE}/api/battles/${battleId}/replay`);
                 const data = await response.json();
                 setBattle(data);
 
@@ -243,8 +244,8 @@ export default function ReplayPage() {
                                 .slice(-1)
                                 .map((e, i) => (
                                     <div key={i} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest animate-in slide-in-from-bottom-2 duration-300 border shadow-sm ${e.type === 'submission'
-                                            ? (e.data.result?.success ? 'bg-green-50 border-green-100 text-green-600' : 'bg-red-50 border-red-100 text-red-600')
-                                            : 'bg-blue-50 border-blue-100 text-blue-600'
+                                        ? (e.data.result?.success ? 'bg-green-50 border-green-100 text-green-600' : 'bg-red-50 border-red-100 text-red-600')
+                                        : 'bg-blue-50 border-blue-100 text-blue-600'
                                         }`}>
                                         {e.type === 'submission'
                                             ? (e.data.result?.success ? 'SUCCESSFUL_EXECUTION' : 'FAILED_SUBMISSION')

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import API_BASE from '../config/api';
 import {
     Swords,
     LogOut,
@@ -41,7 +42,7 @@ export default function SingleplayerPage() {
     const fetchProblems = async (category) => {
         setLoading(true);
         try {
-            const response = await fetch(`http://127.0.0.1:5000/api/problems?category=${category}`);
+            const response = await fetch(`${API_BASE}/api/problems?category=${category}`);
             const data = await response.json();
             setProblems(data);
         } catch (error) {

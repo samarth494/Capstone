@@ -3,6 +3,7 @@ import { Terminal, Lock, User, Check, ArrowRight, X } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { login } from "../utils/auth";
+import API_BASE from "../config/api";
 
 export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

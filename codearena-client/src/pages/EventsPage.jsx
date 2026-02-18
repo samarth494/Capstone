@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import API_BASE from '../config/api';
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
 import Navbar from '../components/Navbar';
@@ -44,7 +45,7 @@ export default function EventsPage() {
   const handleCodeSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/events/verify', {
+      const response = await fetch(`${API_BASE}/api/events/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -91,7 +92,7 @@ export default function EventsPage() {
       {/* Opening Logo Animation - Full Screen */}
       {!showContent && (
         <motion.div
-// ... (rest of animation code)
+          // ... (rest of animation code)
           initial={{ opacity: 1 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -345,14 +346,14 @@ export default function EventsPage() {
         {/* Access Code Modal */}
         {isCodeModalOpen && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm"
               onClick={() => setIsCodeModalOpen(false)}
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -360,7 +361,7 @@ export default function EventsPage() {
             >
               <div className="text-center mb-6">
                 <div className="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <ShieldCheck className="w-8 h-8 text-purple-600" />
+                  <ShieldCheck className="w-8 h-8 text-purple-600" />
                 </div>
                 <h3 className="text-2xl font-bold text-slate-900 font-mono">Restricted Access</h3>
                 <p className="text-slate-500 mt-2 text-sm">
@@ -388,7 +389,7 @@ export default function EventsPage() {
                     </p>
                   )}
                 </div>
-                
+
                 <div className="flex gap-3">
                   <button
                     type="button"
