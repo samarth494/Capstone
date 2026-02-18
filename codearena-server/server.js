@@ -26,6 +26,7 @@ app.use("/api/leaderboard", require("./routes/leaderboardRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/battles", require("./routes/battleRoutes"));
 app.use("/api/events", require("./routes/eventRoutes"));
+app.use("/api/problems", require("./routes/problemRoutes"));
 
 const PORT = process.env.PORT || 5000;
 
