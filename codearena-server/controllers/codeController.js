@@ -1,34 +1,28 @@
-const runner = require('../utils/runner');
+const executionService = require('../services/executionService');
 
+/**
+ * Controller: Handles the HTTP request for code execution.
+ * 1. extracts payload from body.
+ * 2. hands off to ExecutionService.
+ * 3. returns job acknowledgment to client.
+ */
 const runCode = async (req, res) => {
-    const { language, code, input } = req.body;
-
-    if (!code) {
-        return res.status(400).json({ message: 'Code is required' });
-    }
+    const { language, code, input, testCases } = req.body;
 
     try {
-        const result = await runner.runCode(language, code, input);
-
-        // If process exited with non-zero and there's stderr, it's an error
-        if (result.exitCode !== 0 && result.stderr) {
-            return res.status(200).json({
-                success: false,
-                output: result.stderr,
-                executionTime: `${result.executionTime}ms`
-            });
-        }
-
-        // Combine output — some runtimes may print warnings to stderr
-        let output = result.stdout;
-        if (result.stderr && result.exitCode === 0) {
-            output += '\n[stderr]: ' + result.stderr;
-        }
+        const result = await executionService.executeCode({
+            userId: req.user?.id || 'anonymous',
+            language,
+            code,
+            input,
+            testCases
+        });
 
         res.json({
             success: true,
-            output: output,
-            executionTime: `${result.executionTime}ms`
+            message: "Execution queued successfully",
+            jobId: result.jobId,
+            status: result.status
         });
     } catch (error) {
         res.status(500).json({

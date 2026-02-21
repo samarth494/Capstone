@@ -59,63 +59,21 @@ const submitSolution = async (req, res) => {
 
         if (!problem) return res.status(404).json({ message: 'Problem not found' });
 
-        // Run against all test cases
-        let passed = 0;
-        let total = problem.testCases.length;
-        let totalTime = 0;
-        let error = null;
-        let status = 'Accepted';
-
-        for (const testCase of problem.testCases) {
-            try {
-                const result = await runner.runCode(language, code, testCase.input);
-                totalTime += parseFloat(result.executionTime || 0);
-
-                if (result.stderr) {
-                    status = 'Runtime Error';
-                    error = result.stderr;
-                    break;
-                }
-
-                if (result.stdout.trim() !== testCase.output.trim()) {
-                    status = 'Wrong Answer';
-                    error = `Expected: ${testCase.output.trim()}, Got: ${result.stdout.trim()}`;
-                    break; // Stop on first failure
-                }
-                passed++;
-            } catch (err) {
-                status = 'Runtime Error';
-                error = err.message;
-                break;
-            }
-        }
-
-        // Create submission record
-        const submission = new Submission({
-            user: userId,
-            problem: problem._id, // Use the actual ObjectId
+        // ARCHITECTURE UPGRADE: 
+        // Instead of running synchronously here, we hand off to ExecutionService
+        const result = await executionService.executeCode({
+            userId,
             language,
             code,
-            status,
-            passedTestCases: passed,
-            totalTestCases: total,
-            executionTime: totalTime,
-            error
+            testCases: problem.testCases, // Service will handle iterating through test cases
+            problemId: problem._id
         });
 
-        await submission.save();
-
-        // Calculate XP if accepted
-        let xpGained = 0;
-        if (status === 'Accepted') {
-            // Check if already solved correctly before? Maybe one time reward?
-            // For now, simple reward
-            xpGained = problem.xpReward;
-        }
-
         res.json({
-            submission,
-            xpGained
+            success: true,
+            message: "Submission received and queued for execution",
+            jobId: result.jobId,
+            status: result.status
         });
 
     } catch (error) {
