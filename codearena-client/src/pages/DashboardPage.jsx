@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getUser, logout } from '../utils/auth';
 import Navbar from '../components/Navbar';
 import {
     Swords,
@@ -15,17 +16,18 @@ import {
 
 export default function DashboardPage() {
     const navigate = useNavigate();
-    const [user, setUser] = useState(() => {
-        const savedUser = localStorage.getItem('user');
-        return savedUser ? JSON.parse(savedUser) : null;
-    });
+    const [user, setUser] = useState(() => getUser());
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token || !user) {
-            navigate('/login');
+        if (!user) {
+            navigate('/');
         }
-    }, [navigate, user]);
+    }, [user, navigate]);
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     if (!user) return null; // Or a loading spinner
 
@@ -53,7 +55,19 @@ export default function DashboardPage() {
             borderColor: 'hover:border-blue-500',
             action: () => navigate('/lobby')
         },
+<<<<<<< HEAD
 
+=======
+        {
+            title: 'Singleplayer',
+            description: 'Master Fundamentals and Data Structures to level up your XP.',
+            icon: Code,
+            color: 'text-green-600',
+            bgColor: 'bg-green-50',
+            borderColor: 'hover:border-green-500',
+            action: () => navigate('/singleplayer')
+        },
+>>>>>>> singleplayer
         {
             title: 'Leaderboard',
             description: 'See where you stand among the top developers globally.',

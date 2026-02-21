@@ -11,22 +11,18 @@ const submissionSchema = new mongoose.Schema({
         ref: 'Problem',
         required: true
     },
-    code: {
+    language: {
         type: String,
         required: true
     },
-    language: {
+    code: {
         type: String,
         required: true
     },
     status: {
         type: String,
-        enum: ['Accepted', 'Wrong Answer', 'Time Limit Exceeded', 'Compilation Error', 'Runtime Error'],
+        enum: ['Accepted', 'Wrong Answer', 'Time Limit Exceeded', 'Runtime Error', 'Compilation Error'],
         required: true
-    },
-    executionTime: {
-        type: Number, // in ms
-        default: 0
     },
     passedTestCases: {
         type: Number,
@@ -36,7 +32,13 @@ const submissionSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    error: String, // Stores error message if any
+    executionTime: {
+        type: Number, // in ms
+        default: 0
+    },
+    error: {
+        type: String
+    },
     createdAt: {
         type: Date,
         default: Date.now

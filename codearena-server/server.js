@@ -5,7 +5,7 @@ const connectDB = require("./config/db");
 
 dotenv.config();
 
-connectDB();
+// connectDB(); // Removed, now called inside startServer()
 
 const http = require("http");
 const socketHandler = require("./sockets/battleSocket");
@@ -45,11 +45,20 @@ app.use("/api/battles", require("./routes/battleRoutes"));
 app.use("/api/events", require("./routes/eventRoutes"));
 app.use("/api/problems", require("./routes/problemRoutes"));
 
-const PORT = process.env.PORT || 5000;
+const startServer = async () => {
+  try {
+    await connectDB();
 
-server.listen(PORT, "0.0.0.0", () =>
-  console.log(`Server started on port ${PORT}`),
-);
+    const PORT = process.env.PORT || 5000;
+    server.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+  } catch (error) {
+    console.error('Failed to start server:', error.message);
+    process.exit(1);
+  }
+};
+
+startServer();
+
 app.get("/", (req, res) => {
   res.send("Backend working with Socket.io");
 });

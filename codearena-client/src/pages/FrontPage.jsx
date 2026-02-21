@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   Swords, Trophy, Users, Code, Zap, Target, Clock,
   TrendingUp, Activity, Terminal, Shield, Cpu, Globe,
+<<<<<<< HEAD
   CheckCircle, ChevronRight, Menu, X
+=======
+  CheckCircle, ChevronRight, Menu, X, Database
+>>>>>>> singleplayer
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import CodeArenaIntro from '../components/CodeArenaIntro';
@@ -436,19 +440,21 @@ export default function Frontpage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12">
             <div>
-              <h2 className="text-3xl font-bold mb-4 font-mono">Battle Arenas</h2>
-              <p className="text-slate-400">Choose your battleground. From algorithms to system design.</p>
+              <h2 className="text-3xl font-bold mb-4 font-mono">Singleplayer Practice</h2>
+              <p className="text-slate-400">Master the basics and advance your skills.</p>
             </div>
-            <button className="hidden md:flex items-center text-blue-400 hover:text-blue-300 transition-colors">
-              View all categories <ChevronRight className="w-4 h-4 ml-1" />
+            <button
+              onClick={() => navigate('/singleplayer')}
+              className="hidden md:flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              View all problems <ChevronRight className="w-4 h-4 ml-1" />
             </button>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-6">
             {[
-              { title: 'Data Structure (Classic Duel)', icon: Cpu, color: 'bg-purple-500', count: '10+ Problems', link: '/battle/data-structures' },
-              { title: 'Algorithms', icon: Activity, color: 'bg-blue-500', count: '10+ Problems', link: '#' },
-              { title: 'System Design', icon: Globe, color: 'bg-orange-500', count: '10+ Challenges', link: '#' }
+              { title: 'Fundamentals', icon: Code, color: 'bg-blue-500', count: 'Syntax, Loops, Logic', link: '/singleplayer' },
+              { title: 'Data Structures', icon: Database, color: 'bg-purple-500', count: 'Arrays, Trees, Graphs', link: '/singleplayer' }
             ].map((cat, i) => (
               <motion.div
                 key={i}

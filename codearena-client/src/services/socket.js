@@ -1,5 +1,11 @@
 import { io } from "socket.io-client";
+<<<<<<< HEAD
 import { SOCKET_URL } from "../config/api";
+=======
+import API_BASE from "../config/api";
+
+const SOCKET_URL = API_BASE;
+>>>>>>> singleplayer
 
 let socket;
 let currentToken = null;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { API_BASE_URL } from '../config/api';
 import { useParams, useNavigate } from 'react-router-dom';
+import API_BASE from '../config/api';
 import {
     User,
     Swords,
@@ -23,7 +24,11 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
+<<<<<<< HEAD
                 const response = await fetch(`http://10.252.225.132:5000/api/users/profile/${userId}`);
+=======
+                const response = await fetch(`${API_BASE}/api/users/profile/${userId}`);
+>>>>>>> singleplayer
                 const result = await response.json();
                 setData(result);
             } catch (error) {

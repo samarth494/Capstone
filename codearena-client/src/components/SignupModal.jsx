@@ -2,7 +2,12 @@ import React, { useState } from "react";
 import { Terminal, Lock, User, Mail, Check, ArrowRight, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+<<<<<<< HEAD
 import { API_BASE_URL } from "../config/api";
+=======
+import { login } from "../utils/auth";
+import API_BASE from "../config/api";
+>>>>>>> singleplayer
 
 export default function SignupModal({ isOpen, onClose, onSwitchToLogin, redirectTo }) {
   const navigate = useNavigate();
@@ -44,7 +49,11 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin, redirect
     setIsLoading(true);
 
     try {
+<<<<<<< HEAD
       const response = await fetch("http://10.252.225.132:5000/api/auth/register", {
+=======
+      const response = await fetch(`${API_BASE}/api/auth/register`, {
+>>>>>>> singleplayer
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -59,15 +68,20 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin, redirect
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("token", data.token);
         const userToSave = {
           _id: data.user._id,
           username: data.user.username,
           email: data.user.email
         };
-        localStorage.setItem("user", JSON.stringify(userToSave));
+        // Default to remembering user for signups
+        login(data.token, userToSave, true);
+
         onClose();
+<<<<<<< HEAD
         navigate(redirectTo || "/dashboard");
+=======
+        navigate("/dashboard", { replace: true });
+>>>>>>> singleplayer
       } else {
         setError(data.message || "Registration failed");
       }

@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Terminal, Lock, User, Check, ArrowRight, X } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { API_BASE_URL } from "../config/api";
+import { login } from "../utils/auth";
+import API_BASE from "../config/api";
 
 export default function LoginModal({ isOpen, onClose, onSwitchToSignup, redirectTo }) {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, redirect
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://10.252.225.132:5000/api/auth/login", {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -51,15 +52,16 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, redirect
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("token", data.token);
         const userToSave = {
           _id: data.user._id,
           username: data.user.username,
           email: data.user.email
         };
-        localStorage.setItem("user", JSON.stringify(userToSave));
-        onClose(); // Close modal on success
-        navigate(redirectTo || "/dashboard");
+        // Use the auth utility, respecting the rememberMe state from the form
+        login(data.token, userToSave, formData.rememberMe);
+
+        onClose();
+        navigate("/dashboard", { replace: true });
       } else {
         setError(data.message || "Login failed");
       }

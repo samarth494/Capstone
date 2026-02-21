@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Terminal, Code, User, Mail, Lock, Check, ArrowRight, Shield } from 'lucide-react';
+<<<<<<< HEAD
 import { API_BASE_URL } from '../config/api';
+=======
+import { login } from '../utils/auth';
+import API_BASE from '../config/api';
+>>>>>>> singleplayer
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -43,7 +48,11 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
+<<<<<<< HEAD
       const response = await fetch('http://10.252.225.132:5000/api/auth/register', {
+=======
+      const response = await fetch(`${API_BASE}/api/auth/register`, {
+>>>>>>> singleplayer
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,15 +67,15 @@ export default function SignupPage() {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('token', data.token);
         const userToSave = {
           _id: data.user._id,
           username: data.user.username,
           email: data.user.email
         };
-        localStorage.setItem('user', JSON.stringify(userToSave));
+        // Use true for rememberMe for signups by default
+        login(data.token, userToSave, true);
 
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
 
       } else {
         setError(data.message || 'Registration failed');
