@@ -250,6 +250,28 @@ const seedProblems = [
         examples: [
             { input: "abcde\nace", output: "3", explanation: "The LCS is 'ace' with length 3." }
         ]
+    },
+    {
+        title: "Blind Coding Challenge",
+        slug: "blind-coding",
+        description: "Welcome to the Blind Coding Challenge! Support for C is enabled.\n\nWrite a program that reads an integer `n` and prints its square.\n\n### Input\nA single integer `n`.\n\n### Output\nThe square of `n`.",
+        difficulty: "Medium",
+        categories: ["Fundamentals"],
+        tags: ["Math", "Competition"],
+        xpReward: 100,
+        templates: [
+            { language: "javascript", code: "function solve(input) {\n  const n = parseInt(input);\n  return n * n;\n}" },
+            { language: "python", code: "n = int(input())\nprint(n * n)" },
+            { language: "c", code: "#include <stdio.h>\n\nint main() {\n    int n;\n    scanf(\"%d\", &n);\n    printf(\"%d\\n\", n * n);\n    return 0;\n}" }
+        ],
+        testCases: [
+            { input: "4", output: "16" },
+            { input: "5", output: "25" },
+            { input: "10", output: "100" }
+        ],
+        examples: [
+            { input: "4", output: "16", explanation: "4 * 4 = 16" }
+        ]
     }
 ];
 

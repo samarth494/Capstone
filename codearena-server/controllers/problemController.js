@@ -25,7 +25,17 @@ const getProblems = async (req, res) => {
 // Get single problem details
 const getProblemById = async (req, res) => {
     try {
-        const problem = await Problem.findById(req.params.id).select('-testCases.output -testCases.isPrime');
+        const { id } = req.params;
+        let problem;
+
+        // Try find by ID first if it's a valid ObjectId
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            problem = await Problem.findById(id).select('-testCases.output -testCases.isPrime');
+        } else {
+            // Otherwise try finding by slug
+            problem = await Problem.findOne({ slug: id }).select('-testCases.output -testCases.isPrime');
+        }
+
         if (!problem) return res.status(404).json({ message: 'Problem not found' });
         res.json(problem);
     } catch (error) {
@@ -40,7 +50,13 @@ const submitSolution = async (req, res) => {
         const problemId = req.params.id;
         const userId = req.user._id;
 
-        const problem = await Problem.findById(problemId);
+        let problem;
+        if (problemId.match(/^[0-9a-fA-F]{24}$/)) {
+            problem = await Problem.findById(problemId);
+        } else {
+            problem = await Problem.findOne({ slug: problemId });
+        }
+
         if (!problem) return res.status(404).json({ message: 'Problem not found' });
 
         // Run against all test cases
@@ -77,7 +93,7 @@ const submitSolution = async (req, res) => {
         // Create submission record
         const submission = new Submission({
             user: userId,
-            problem: problemId, // Fixed field name to match model
+            problem: problem._id, // Use the actual ObjectId
             language,
             code,
             status,
@@ -111,10 +127,21 @@ const submitSolution = async (req, res) => {
 // Get user submissions for a problem
 const getSubmissions = async (req, res) => {
     try {
-        const submissions = await Submission.find({
-            user: req.user._id,
-            problem: req.params.id
-        }).sort({ createdAt: -1 });
+        const { id } = req.params;
+        let query = { user: req.user._id };
+
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            query.problem = id;
+        } else {
+            const problem = await Problem.findOne({ slug: id });
+            if (problem) {
+                query.problem = problem._id;
+            } else {
+                return res.json([]); // No problem found with that slug
+            }
+        }
+
+        const submissions = await Submission.find(query).sort({ createdAt: -1 });
         res.json(submissions);
     } catch (error) {
         res.status(500).json({ message: error.message });

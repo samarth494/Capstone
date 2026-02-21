@@ -9,6 +9,11 @@ const problemSchema = new mongoose.Schema({
         type: String, // Store as Markdown
         required: true
     },
+    slug: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
     difficulty: {
         type: String,
         enum: ['Easy', 'Medium', 'Hard'],

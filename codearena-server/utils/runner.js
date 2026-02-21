@@ -79,7 +79,11 @@ const runCode = (language, code, input) => {
         child.on('error', (err) => {
             errorOccurred = true;
             cleanup(filePath);
-            reject(new Error(`Failed to start subprocess: ${err.message}`));
+            if (err.code === 'ENOENT') {
+                reject(new Error(`Runner for '${language}' (${processCmd}) not found. Please ensure it is installed and in the system PATH.`));
+            } else {
+                reject(new Error(`Failed to start subprocess: ${err.message}`));
+            }
         });
 
         child.on('close', (code) => {
