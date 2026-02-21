@@ -1,26 +1,30 @@
-/**
- * ExecutionWorker
- * Responsibility: Job Consumer.
- * 1. Listens for new jobs from the ExecutionQueue.
- * 2. Calls Sandbox Runner (DockerRunner) based on job details.
- * 3. Handles results (success, failure, timeout).
- * 4. Communicates status/results back via WebSockets or Webhooks.
- */
-
 const dockerRunner = require('../../sandbox/runners/DockerRunner');
 
-// Mock processing logic
+/**
+ * Queue Worker (Consumer)
+ * Responsibility: Executing the queued jobs.
+ * - Listens for new jobs from the Queue.
+ * - Hands off the job data to the DockerRunner.
+ * - Communicates back results (via database update or Socket.io).
+ */
 const processJob = async (job) => {
-    const { language, code, input } = job.data;
+    const { language, code, input, userId } = job.data;
+
+    console.log(`[Worker] Started processing Job: ${job.id} for User: ${userId}`);
 
     try {
-        console.log(`Processing Job ID: ${job.id}`);
+        // 1. Execute in Sandbox
         const result = await dockerRunner.run(language, code, input);
 
-        // Update database with result or send socket event
-        console.log(`Job Result:`, result);
+        // 2. Placeholder: Update database with verdict
+        console.log(`[Worker] Job ${job.id} finished. Result:`, result);
+
+        // 3. Placeholder: Emit socket event to notify frontend
+        // io.to(userId).emit('codeResult', { jobId: job.id, ...result });
+
     } catch (error) {
-        console.error(`Job failed:`, error);
+        console.error(`[Worker] Job ${job.id} failed:`, error);
+        // Update database with 'System Error' verdict
     }
 };
 

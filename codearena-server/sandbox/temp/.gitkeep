@@ -1,2 +1,2 @@
-# Temporary storage for code files during execution
-# This directory should be cleared periodically
+# Temporary execution area
+# Code files will be generated here before being mounted to docker containers.

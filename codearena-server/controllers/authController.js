@@ -2,101 +2,102 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
 
-// @desc    Register new user
-// @route   POST /api/auth/register
-// @access  Public
-// @desc    Register new user
-// @route   POST /api/auth/register
-// @access  Public
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const generateToken = (id) =>
+    jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+
+const buildUserPayload = (user) => ({
+    _id: user._id,
+    username: user.username,
+    email: user.email,
+    rank: user.rank || 'Bronze',
+    xp: user.xp || 0,
+    wins: user.wins || 0,
+    losses: user.losses || 0,
+    battlesPlayed: user.battlesPlayed || 0,
+    isAdmin: user.isAdmin || false,
+});
+
+// ── POST /api/auth/register ───────────────────────────────────────────────────
 const registerUser = async (req, res) => {
     const { username, email, password } = req.body;
 
+    if (!username?.trim() || !email?.trim() || !password) {
+        return res.status(400).json({ message: 'Username, email and password are all required.' });
+    }
+
+    // Validate email format
+    const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRx.test(email)) {
+        return res.status(400).json({ message: 'Please enter a valid email address.' });
+    }
+
+    // Password strength
+    if (password.length < 6) {
+        return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+    }
+
     try {
-        if (!username || !email || !password) {
-            return res.status(400).json({ message: 'Please add all fields' });
+        const existing = await User.findOne({ $or: [{ email: email.toLowerCase() }, { username }] });
+
+        if (existing) {
+            if (existing.email === email.toLowerCase()) {
+                return res.status(409).json({ message: 'An account with this email already exists.' });
+            }
+            return res.status(409).json({ message: 'That username is already taken.' });
         }
 
-        // Check if user exists (email OR username)
-        const userExists = await User.findOne({
-            $or: [{ email }, { username }]
-        });
-
-        if (userExists) {
-            if (userExists.email === email) {
-                return res.status(400).json({ message: 'User with this email already exists' });
-            }
-            if (userExists.username === username) {
-                return res.status(400).json({ message: 'Username is already taken' });
-            }
-        }
-
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
+        const salt = await bcrypt.genSalt(12);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create user
         const user = await User.create({
-            username,
-            email,
-            password: hashedPassword
+            username: username.trim(),
+            email: email.toLowerCase().trim(),
+            password: hashedPassword,
         });
 
-        if (user) {
-            res.status(201).json({
-                user: {
-                    _id: user.id,
-                    username: user.username,
-                    email: user.email,
-                },
-                token: generateToken(user._id)
-            });
-        } else {
-            res.status(400).json({ message: 'Invalid user data' });
-        }
-    } catch (error) {
-        console.error("Error in registerUser:", error);
-        res.status(500).json({ message: 'Server error during registration' });
+        return res.status(201).json({
+            user: buildUserPayload(user),
+            token: generateToken(user._id),
+        });
+
+    } catch (err) {
+        console.error('[Auth] registerUser error:', err.message);
+        return res.status(500).json({ message: 'Registration failed. Please try again.' });
     }
 };
 
-// @desc    Authenticate a user
-// @route   POST /api/auth/login
-// @access  Public
+// ── POST /api/auth/login ──────────────────────────────────────────────────────
 const loginUser = async (req, res) => {
     const { email, password } = req.body;
 
+    if (!email?.trim() || !password) {
+        return res.status(400).json({ message: 'Email/username and password are required.' });
+    }
+
     try {
-        // Check for user email OR username
+        // Allow login with email OR username
         const user = await User.findOne({
-            $or: [{ email: email }, { username: email }]
+            $or: [
+                { email: email.toLowerCase().trim() },
+                { username: email.trim() },
+            ],
         });
 
-        if (user && (await bcrypt.compare(password, user.password))) {
-            res.json({
-                user: {
-                    _id: user.id,
-                    username: user.username,
-                    email: user.email,
-                },
-                token: generateToken(user._id)
-            });
-        } else {
-            res.status(400).json({ message: 'Invalid credentials' });
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            // Deliberate vagueness — don't hint which field was wrong
+            return res.status(401).json({ message: 'Invalid credentials.' });
         }
-    } catch (error) {
-        console.error("Error in loginUser:", error);
-        res.status(500).json({ message: 'Server error during login' });
+
+        return res.json({
+            user: buildUserPayload(user),
+            token: generateToken(user._id),
+        });
+
+    } catch (err) {
+        console.error('[Auth] loginUser error:', err.message);
+        return res.status(500).json({ message: 'Login failed. Please try again.' });
     }
 };
 
-// Generate JWT
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: '30d'
-    });
-};
-
-module.exports = {
-    registerUser,
-    loginUser
-};
+module.exports = { registerUser, loginUser };

@@ -1,8 +1,11 @@
 {
     "ignore": [
         "temp_code/*",
-        "temp_code/**/*.js",
-        "temp_code/**/*.py",
-        "temp_code/**/*.java"
+        "temp_code/**",
+        "temp/*",
+        "temp/**",
+        "sandbox/temp/*",
+        "sandbox/temp/**",
+        "server_log.txt"
     ]
 }
