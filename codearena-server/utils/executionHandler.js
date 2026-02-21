@@ -23,7 +23,7 @@ const getProblem = (problemId) => {
  * Safely executes user code against test cases
  * @param {Object} submissionData - Contains code, roomId, problemId, etc.
  */
-const executeSubmission = async ({ code, problemId = 'two-sum' }) => {
+const executeSubmission = async ({ code, problemId = 'hello-world' }) => {
     const startTime = Date.now();
     const problem = getProblem(problemId);
 

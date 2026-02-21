@@ -61,7 +61,7 @@ const persistBattleResult = async (roomId, winnerSId = null) => {
       battleId: roomId,
       players: [player1.user._id, player2.user._id],
       winnerId: winner ? winner.user._id : null,
-      problemId: battleData.problemId || "two-sum",
+      problemId: battleData.problemId || "hello-world",
       startTime: battleData.startTime,
       endTime: Date.now(),
       status: winner ? "ended" : "timeout",
@@ -166,7 +166,7 @@ const socketHandler = (server) => {
           status: "active",
           startTime: now,
           timer: 60,
-          problemId: "two-sum",
+          problemId: "hello-world",
           replayEvents: [],
         };
 

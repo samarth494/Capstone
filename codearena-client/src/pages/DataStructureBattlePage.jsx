@@ -12,9 +12,9 @@ import SignupModal from '../components/SignupModal';
 const problems = [
   // 🟢 Beginner Tier (1-5)
   {
-    id: 1, title: 'Two Sum', tier: 'beginner', tierLabel: 'Beginner',
-    concept: 'Hash map lookup', coreSkill: 'O(n) thinking',
-    pressureFactor: 'Avoid brute force', timeLimit: 10, points: 100,
+    id: 1, title: 'Hello World', tier: 'beginner', tierLabel: 'Beginner',
+    concept: 'Output string', coreSkill: 'Basic syntax',
+    pressureFactor: 'Warm-up', timeLimit: 5, points: 100,
   },
   {
     id: 2, title: 'Valid Parentheses', tier: 'beginner', tierLabel: 'Beginner',
@@ -304,8 +304,8 @@ export default function DataStructureBattlePage() {
             <button
               onClick={() => setSelectedTier('all')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${selectedTier === 'all'
-                  ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
-                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
+                : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
                 }`}
             >
               All Tiers
@@ -315,8 +315,8 @@ export default function DataStructureBattlePage() {
                 key={tier.key}
                 onClick={() => setSelectedTier(tier.key)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 whitespace-nowrap ${selectedTier === tier.key
-                    ? `${tierConfig[tier.key].bgLight} ${tierConfig[tier.key].text} border ${tierConfig[tier.key].border}`
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                  ? `${tierConfig[tier.key].bgLight} ${tierConfig[tier.key].text} border ${tierConfig[tier.key].border}`
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
                   }`}
               >
                 <span>{tier.icon}</span>
@@ -417,8 +417,8 @@ export default function DataStructureBattlePage() {
                           whileTap={{ scale: 0.95 }}
                           onClick={() => setShowLoginModal(true)}
                           className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${isHovered
-                              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                              : 'bg-slate-100 text-slate-500 border border-slate-200'
+                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                            : 'bg-slate-100 text-slate-500 border border-slate-200'
                             }`}
                         >
                           <Play className="w-4 h-4" />

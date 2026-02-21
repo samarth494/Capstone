@@ -22,7 +22,7 @@ export default function BattleArenaPage() {
         return savedUser ? JSON.parse(savedUser) : null;
     });
     const [opponent, setOpponent] = useState({ username: 'Opponent', status: 'Thinking...' });
-    const [code, setCode] = useState('// Solve: Return indices of the two numbers that add up to target\nfunction solve(input) {\n  const { nums, target } = input;\n  \n  // Your logic here\n  \n  return [0, 1]; // Example return\n}');
+    const [code, setCode] = useState('// Solve: Return "Hello World"\nfunction solve(input) {\n  return "Hello World";\n}');
     const [output, setOutput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
     const [gameStatus, setGameStatus] = useState('active'); // active, won, lost, timeout
@@ -291,23 +291,23 @@ export default function BattleArenaPage() {
                                     <Activity size={14} className="text-blue-500" /> 2.4K Battles Won
                                 </span>
                             </div>
-                            <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">Two Sum</h2>
+                            <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">Hello World</h2>
                         </div>
 
                         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
                             <div className="text-base leading-relaxed text-slate-600 space-y-4 font-medium">
                                 <p>
-                                    Given an array of integers <code className="text-blue-600 px-1.5 py-0.5 bg-blue-50 rounded font-bold">nums</code> and an integer <code className="text-blue-600 px-1.5 py-0.5 bg-blue-50 rounded font-bold">target</code>, return indices of the two numbers such that they add up to target.
+                                    Write a function that returns the string <code className="text-blue-600 px-1.5 py-0.5 bg-blue-50 rounded font-bold">"Hello World"</code>.
                                 </p>
-                                <p className="text-slate-400 text-sm">You may assume that each input would have exactly one solution, and you may not use the same element twice.</p>
+                                <p className="text-slate-400 text-sm">This is a warm-up battle to test your connection and coding speed.</p>
                             </div>
 
                             <div className="bg-slate-50 rounded-xl p-5 border border-slate-200/60 mt-6">
                                 <div className="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">Example Case 01</div>
                                 <pre className="text-sm font-mono text-slate-700 bg-white/50 p-3 rounded border border-slate-200/40">
-                                    Input: nums = [2,7,11,15], target = 9{"\n"}
-                                    Output: [0,1]{"\n"}
-                                    Explanation: nums[0] + nums[1] == 9
+                                    Input: (none){"\n"}
+                                    Output: "Hello World"{"\n"}
+                                    Explanation: Simple hello world string.
                                 </pre>
                             </div>
                         </div>
