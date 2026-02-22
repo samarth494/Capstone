@@ -3,11 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Swords, Trophy, Users, Code, Zap, Target, Clock,
   TrendingUp, Activity, Terminal, Shield, Cpu, Globe,
-<<<<<<< HEAD
-  CheckCircle, ChevronRight, Menu, X
-=======
   CheckCircle, ChevronRight, Menu, X, Database
->>>>>>> singleplayer
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import CodeArenaIntro from '../components/CodeArenaIntro';

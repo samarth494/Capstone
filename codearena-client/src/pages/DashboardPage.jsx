@@ -55,9 +55,6 @@ export default function DashboardPage() {
             borderColor: 'hover:border-blue-500',
             action: () => navigate('/lobby')
         },
-<<<<<<< HEAD
-
-=======
         {
             title: 'Singleplayer',
             description: 'Master Fundamentals and Data Structures to level up your XP.',
@@ -67,7 +64,6 @@ export default function DashboardPage() {
             borderColor: 'hover:border-green-500',
             action: () => navigate('/singleplayer')
         },
->>>>>>> singleplayer
         {
             title: 'Leaderboard',
             description: 'See where you stand among the top developers globally.',

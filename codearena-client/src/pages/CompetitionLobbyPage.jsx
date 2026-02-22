@@ -68,7 +68,7 @@ export default function CompetitionLobbyPage() {
             socket.on('competition:roundStarted', (data) => {
                 setIsStarting(true);
                 // Store the server's absolute timestamp for when the battle begins
-                const { battleStartsAt, serverTime, countdownSeconds } = data;
+                const { battleStartsAt, serverTime, countdownSeconds, problemId = 'blind-coding' } = data;
                 // Calculate clock offset between client and server
                 const clockOffset = Date.now() - serverTime;
                 const adjustedBattleStartsAt = battleStartsAt + clockOffset;
@@ -88,7 +88,7 @@ export default function CompetitionLobbyPage() {
                         requestAnimationFrame(updateCountdown);
                     } else {
                         // Countdown finished + "Level 1 Start" shown → navigate
-                        navigate('/problem/blind-coding', {
+                        navigate(`/problem/${problemId}`, {
                             state: {
                                 blindMode: true,
                                 language: 'c',

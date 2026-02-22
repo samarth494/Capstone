@@ -219,7 +219,7 @@ const socketHandler = (server) => {
           );
         }
 
-        socket.emit("battle:timerUpdate", { timeLeft: battle.timer });
+        socket.emit("battle:timerUpdate", { timeLeft: battle.timer, problemId: battle.problemId });
 
         // Start timer when both players have joined
         if (battle.joinedPlayers.size === 2 && !battle.intervalId) {
@@ -461,7 +461,7 @@ const socketHandler = (server) => {
         battleStartsAt,
         serverTime: Date.now(),
         countdownSeconds: COUNTDOWN_SECONDS,
-        problemId: "blind-coding-challenge",
+        problemId: "blind-coding",
       });
     });
 

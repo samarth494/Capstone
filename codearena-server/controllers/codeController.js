@@ -16,6 +16,7 @@ const MAX_INPUT_BYTES = 4_096;  //  4 KB
  */
 const runCode = async (req, res) => {
     const { language, code, input = '' } = req.body;
+    console.log(`[DEBUG] Received Run Request: Language=${language}, CodeLength=${code?.length}`);
 
     // ── Input Validation ──────────────────────────────────────────────────────
     if (!language || typeof language !== 'string') {

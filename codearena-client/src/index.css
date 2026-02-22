@@ -2,6 +2,75 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
+html,
+body {
     overscroll-behavior-x: none;
+}
+
+/* Blind Mode - Truly hides text while keeping it interactive */
+.blind-mode-active .view-lines,
+.blind-mode-active .view-line,
+.blind-mode-active .view-line span {
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Ensure the cursor layer stays visible */
+.blind-mode-active .cursors-layer,
+.blind-mode-active .cursor {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Hide all decorations (squiggles, markers, etc) */
+.blind-mode-active .decorations-overview-ruler,
+.blind-mode-active .squiggly-error,
+.blind-mode-active .squiggly-warning,
+.blind-mode-active .squiggly-info,
+.blind-mode-active .glyph-margin {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+.blind-mode-active .monaco-editor-background {
+    opacity: 1 !important;
+}
+
+.blind-mode-active .cursors-layer {
+    z-index: 100 !important;
+}
+
+.blind-mode-active .cursor {
+    visibility: visible !important;
+    display: block !important;
+    background-color: #00f2ff !important;
+    box-shadow: 0 0 8px #00f2ff, 0 0 15px #00f2ff;
+    border-radius: 2px;
+    animation: cursor-pulse 1s infinite alternate;
+    z-index: 100 !important;
+}
+
+@keyframes cursor-pulse {
+    from {
+        opacity: 0.6;
+        box-shadow: 0 0 5px #00f2ff;
+    }
+
+    to {
+        opacity: 1;
+        box-shadow: 0 0 15px #00f2ff, 0 0 25px #00f2ff;
+    }
+}
+
+/* Hide line numbers during blind mode */
+.blind-mode-active .margin-view-overlays {
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Hide suggestions and hover widgets */
+.blind-mode-active .monaco-editor .suggest-widget,
+.blind-mode-active .monaco-editor .hover-widget {
+    display: none !important;
+    visibility: hidden !important;
 }

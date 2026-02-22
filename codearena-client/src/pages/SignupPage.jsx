@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Terminal, Code, User, Mail, Lock, Check, ArrowRight, Shield } from 'lucide-react';
-<<<<<<< HEAD
-import { API_BASE_URL } from '../config/api';
-=======
 import { login } from '../utils/auth';
 import API_BASE from '../config/api';
->>>>>>> singleplayer
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -48,11 +44,7 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-<<<<<<< HEAD
-      const response = await fetch('http://10.252.225.132:5000/api/auth/register', {
-=======
       const response = await fetch(`${API_BASE}/api/auth/register`, {
->>>>>>> singleplayer
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,18 +59,11 @@ export default function SignupPage() {
       const data = await response.json();
 
       if (response.ok) {
-        const userToSave = {
-          _id: data.user._id,
-          username: data.user.username,
-          email: data.user.email
-        };
-        // Use true for rememberMe for signups by default
-        login(data.token, userToSave, true);
-
+        // Save full user payload so rank/xp are available from the start
+        login(data.token, data.user, true);
         navigate('/dashboard', { replace: true });
-
       } else {
-        setError(data.message || 'Registration failed');
+        setError(data.message || 'Registration failed. Please try again.');
       }
     } catch (err) {
       setError('Network error. Please try again.');

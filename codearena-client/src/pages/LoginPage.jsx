@@ -51,17 +51,11 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        const userToSave = {
-          _id: data.user._id,
-          username: data.user.username,
-          email: data.user.email
-        };
-        // Use the auth utility to login, respecting the rememberMe flag
-        login(data.token, userToSave, formData.rememberMe);
-
-        navigate("/dashboard", { replace: true });
+        // Save complete user payload so rank/xp/wins are available everywhere
+        login(data.token, data.user, formData.rememberMe);
+        navigate('/dashboard', { replace: true });
       } else {
-        setError(data.message || "Login failed");
+        setError(data.message || 'Login failed. Please check your credentials.');
       }
     } catch (err) {
       setError("Network error. Please try again.");

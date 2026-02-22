@@ -14,22 +14,27 @@ import {
     Check,
     Clock,
     Code,
-    Award
+    Award,
+    EyeOff
 } from 'lucide-react';
 import { getSocket, initiateSocketConnection } from '../services/socket';
-import { API_BASE_URL } from '../config/api';
 
 export default function ProblemSolverPage() {
     const navigate = useNavigate();
     const { problemId } = useParams();
     const location = useLocation();
-
-    // Safety check for location state
-    const initialLang = location.state?.language || 'javascript';
-
+    const eventId = location.state?.eventId;
     const [problem, setProblem] = useState(null);
+    const blindMode = location.state?.blindMode || problem?.title?.toLowerCase().includes('blind') || problemId?.includes('blind') || false;
+
+    // Blind coding is C-only; singleplayer defaults to python
+    const initialLang = blindMode ? 'c' : (location.state?.language || 'python');
+
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        const saved = localStorage.getItem('user');
+        return saved ? JSON.parse(saved) : null;
+    });
     const [code, setCode] = useState('');
     const [output, setOutput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
@@ -43,16 +48,14 @@ export default function ProblemSolverPage() {
 
     // Timer state for 15 minutes
     const [timeLeft, setTimeLeft] = useState(15 * 60);
+    const [debugUnhide, setDebugUnhide] = useState(false);
 
-    // Initialize code based on language when problem loads
     useEffect(() => {
-        if (problem) {
-            const template = problem.templates?.find(t => t.language === language)?.code || getDefaultCode(language);
-            // Only set code if it's empty or we are switching languages forcefully (though typically user input should be preserved usually)
-            // For now, let's load template if code is empty
-            if (!code) setCode(template);
+        if (blindMode && language !== 'c') {
+            setLanguage('c');
         }
-    }, [problem]); // Run when problem loads
+    }, [blindMode, language]);
+
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -126,19 +129,22 @@ export default function ProblemSolverPage() {
 
         fetchProblem();
         fetchSubmissions();
-    }, [problemId, navigate]);
+    }, [problemId]);
 
     const getDefaultCode = (lang) => {
-        if (lang === 'cpp' || lang === 'c') {
-            return '#include <stdio.h>\n\nint main() {\n    // Write your code here\n    return 0;\n}';
-        }
         if (lang === 'python') {
-            return 'def solve(input_data):\n    # Write your solution here\n    pass';
+            return 'print("Hello, World!")';
+        }
+        if (lang === 'c') {
+            return '#include <stdio.h>\n\nint main() {\n    printf("Hello, World!\\n");\n    return 0;\n}';
+        }
+        if (lang === 'cpp') {
+            return '#include<iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, World!" << endl;\n    return 0;\n}';
         }
         if (lang === 'java') {
-            return 'import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        // String input = scanner.nextLine();\n        // System.out.println(input);\n    }\n}';
+            return 'public class Solution {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}';
         }
-        return '// Write your solution here\nfunction solve(input) {\n  return input;\n}';
+        return '// Write your solution here\n';
     };
 
     const fetchProblem = async () => {
@@ -149,9 +155,13 @@ export default function ProblemSolverPage() {
             const data = await response.json();
             setProblem(data);
 
-            // Set initial code if not set
+            // Set initial code only once
             const template = data.templates?.find(t => t.language === language)?.code || getDefaultCode(language);
-            setCode(template);
+            setCode(prev => {
+                if (prev) return prev;
+                if (blindMode) return ''; // Force empty for blind mode
+                return template;
+            });
         } catch (error) {
             console.error(error);
             setOutput('Failed to load problem.');
@@ -178,9 +188,9 @@ export default function ProblemSolverPage() {
     };
 
     const handleLanguageChange = (newLang) => {
+        // Blind coding is C-only — language must not change
+        if (blindMode) return;
         setLanguage(newLang);
-        // Ask if they want to reset code? For now, we just switch template if code is default?
-        // Let's just switch to template to avoid confusion
         const template = problem?.templates?.find(t => t.language === newLang)?.code || getDefaultCode(newLang);
         setCode(template);
     };
@@ -274,6 +284,28 @@ export default function ProblemSolverPage() {
                         setUser(updatedUser);
                         updateUser(updatedUser);
                     }
+
+                    // If this is an event, emit results to the competition room
+                    if (eventId) {
+                        const socket = getSocket();
+                        if (socket) {
+                            const timeTakenSeconds = Math.floor((Date.now() - (location.state?.battleStartsAt || Date.now())) / 1000);
+                            socket.emit('competition:submit', {
+                                eventId,
+                                userId: user?._id,
+                                username: user?.username,
+                                score: 100 + Math.max(0, 300 - timeTakenSeconds), // Base score + speed bonus
+                                breakdown: {
+                                    correctCode: 100,
+                                    cleanCodeBonus: 0,
+                                    speedBonus: Math.max(0, 300 - timeTakenSeconds)
+                                },
+                                timeTaken: timeTakenSeconds,
+                                status: 'completed'
+                            });
+                            setOutput(prev => prev + '\n\n[COMPETITION] Result broadcasted to leaderboard!');
+                        }
+                    }
                 } else if (status === 'Time Limit Exceeded') {
                     setOutput(`> Verdict: Time Limit Exceeded (TLE)\n> Passed: ${passedTestCases}/${totalTestCases} test cases.\n> Hint: Your solution is too slow. Check for infinite loops or optimize your algorithm complexity.`);
                 } else if (status === 'Runtime Error') {
@@ -295,9 +327,10 @@ export default function ProblemSolverPage() {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/login');
+        import('../utils/auth').then(({ logout }) => {
+            logout();
+            navigate('/login');
+        });
     };
 
     if (loading) return (
@@ -448,51 +481,109 @@ export default function ProblemSolverPage() {
                 </div>
 
                 {/* Right Panel: Editor (Dark Environment in Light Frame) */}
-                <div className="w-1/2 flex flex-col bg-[#1E1E1E]">
+                {/* Right Panel: Editor & Console (Vertical Layout) */}
+                <div className="w-1/2 flex flex-col">
 
                     {/* Editor Toolbar - Light on Top */}
                     <div className="h-12 bg-white border-b border-slate-200 flex items-center justify-between px-4">
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Language:</span>
-                            <select
-                                value={language}
-                                onChange={(e) => handleLanguageChange(e.target.value)}
-                                className="bg-slate-50 text-slate-700 text-xs font-bold rounded border border-slate-200 px-2 py-1 outline-none focus:border-blue-500 uppercase"
-                            >
-                                <option value="javascript">JavaScript</option>
-                                <option value="python">Python</option>
-                                <option value="java">Java</option>
-                            </select>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Language:</span>
+                                {blindMode ? (
+                                    <span className="bg-slate-100 text-slate-700 text-xs font-bold rounded border border-slate-200 px-2 py-1 uppercase tracking-wider cursor-not-allowed">
+                                        C
+                                    </span>
+                                ) : (
+                                    <select
+                                        value={language}
+                                        onChange={(e) => handleLanguageChange(e.target.value)}
+                                        className="bg-slate-50 text-slate-700 text-xs font-bold rounded border border-slate-200 px-2 py-1 outline-none focus:border-blue-500 uppercase"
+                                    >
+                                        <option value="python">Python</option>
+                                        <option value="cpp">C++</option>
+                                        <option value="java">Java</option>
+                                    </select>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-2 border-l border-slate-200 pl-4 h-6">
+                                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Chars:</span>
+                                <span className="text-xs font-bold text-slate-700 font-mono tracking-tight">{code?.length || 0}</span>
+                            </div>
+
+                            {/* DEBUG TOGGLE */}
+                            <label className="flex items-center gap-1 cursor-pointer ml-2">
+                                <input
+                                    type="checkbox"
+                                    checked={debugUnhide}
+                                    onChange={(e) => setDebugUnhide(e.target.checked)}
+                                    className="w-3 h-3"
+                                />
+                                <span className="text-[10px] uppercase font-bold text-slate-400">Unhide</span>
+                            </label>
                         </div>
 
-                        <button
-                            onClick={() => {
-                                const t = problem?.templates?.find(x => x.language === language)?.code || getDefaultCode(language);
-                                if (t) setCode(t);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="Reset Code"
-                        >
-                            <RotateCcw size={16} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCode('')}
+                                className="px-2 py-1 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 rounded transition-colors"
+                                title="Clear Editor"
+                            >
+                                Clear
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (blindMode) {
+                                        setCode('');
+                                    } else {
+                                        const t = problem?.templates?.find(x => x.language === language)?.code || getDefaultCode(language);
+                                        if (t) setCode(t);
+                                    }
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                title="Reset Code"
+                            >
+                                <RotateCcw size={16} />
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Monaco Editor */}
-                    <div className="flex-1 relative">
+                    {/* Monaco Editor Container */}
+                    <div className={`flex-1 relative bg-[#1E1E1E] ${(blindMode && !debugUnhide) ? 'blind-mode-active' : ''}`}>
                         <Editor
                             height="100%"
-                            language={language === 'java' ? 'java' : language === 'python' ? 'python' : 'javascript'}
+                            language={language === 'cpp' ? 'cpp' : language === 'c' ? 'c' : language}
                             value={code}
-                            onChange={(val) => setCode(val)}
+                            onChange={(val) => {
+                                console.log('[DEBUG] Editor Change -> Length:', val?.length);
+                                setCode(val);
+                            }}
+                            onMount={(editor) => editor.focus()}
                             theme="vs-dark"
                             options={{
                                 minimap: { enabled: false },
                                 fontSize: 13,
                                 fontFamily: 'JetBrains Mono',
-                                lineNumbers: 'on',
+                                lineNumbers: blindMode ? 'off' : 'on',
                                 scrollBeyondLastLine: false,
                                 automaticLayout: true,
-                                padding: { top: 16 }
+                                padding: { top: 16 },
+                                quickSuggestions: !blindMode,
+                                parameterHints: { enabled: !blindMode },
+                                suggestOnTriggerCharacters: !blindMode,
+                                hover: { enabled: !blindMode },
+                                matchBrackets: blindMode ? 'never' : 'always',
+                                folding: !blindMode,
+                                renderLineHighlight: blindMode ? 'none' : 'all',
+                                selectionHighlight: !blindMode,
+                                occurrencesHighlight: !blindMode,
+                                renderValidationDecorations: blindMode ? 'off' : 'on',
+                                contextmenu: !blindMode,
+                                hideCursorInOverviewRuler: blindMode,
+                                scrollbar: {
+                                    vertical: 'auto',
+                                    horizontal: 'auto'
+                                }
                             }}
                         />
                     </div>

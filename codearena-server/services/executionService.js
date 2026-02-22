@@ -47,7 +47,9 @@ class ExecutionService {
             // ── 3. Enqueue (throws if > 100 jobs waiting) ─────────────────────
             const result = await addCompileTask(async () => {
                 logger.info(jobId, `Slot acquired — launching ${lang} container.`);
-                return await runner.run(lang, code, input, jobId);
+                const runResult = await runner.run(lang, code, input, jobId);
+                console.log(`[DEBUG] Runner Result for ${jobId}:`, JSON.stringify(runResult));
+                return runResult;
             });
 
             const wallTime = Date.now() - wallStart;

@@ -4,12 +4,7 @@ import AboutPage from "./pages/AboutPage";
 import SignupPage from "./pages/SignupPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
-<<<<<<< HEAD
-
-=======
-import PracticePage from "./pages/PracticePage";
 import SingleplayerPage from "./pages/SingleplayerPage";
->>>>>>> singleplayer
 import ProblemSolverPage from "./pages/ProblemSolverPage";
 import BattleArenaPage from "./pages/BattleArenaPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
@@ -41,11 +36,7 @@ function App() {
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardPage />} />
-<<<<<<< HEAD
-=======
-          <Route path="/practice" element={<PracticePage />} />
           <Route path="/singleplayer" element={<SingleplayerPage />} />
->>>>>>> singleplayer
           <Route path="/lobby" element={<BattleLobbyPage />} />
           <Route path="/problem/:problemId" element={<ProblemSolverPage />} />
           <Route path="/battle/data-structures" element={<DataStructureBattlePage />} />

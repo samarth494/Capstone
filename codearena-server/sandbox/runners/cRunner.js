@@ -51,6 +51,7 @@ class CRunner extends BaseRunner {
             const start = Date.now();
             // 20s = compile + 5s in-container run + Docker startup overhead
             exec(cmd, { timeout: 20000 }, (error, stdout, stderr) => {
+                if (stderr) console.log(`[DEBUG] C Runner Raw Stderr:`, stderr);
                 const executionTime = Date.now() - start;
                 const sanitized = this._sanitize(stderr);
 
