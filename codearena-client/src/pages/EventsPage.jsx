@@ -4,6 +4,7 @@ import API_BASE from '../config/api';
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
 import Navbar from '../components/Navbar';
+import { getUser } from '../utils/auth';
 import {
   Calendar,
   EyeOff,
@@ -22,10 +23,7 @@ import { motion } from 'framer-motion';
 
 export default function EventsPage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
+  const [user, setUser] = useState(() => getUser());
   const [showContent, setShowContent] = useState(() => {
     return !!sessionStorage.getItem('hasSeenDashboardEventsIntro');
   });

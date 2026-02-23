@@ -424,7 +424,7 @@ const socketHandler = (server) => {
           battleStartsAt, // Absolute timestamp when battle begins
           serverTime: Date.now(), // Server's current time for client clock-offset calculation
           countdownSeconds: COUNTDOWN_SECONDS,
-          problemId: "blind-coding-challenge",
+          problemId: "blind-coding",
         });
       }
     });

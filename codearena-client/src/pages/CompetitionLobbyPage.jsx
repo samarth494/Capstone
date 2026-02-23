@@ -15,14 +15,12 @@ import {
 } from 'lucide-react';
 import { getSocket, initiateSocketConnection } from '../services/socket';
 import Navbar from '../components/Navbar';
+import { getUser, getAuthToken } from '../utils/auth';
 
 export default function CompetitionLobbyPage() {
     const { eventId } = useParams();
     const navigate = useNavigate();
-    const [user, setUser] = useState(() => {
-        const savedUser = localStorage.getItem('user');
-        return savedUser ? JSON.parse(savedUser) : null;
-    });
+    const [user, setUser] = useState(() => getUser());
 
     const [players, setPlayers] = useState([]);
 
@@ -38,7 +36,7 @@ export default function CompetitionLobbyPage() {
     const [isStarting, setIsStarting] = useState(false);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = getAuthToken();
         if (!token) {
             navigate('/login');
             return;

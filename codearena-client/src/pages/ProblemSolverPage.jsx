@@ -31,10 +31,7 @@ export default function ProblemSolverPage() {
     const initialLang = blindMode ? 'c' : (location.state?.language || 'python');
 
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState(() => {
-        const saved = localStorage.getItem('user');
-        return saved ? JSON.parse(saved) : null;
-    });
+    const [user, setUser] = useState(() => getUser());
     const [code, setCode] = useState('');
     const [output, setOutput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
@@ -73,7 +70,7 @@ export default function ProblemSolverPage() {
 
     // Listen for final leaderboard from server
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = getAuthToken();
         let socket = getSocket();
         if (!socket || !socket.connected) {
             initiateSocketConnection(token);
@@ -82,8 +79,8 @@ export default function ProblemSolverPage() {
 
         if (socket) {
             const handleFinalLeaderboard = (data) => {
-                const storedUser = localStorage.getItem('user');
-                const currentUser = storedUser ? JSON.parse(storedUser) : user;
+                const storedUser = getUser();
+                const currentUser = storedUser || user;
                 const myData = data.players.find(p => p.userId === currentUser?._id);
 
                 navigate(`/competition/${eventId}/leaderboard`, {
