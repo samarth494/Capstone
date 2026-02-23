@@ -1,39 +1,72 @@
-const runner = require('../utils/runner');
+const executionService = require('../services/executionService');
 
+const SUPPORTED_LANGUAGES = ['python', 'c', 'cpp', 'java'];
+const MAX_CODE_BYTES = 65_536; // 64 KB
+const MAX_INPUT_BYTES = 4_096;  //  4 KB
+
+/**
+ * POST /api/code/run
+ * Execute user code in a Docker sandbox and return stdout/stderr.
+ *
+ * Request body:
+ *   { language: "python"|"c"|"cpp"|"java", code: "...", input: "..." }
+ *
+ * Response:
+ *   { success: bool, output: string, executionTime: number }
+ */
 const runCode = async (req, res) => {
-    const { language, code, input } = req.body;
+    const { language, code, input = '' } = req.body;
+    console.log(`[DEBUG] Received Run Request: Language=${language}, CodeLength=${code?.length}`);
 
-    if (!code) {
-        return res.status(400).json({ message: 'Code is required' });
+    // ── Input Validation ──────────────────────────────────────────────────────
+    if (!language || typeof language !== 'string') {
+        return res.status(400).json({ success: false, output: 'language is required.' });
+    }
+    if (!code || typeof code !== 'string') {
+        return res.status(400).json({ success: false, output: 'code is required.' });
     }
 
-    try {
-        const result = await runner.runCode(language, code, input);
+    const lang = language.toLowerCase();
 
-        // If process exited with non-zero and there's stderr, it's an error
-        if (result.exitCode !== 0 && result.stderr) {
-            return res.status(200).json({
-                success: false,
-                output: result.stderr,
-                executionTime: `${result.executionTime}ms`
-            });
-        }
-
-        // Combine output — some runtimes may print warnings to stderr
-        let output = result.stdout;
-        if (result.stderr && result.exitCode === 0) {
-            output += '\n[stderr]: ' + result.stderr;
-        }
-
-        res.json({
-            success: true,
-            output: output,
-            executionTime: `${result.executionTime}ms`
-        });
-    } catch (error) {
-        res.status(500).json({
+    if (!SUPPORTED_LANGUAGES.includes(lang)) {
+        return res.status(400).json({
             success: false,
-            message: error.message
+            output: `'${language}' is not supported. Supported languages: ${SUPPORTED_LANGUAGES.join(', ')}.`,
+        });
+    }
+
+    if (Buffer.byteLength(code, 'utf8') > MAX_CODE_BYTES) {
+        return res.status(400).json({
+            success: false,
+            output: `Code exceeds the 64 KB size limit.`,
+        });
+    }
+
+    if (input && Buffer.byteLength(String(input), 'utf8') > MAX_INPUT_BYTES) {
+        return res.status(400).json({
+            success: false,
+            output: `Input exceeds the 4 KB size limit.`,
+        });
+    }
+
+    // ── Execute ───────────────────────────────────────────────────────────────
+    try {
+        const result = await executionService.executeCode({ language: lang, code, input: String(input) });
+
+        const success = result.exitCode === 0;
+        const output = result.stdout || result.stderr || 'No output produced.';
+
+        return res.json({
+            success,
+            output,
+            executionTime: result.executionTime ?? 0,
+        });
+
+    } catch (err) {
+        console.error('[CodeController] Unhandled error:', err.message);
+        return res.status(500).json({
+            success: false,
+            output: 'Execution service unavailable. Please try again.',
         });
     }
 };

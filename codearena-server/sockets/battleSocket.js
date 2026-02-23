@@ -219,7 +219,7 @@ const socketHandler = (server) => {
           );
         }
 
-        socket.emit("battle:timerUpdate", { timeLeft: battle.timer });
+        socket.emit("battle:timerUpdate", { timeLeft: battle.timer, problemId: battle.problemId });
 
         // Start timer when both players have joined
         if (battle.joinedPlayers.size === 2 && !battle.intervalId) {
@@ -286,9 +286,9 @@ const socketHandler = (server) => {
     });
 
     // Async Submission Handler
-    socket.on("battle:submit", async ({ roomId, code, dryRun = false }) => {
+    socket.on("battle:submit", async ({ roomId, code, language = 'python', dryRun = false }) => {
       console.log(
-        `Handling battle:submit [DryRun: ${dryRun}] for room ${roomId} from ${socket.id}`,
+        `Handling battle:submit [${language}][DryRun: ${dryRun}] for room ${roomId} from ${socket.id}`,
       );
 
       if (!activeBattles[roomId]) {
@@ -300,13 +300,14 @@ const socketHandler = (server) => {
       if (battle.status !== "active") return;
 
       // Record submission event
-      addReplayEvent(roomId, "submission", socket.id, { code, dryRun });
+      addReplayEvent(roomId, "submission", socket.id, { code, language, dryRun });
 
-      // Execute code asynchronously - this doesn't block the socket loop
+      // Execute code in Docker sandbox — multi-language, resource-limited
       const result = await executeSubmission({
         roomId,
-        userId: socket.id,
         code,
+        language,
+        problemId: battle.problemId || 'hello-world',
       });
 
       // Record result in the submission event if possible or add a new one?
@@ -423,7 +424,7 @@ const socketHandler = (server) => {
           battleStartsAt, // Absolute timestamp when battle begins
           serverTime: Date.now(), // Server's current time for client clock-offset calculation
           countdownSeconds: COUNTDOWN_SECONDS,
-          problemId: "blind-coding-challenge",
+          problemId: "blind-coding",
         });
       }
     });
@@ -460,7 +461,7 @@ const socketHandler = (server) => {
         battleStartsAt,
         serverTime: Date.now(),
         countdownSeconds: COUNTDOWN_SECONDS,
-        problemId: "blind-coding-challenge",
+        problemId: "blind-coding",
       });
     });
 
@@ -562,6 +563,8 @@ const socketHandler = (server) => {
       });
     });
   });
+
+  return io; // Expose io for socketManager registration in server.js
 };
 
 module.exports = socketHandler;

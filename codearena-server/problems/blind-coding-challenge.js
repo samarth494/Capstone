@@ -1,11 +1,11 @@
 /**
- * hello-world.js — Battle Arena problem
+ * blind-coding-challenge.js — Blind Coding Competition problem
+ * Language: C only. Users cannot see their code while typing.
  * Task: Print exactly "Hello, World!" to stdout.
- * Validator trims whitespace/newlines before comparing.
  */
 module.exports = {
-    id: 'hello-world',
-    title: 'Hello World',
+    id: 'blind-coding-challenge',
+    title: 'Blind Coding Challenge',
     testCases: [
         { input: '', expected: 'Hello, World!' }
     ],

@@ -1,64 +1,93 @@
-const express = require("express");
-const dotenv = require("dotenv");
-const cors = require("cors");
-const connectDB = require("./config/db");
+const express = require('express');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const http = require('http');
 
+// ── Load env vars FIRST before any other require ──────────────────────────────
 dotenv.config();
 
-// connectDB(); // Removed, now called inside startServer()
-
-const http = require("http");
-const socketHandler = require("./sockets/battleSocket");
+const connectDB = require('./config/db');
+const socketHandler = require('./sockets/battleSocket');
+const socketManager = require('./sockets/socketManager');
+const fileUtility = require('./utils/fileUtility');
 
 const app = express();
 const server = http.createServer(app);
 
-// Prevent crashes
+// ── Global error guards ───────────────────────────────────────────────────────
 process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
-  console.error(err.name, err.message, err.stack);
+  console.error('[Server] Uncaught Exception:', err.name, err.message);
+  // Do NOT shut down — keeps the server alive for other requests
 });
 
-process.on('unhandledRejection', (err) => {
-  console.error('UNHANDLED REJECTION! 💥 Shutting down...');
-  console.error(err);
+process.on('unhandledRejection', (reason) => {
+  console.error('[Server] Unhandled Promise Rejection:', reason);
 });
 
-// Initialize Socket.io
-socketHandler(server);
+// ── Middleware ────────────────────────────────────────────────────────────────
+app.use(cors({
+  origin: '*',           // tighten to your frontend origin in production
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+app.use(express.json({ limit: '100kb' }));        // cap body size
+app.use(express.urlencoded({ extended: false, limit: '100kb' }));
 
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// ── Request logger (dev only) ─────────────────────────────────────────────────
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, _res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+  });
+}
 
-// Request logging middleware
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-  next();
+// ── Routes ────────────────────────────────────────────────────────────────────
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/code', require('./routes/codeRoutes'));
+app.use('/api/leaderboard', require('./routes/leaderboardRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/battles', require('./routes/battleRoutes'));
+app.use('/api/events', require('./routes/eventRoutes'));
+app.use('/api/problems', require('./routes/problemRoutes'));
+
+// ── Health-check ──────────────────────────────────────────────────────────────
+app.get('/', (_req, res) => res.json({ status: 'ok', service: 'CodeArena API' }));
+
+// ── 404 handler ───────────────────────────────────────────────────────────────
+app.use((_req, res) => res.status(404).json({ message: 'Route not found' }));
+
+// ── Global error handler ──────────────────────────────────────────────────────
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  console.error('[Server] Express error handler:', err.message);
+  const status = err.status || 500;
+  res.status(status).json({
+    message: process.env.NODE_ENV === 'production'
+      ? 'An unexpected error occurred.'
+      : err.message
+  });
 });
 
-app.use("/api/auth", require("./routes/authRoutes"));
-app.use("/api/code", require("./routes/codeRoutes"));
-app.use("/api/leaderboard", require("./routes/leaderboardRoutes"));
-app.use("/api/users", require("./routes/userRoutes"));
-app.use("/api/battles", require("./routes/battleRoutes"));
-app.use("/api/events", require("./routes/eventRoutes"));
-app.use("/api/problems", require("./routes/problemRoutes"));
-
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
 const startServer = async () => {
   try {
     await connectDB();
 
+    // Wire Socket.io AFTER DB is ready
+    const io = socketHandler(server);
+    socketManager.init(io);
+
+    // Sweep orphaned temp files from any previous crash
+    fileUtility.clearAllTemp();
+
     const PORT = process.env.PORT || 5000;
-    server.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+    server.listen(PORT, () =>
+      console.log(`[Server] Running on port ${PORT} (${process.env.NODE_ENV || 'development'})`)
+    );
   } catch (error) {
-    console.error('Failed to start server:', error.message);
+    console.error('[Server] Fatal startup error:', error.message);
     process.exit(1);
   }
 };
 
 startServer();
-
-app.get("/", (req, res) => {
-  res.send("Backend working with Socket.io");
-});
