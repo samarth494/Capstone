@@ -80,37 +80,37 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
             onClick={onClose}
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
           />
-          
+
           <motion.div
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden z-10 border border-slate-200"
+            className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden z-10 border border-slate-200 dark:border-slate-800"
           >
             {/* Close Button */}
-            <button 
+            <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-20"
+              className="absolute top-4 right-4 p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors z-20"
             >
               <X size={20} />
             </button>
 
             <div className="p-8">
               <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-xl mb-4 text-blue-600">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl mb-4 text-blue-600 dark:text-blue-400">
                   <Terminal size={24} />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">Access CodeArena</h2>
-                <p className="text-slate-500 text-sm">Login to start your battle session.</p>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Access CodeArena</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Login to start your battle session.</p>
               </div>
 
               <form className="space-y-5" onSubmit={handleSubmit}>
                 {/* Identifier */}
                 <div className="group">
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
                     Username or Email
                   </label>
-                  <div className={`flex items-center bg-slate-50 border rounded-lg transition-all ${focusedField === "identifier" ? "border-blue-600 ring-1 ring-blue-600 bg-white" : "border-slate-200"}`}>
+                  <div className={`flex items-center bg-slate-50 dark:bg-slate-800 border rounded-lg transition-all ${focusedField === "identifier" ? "border-blue-600 ring-1 ring-blue-600 bg-white dark:bg-slate-900" : "border-slate-200 dark:border-slate-700"}`}>
                     <div className="pl-4 text-slate-400"><User size={18} /></div>
                     <input
                       type="text"
@@ -128,10 +128,10 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
                 {/* Password */}
                 <div className="group">
                   <div className="flex justify-between items-center mb-1.5 ml-1">
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Password</label>
-                    <a href="#" className="text-xs font-medium text-blue-600 hover:underline">Forgot?</a>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Password</label>
+                    <a href="#" className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">Forgot?</a>
                   </div>
-                  <div className={`flex items-center bg-slate-50 border rounded-lg transition-all ${focusedField === "password" ? "border-blue-600 ring-1 ring-blue-600 bg-white" : "border-slate-200"}`}>
+                  <div className={`flex items-center bg-slate-50 dark:bg-slate-800 border rounded-lg transition-all ${focusedField === "password" ? "border-blue-600 ring-1 ring-blue-600 bg-white dark:bg-slate-900" : "border-slate-200 dark:border-slate-700"}`}>
                     <div className="pl-4 text-slate-400"><Lock size={18} /></div>
                     <input
                       type="password"
@@ -148,7 +148,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
 
                 {/* Error & Submit */}
                 {error && <div className="text-red-500 text-sm font-medium text-center bg-red-50 p-2 rounded">{error}</div>}
-                
+
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -159,8 +159,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
                 </button>
               </form>
 
-              <div className="mt-6 text-center text-sm text-slate-500">
-                New warrior? <button onClick={onSwitchToSignup} className="text-blue-600 font-bold hover:underline">Create Account</button>
+              <div className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                New warrior? <button onClick={onSwitchToSignup} className="text-blue-600 dark:text-blue-400 font-bold hover:underline">Create Account</button>
               </div>
             </div>
           </motion.div>

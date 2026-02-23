@@ -3,6 +3,8 @@ import FrontPage from "./pages/FrontPage";
 import AboutPage from "./pages/AboutPage";
 import SignupPage from "./pages/SignupPage";
 import LoginPage from "./pages/LoginPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
 import PracticePage from "./pages/PracticePage";
 import ProblemSolverPage from "./pages/ProblemSolverPage";
@@ -27,6 +29,8 @@ function App() {
         <Route path="/" element={<FrontPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/resetpassword/:token" element={<ResetPasswordPage />} />
         <Route path="/battle/data-structures" element={<DataStructureBattlePage />} />
         <Route path="/events" element={<EventShowcasePage />} />
         <Route path="/about" element={<AboutPage />} />

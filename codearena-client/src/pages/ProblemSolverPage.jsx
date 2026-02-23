@@ -11,13 +11,18 @@ import {
     Save,
     Check,
     AlertCircle,
-    Clock
+    Clock,
+    Sun,
+    Moon
 } from 'lucide-react';
+
+import { useTheme } from '../context/ThemeContext';
 
 export default function ProblemSolverPage() {
     const navigate = useNavigate();
     const { problemId } = useParams();
     const location = useLocation();
+    const { theme, toggleTheme } = useTheme();
     const [blindMode, setBlindMode] = useState(location.state?.blindMode || false);
     const [user, setUser] = useState(null);
     const [code, setCode] = useState(() => {
@@ -31,7 +36,7 @@ export default function ProblemSolverPage() {
     const [isRunning, setIsRunning] = useState(false);
     const [language, setLanguage] = useState(location.state?.language || 'javascript');
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    
+
     // Timer state for 15 minutes
     const [timeLeft, setTimeLeft] = useState(15 * 60);
 
@@ -124,7 +129,7 @@ export default function ProblemSolverPage() {
     };
 
     return (
-        <div className={`min-h-screen bg-[#F8FAFC] font-['JetBrains_Mono'] flex flex-col ${blindMode ? 'blind-mode-active' : ''}`}>
+        <div className={`min-h-screen bg-[#F8FAFC] dark:bg-slate-950 font-['JetBrains_Mono'] flex flex-col transition-colors duration-300 ${blindMode ? 'blind-mode-active' : ''}`}>
             <style>
                 {`
                     .blind-mode-active .monaco-editor .view-line,
@@ -153,41 +158,50 @@ export default function ProblemSolverPage() {
                 `}
             </style>
             {/* Header */}
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-50 h-16 flex-none">
+            <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 h-16 flex-none transition-colors duration-300">
                 <div className="w-full px-4 sm:px-6 lg:px-8 h-full">
                     <div className="flex justify-between items-center h-full">
                         <div className="flex items-center space-x-4">
                             <button
                                 onClick={() => navigate('/practice')}
-                                className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
+                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400 transition-colors"
                             >
                                 <ArrowLeft size={20} />
                             </button>
                             <div className="flex items-center space-x-2">
-                                <Swords className="w-6 h-6 text-blue-600" />
-                                <h1 className="text-lg font-bold text-slate-900 font-mono tracking-tighter">CodeArena_</h1>
+                                <Swords className="w-6 h-6 text-blue-600 dark:text-blue-500" />
+                                <h1 className="text-lg font-bold text-slate-900 dark:text-white font-mono tracking-tighter">CodeArena_</h1>
                             </div>
                         </div>
 
                         {/* Timer Display */}
                         <div className={`
                             flex items-center space-x-2 px-4 py-1.5 rounded-lg border font-mono font-bold transition-all
-                            ${timeLeft < 60 ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-slate-50 text-slate-700 border-slate-200'}
+                            ${timeLeft < 60
+                                ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50 animate-pulse'
+                                : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'}
                         `}>
                             <Clock size={16} className={timeLeft < 60 ? 'animate-bounce' : ''} />
                             <span>{formatTime(timeLeft)}</span>
                         </div>
 
                         <div className="flex items-center space-x-4">
+                            <button
+                                onClick={toggleTheme}
+                                className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                                aria-label="Toggle Theme"
+                            >
+                                {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                            </button>
                             {user && (
-                                <div className="hidden md:flex items-center space-x-2 text-sm text-slate-600 mr-4">
+                                <div className="hidden md:flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400 mr-4">
                                     <TerminalIcon size={16} />
                                     <span>{user.username}</span>
                                 </div>
                             )}
                             <button
                                 onClick={() => setShowLogoutConfirm(true)}
-                                className="flex items-center space-x-2 text-slate-500 hover:text-red-600 transition-colors text-sm font-medium"
+                                className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors text-sm font-medium"
                             >
                                 <LogOut size={18} />
                                 <span>Logout</span>
@@ -200,9 +214,9 @@ export default function ProblemSolverPage() {
             {/* Logout Confirmation Modal */}
             {showLogoutConfirm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-6 max-w-sm w-full mx-4 transform transition-all scale-100">
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">Confirm Logout</h3>
-                        <p className="text-slate-500 mb-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 max-w-sm w-full mx-4 transform transition-all scale-100">
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Confirm Logout</h3>
+                        <p className="text-slate-500 dark:text-slate-400 mb-6">
                             Are you sure you want to terminate your session?
                         </p>
                         <div className="flex justify-end gap-3">
@@ -228,13 +242,13 @@ export default function ProblemSolverPage() {
             <main className="flex-1 flex overflow-hidden">
 
                 {/* Left Panel: Problem Description */}
-                <div className="w-1/2 overflow-y-auto border-r border-slate-200 bg-white p-8">
+                <div className="w-1/2 overflow-y-auto border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 transition-colors duration-300">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold text-slate-900">1. Even/Odd & Digit Sum</h2>
-                        <span className="px-3 py-1 bg-green-50 text-green-600 border border-green-200 rounded-full text-xs font-bold">Easy</span>
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white transition-colors duration-300">1. Even/Odd & Digit Sum</h2>
+                        <span className="px-3 py-1 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-full text-xs font-bold">Easy</span>
                     </div>
 
-                    <div className="prose prose-slate max-w-none prose-headings:font-mono prose-headings:font-bold prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none text-slate-600">
+                    <div className="prose prose-slate max-w-none prose-headings:font-mono prose-headings:font-bold prose-code:text-blue-600 dark:prose-code:text-blue-400 prose-code:bg-blue-50 dark:prose-code:bg-blue-900/30 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none text-slate-600 dark:text-slate-400">
                         <p>
                             Write a C program to accept an integer from the user, check whether it is <strong>even or odd</strong>, and calculate the <strong>sum of its digits</strong>.
                         </p>
@@ -242,21 +256,21 @@ export default function ProblemSolverPage() {
                             If the number is negative, treat it as a signed integer for the even/odd check, but sum the digits of its absolute value.
                         </p>
 
-                        <h3 className="text-lg">Example 1:</h3>
-                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 font-mono text-sm my-4">
-                            <p className="mb-2"><span className="font-bold text-slate-900">Input:</span> 12</p>
-                            <p className="mb-2"><span className="font-bold text-slate-900">Output:</span> Even, Sum: 3</p>
-                            <p><span className="font-bold text-slate-900">Explanation:</span> 12 is even. 1 + 2 = 3.</p>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example 1:</h3>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
+                            <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 12</p>
+                            <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> Even, Sum: 3</p>
+                            <p className="text-slate-600 dark:text-slate-400"><span className="font-bold text-slate-900 dark:text-slate-100">Explanation:</span> 12 is even. 1 + 2 = 3.</p>
                         </div>
 
-                        <h3 className="text-lg">Example 2:</h3>
-                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 font-mono text-sm my-4">
-                            <p className="mb-2"><span className="font-bold text-slate-900">Input:</span> 15</p>
-                            <p><span className="font-bold text-slate-900">Output:</span> Odd, Sum: 6</p>
-                             <p><span className="font-bold text-slate-900">Explanation:</span> 15 is odd. 1 + 5 = 6.</p>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example 2:</h3>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
+                            <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 15</p>
+                            <p><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> Odd, Sum: 6</p>
+                            <p className="text-slate-600 dark:text-slate-400"><span className="font-bold text-slate-900 dark:text-slate-100">Explanation:</span> 15 is odd. 1 + 5 = 6.</p>
                         </div>
 
-                         <h3 className="text-lg">Constraints:</h3>
+                        <h3 className="text-lg">Constraints:</h3>
                         <ul className="list-disc pl-5 space-y-1">
                             <li>Input will be a valid integer `n`.</li>
                             <li><code>-10^9 &lt;= n &lt;= 10^9</code></li>
@@ -274,14 +288,14 @@ export default function ProblemSolverPage() {
                     )}
 
                     {/* Toolbar */}
-                    <div className="h-12 bg-[#252526] border-b border-[#3e3e42] flex items-center justify-between px-4">
-                        <div className="text-slate-400 text-xs font-mono uppercase font-black tracking-widest">
+                    <div className="h-12 bg-[#252526] dark:bg-slate-900 border-b border-[#3e3e42] dark:border-slate-800 flex items-center justify-between px-4 transition-colors">
+                        <div className="text-slate-400 dark:text-slate-500 text-xs font-mono uppercase font-black tracking-widest">
                             {language === 'cpp' ? 'C++ (GCC 11)' : language === 'c' ? 'C (GCC 11)' : language === 'java' ? 'Java (OpenJDK 17)' : 'JavaScript (ES6)'}
                         </div>
                         <div className="flex gap-2">
                             <button
                                 onClick={handleReset}
-                                className="p-1.5 text-slate-400 hover:text-white hover:bg-[#3e3e42] rounded transition-colors"
+                                className="p-1.5 text-slate-400 hover:text-white hover:bg-[#3e3e42] dark:hover:bg-slate-800 rounded transition-colors"
                                 title="Reset Code"
                             >
                                 <RotateCcw size={14} />
@@ -297,7 +311,7 @@ export default function ProblemSolverPage() {
                             defaultLanguage={language}
                             value={code}
                             onChange={(value) => setCode(value)}
-                            theme="vs-dark"
+                            theme={theme === 'dark' ? 'vs-dark' : 'light'}
                             options={{
                                 minimap: { enabled: false },
                                 fontSize: 14,
@@ -317,14 +331,14 @@ export default function ProblemSolverPage() {
                     </div>
 
                     {/* Console Panel */}
-                    <div className="h-48 bg-[#1e1e1e] border-t border-[#3e3e42] flex flex-col">
-                        <div className="h-10 bg-[#252526] px-4 flex items-center justify-between border-b border-[#3e3e42]">
-                            <span className="text-slate-300 text-xs font-bold uppercase tracking-wider">Console</span>
+                    <div className="h-48 bg-[#1e1e1e] dark:bg-slate-950 border-t border-[#3e3e42] dark:border-slate-800 flex flex-col transition-colors">
+                        <div className="h-10 bg-[#252526] dark:bg-slate-900 px-4 flex items-center justify-between border-b border-[#3e3e42] dark:border-slate-800">
+                            <span className="text-slate-300 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Console</span>
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleRunCode}
                                     disabled={isRunning}
-                                    className="flex items-center gap-1.5 px-3 py-1 bg-[#3e3e42] hover:bg-[#4e4e52] text-white text-xs rounded transition-colors disabled:opacity-50"
+                                    className="flex items-center gap-1.5 px-3 py-1 bg-[#3e3e42] dark:bg-slate-800 hover:bg-[#4e4e52] dark:hover:bg-slate-700 text-white text-xs rounded transition-colors disabled:opacity-50"
                                 >
                                     <Play size={12} />
                                     Run
