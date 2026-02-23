@@ -1,7 +1,5 @@
 import { io } from "socket.io-client";
-import API_BASE from "../config/api";
-
-const SOCKET_URL = API_BASE;
+import { SOCKET_URL } from "../config/api";
 
 let socket;
 let currentToken = null;
