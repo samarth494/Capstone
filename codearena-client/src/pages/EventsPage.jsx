@@ -18,6 +18,8 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import API_BASE from '../config/api';
+
 
 export default function EventsPage() {
   const navigate = useNavigate();
@@ -44,7 +46,8 @@ export default function EventsPage() {
   const handleCodeSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/events/verify', {
+      const response = await fetch(`${API_BASE}/api/events/verify`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

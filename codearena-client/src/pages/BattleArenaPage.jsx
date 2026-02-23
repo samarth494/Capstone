@@ -26,12 +26,27 @@ export default function BattleArenaPage() {
         return savedUser ? JSON.parse(savedUser) : null;
     });
     const [opponent, setOpponent] = useState({ username: 'Opponent', status: 'Thinking...' });
-    const [code, setCode] = useState('// Solve: Return indices of the two numbers that add up to target\nfunction solve(input) {\n  const { nums, target } = input;\n  \n  // Your logic here\n  \n  return [0, 1]; // Example return\n}');
+    const [problem, setProblem] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [code, setCode] = useState('// Write your solution here\n');
     const [output, setOutput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
     const [gameStatus, setGameStatus] = useState('active'); // active, won, lost, timeout
     const [timeLeft, setTimeLeft] = useState(60);
+    const [language, setLanguage] = useState('javascript');
     const [opponentActivity, setOpponentActivity] = useState('');
+    const [problemId, setProblemId] = useState(null);
+
+
+
+    const languages = [
+        { id: 'javascript', name: 'JavaScript', version: 'v18.0' },
+        { id: 'python', name: 'Python', version: 'v3.10' },
+        { id: 'cpp', name: 'C++', version: 'GCC 11' },
+        { id: 'c', name: 'C', version: 'GCC 11' },
+        { id: 'java', name: 'Java', version: 'JDK 17' }
+    ];
+
 
     // Clear opponent activity after 3 seconds
     useEffect(() => {
@@ -106,10 +121,12 @@ export default function BattleArenaPage() {
                     setTimeLeft(duration);
                 });
 
-                socket.on('battle:timerUpdate', ({ timeLeft }) => {
-                    console.log("Timer update received:", timeLeft);
+                socket.on('battle:timerUpdate', ({ timeLeft, problemId: pId }) => {
+                    console.log("Timer update received:", timeLeft, pId);
                     setTimeLeft(timeLeft);
+                    if (pId && !problemId) setProblemId(pId);
                 });
+
 
                 socket.on('battle:end', ({ reason }) => {
                     console.log("Battle ended:", reason);
@@ -173,7 +190,31 @@ export default function BattleArenaPage() {
         } catch (err) {
             console.error("CRITICAL ERROR IN BATTLE_ARENA_EFFECT:", err);
         }
-    }, [roomId, location.state]);
+    }, [roomId, location.state, problemId]);
+
+    useEffect(() => {
+        const fetchProblem = async () => {
+            if (!problemId) return;
+            setLoading(true);
+            try {
+                const response = await fetch(`${API_BASE}/api/problems/${problemId}`);
+                const data = await response.json();
+                setProblem(data);
+
+                // Set initial code from template if available
+                if (data.templates && Array.isArray(data.templates)) {
+                    const template = data.templates.find(t => t.language === language);
+                    if (template) setCode(template.code);
+                }
+            } catch (error) {
+                console.error("Failed to fetch problem", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchProblem();
+    }, [problemId]);
+
 
     const handleRunCode = async () => {
         setIsRunning(true);
@@ -182,11 +223,9 @@ export default function BattleArenaPage() {
         const socket = getSocket();
         if (socket) {
             socket.emit('battle:runTests', { roomId });
-            // For now, we use battle:submit just for testing logic, 
-            // but the server is currently wired to end the battle on success.
-            // I will add a separate 'battle:executeOnly' event on the server next.
-            socket.emit('battle:submit', { roomId, code, dryRun: true });
+            socket.emit('battle:submit', { roomId, code, language, dryRun: true });
         }
+
     };
 
     const handleSubmit = () => {
@@ -196,8 +235,9 @@ export default function BattleArenaPage() {
         const socket = getSocket();
         if (socket) {
             socket.emit('battle:attempt', { roomId });
-            socket.emit('battle:submit', { roomId, code });
+            socket.emit('battle:submit', { roomId, code, language });
         }
+
     };
 
     return (
@@ -295,33 +335,50 @@ export default function BattleArenaPage() {
                 {/* Left Side: Problem Card - Clean Light/Dark */}
                 <div className="w-[42%] bg-[#F1F5F9]/30 dark:bg-slate-900/30 p-8 overflow-y-auto border-r border-slate-200 dark:border-slate-800 custom-scrollbar transition-colors duration-300">
                     <div className="space-y-8">
-                        <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className="px-2.5 py-1 rounded text-[10px] font-black bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50 uppercase tracking-wider">Rank_Hard</span>
-                                <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest flex items-center gap-1.5">
-                                    <Activity size={14} className="text-blue-500 dark:text-blue-400" /> 2.4K Battles Won
-                                </span>
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                <p className="text-slate-500 font-mono text-xs">SYNCHRONIZING_PROBLEM...</p>
                             </div>
-                            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-tight transition-colors duration-300">Two Sum</h2>
-                        </div>
+                        ) : problem ? (
+                            <>
+                                <div>
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider border ${problem.difficulty === 'Easy' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/50' :
+                                            problem.difficulty === 'Medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900/50' :
+                                                'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50'
+                                            }`}>
+                                            Rank_{problem.difficulty}
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest flex items-center gap-1.5">
+                                            <Activity size={14} className="text-blue-500 dark:text-blue-400" /> {problem.xpReward} XP Reward
+                                        </span>
+                                    </div>
+                                    <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-tight transition-colors duration-300">{problem.title}</h2>
+                                </div>
 
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6 transition-colors duration-300">
-                            <div className="text-base leading-relaxed text-slate-600 dark:text-slate-400 space-y-4 font-medium">
-                                <p>
-                                    Given an array of integers <code className="text-blue-600 dark:text-blue-400 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 rounded font-bold">nums</code> and an integer <code className="text-blue-600 dark:text-blue-400 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 rounded font-bold">target</code>, return indices of the two numbers such that they add up to target.
-                                </p>
-                                <p className="text-slate-400 dark:text-slate-500 text-sm">You may assume that each input would have exactly one solution, and you may not use the same element twice.</p>
-                            </div>
+                                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6 transition-colors duration-300">
+                                    <div className="text-base leading-relaxed text-slate-600 dark:text-slate-400 space-y-4 font-medium prose prose-slate dark:prose-invert max-w-none">
+                                        <div dangerouslySetInnerHTML={{ __html: problem.description }} />
+                                    </div>
 
-                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 border border-slate-200/60 dark:border-slate-700/60 mt-6">
-                                <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-3 tracking-widest">Example Case 01</div>
-                                <pre className="text-sm font-mono text-slate-700 dark:text-slate-300 bg-white/50 dark:bg-slate-950/50 p-3 rounded border border-slate-200/40 dark:border-slate-800/40">
-                                    Input: nums = [2,7,11,15], target = 9{"\n"}
-                                    Output: [0,1]{"\n"}
-                                    Explanation: nums[0] + nums[1] == 9
-                                </pre>
+                                    {problem.examples && problem.examples.length > 0 && (
+                                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 border border-slate-200/60 dark:border-slate-700/60 mt-6">
+                                            <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-3 tracking-widest">Example Case 01</div>
+                                            <pre className="text-sm font-mono text-slate-700 dark:text-slate-300 bg-white/50 dark:bg-slate-950/50 p-3 rounded border border-slate-200/40 dark:border-slate-800/40">
+                                                Input: {problem.examples[0].input}{"\n"}
+                                                Output: {problem.examples[0].output}{"\n"}
+                                                {problem.examples[0].explanation && `Explanation: ${problem.examples[0].explanation}`}
+                                            </pre>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-center py-12">
+                                <p className="text-slate-500 italic">No problem data found for ID: {problemId}</p>
                             </div>
-                        </div>
+                        )}
 
                         <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-100 dark:border-orange-900/30 text-[11px] text-orange-700 dark:text-orange-400 font-bold uppercase tracking-wider flex items-center gap-3 mt-6">
                             <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping"></div>
@@ -330,22 +387,55 @@ export default function BattleArenaPage() {
                     </div>
                 </div>
 
+
                 {/* Right Side: Interactive Zone */}
                 <div className="flex-1 flex flex-col bg-[#1E1E1E]" >
                     {/* Tab Bar - Light/Dark Style */}
-                    <div className="h-10 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest transition-colors duration-300" >
-                        <div className="flex items-center gap-6 h-full font-mono">
-                            <button className="text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 h-full flex items-center px-2">./solution.js</button>
-                            <button className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors h-full flex items-center px-2">./test_suite.js</button>
+                    <div className="h-12 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 transition-colors duration-300" >
+                        <div className="flex items-center gap-4 h-full">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Language:</span>
+                                <select
+                                    value={language}
+                                    onChange={(e) => {
+                                        const newLang = e.target.value;
+                                        setLanguage(newLang);
+
+                                        // Try to find template in problem data
+                                        if (problem?.templates && Array.isArray(problem.templates)) {
+                                            const template = problem.templates.find(t => t.language === newLang);
+                                            if (template) {
+                                                setCode(template.code);
+                                                return;
+                                            }
+                                        }
+
+                                        // Fallback templates
+                                        if (newLang === 'python') setCode('# Write your solution here\n');
+                                        else if (newLang === 'cpp' || newLang === 'c') setCode('#include <stdio.h>\n\nint main() {\n    return 0;\n}');
+                                        else if (newLang === 'java') setCode('public class Solution {\n    public static void main(String[] args) {\n    }\n}');
+                                        else setCode('// Write your solution here\nfunction solve(input) {\n}');
+                                    }}
+
+                                    className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold py-1 px-2 rounded border border-slate-200 dark:border-slate-700 focus:outline-none"
+                                >
+                                    {languages.map(lang => (
+                                        <option key={lang.id} value={lang.id}>{lang.name}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
-                        <div className="text-slate-400 dark:text-slate-500">Environment: Node_v20</div>
+                        <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-widest uppercase">Environment: Docker_Sandbox</div>
                     </div>
+
 
                     <div className="flex-1 relative overflow-hidden">
                         <Editor
                             height="100%"
                             defaultLanguage="javascript"
+                            language={language === 'cpp' || language === 'c' ? 'cpp' : language}
                             value={code}
+
                             onChange={(value) => {
                                 setCode(value);
                                 const socket = getSocket();

@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 
 import { useTheme } from '../context/ThemeContext';
+import API_BASE from '../config/api';
+
 
 export default function ProblemSolverPage() {
     const navigate = useNavigate();
@@ -25,7 +27,10 @@ export default function ProblemSolverPage() {
     const { theme, toggleTheme } = useTheme();
     const [blindMode, setBlindMode] = useState(location.state?.blindMode || false);
     const [user, setUser] = useState(null);
+    const [problem, setProblem] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [code, setCode] = useState(() => {
+
         const lang = location.state?.language || 'javascript';
         if (lang === 'cpp' || lang === 'c') {
             return '#include <stdio.h>\n\nint main() {\n    // Write your code here\n    return 0;\n}';
@@ -36,6 +41,15 @@ export default function ProblemSolverPage() {
     const [isRunning, setIsRunning] = useState(false);
     const [language, setLanguage] = useState(location.state?.language || 'javascript');
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+    const languages = [
+        { id: 'javascript', name: 'JavaScript', version: 'v18.0' },
+        { id: 'python', name: 'Python', version: 'v3.10' },
+        { id: 'cpp', name: 'C++', version: 'GCC 11' },
+        { id: 'c', name: 'C', version: 'GCC 11' },
+        { id: 'java', name: 'Java', version: 'JDK 17' }
+    ];
+
 
     // Timer state for 15 minutes
     const [timeLeft, setTimeLeft] = useState(15 * 60);
@@ -72,6 +86,35 @@ export default function ProblemSolverPage() {
         }
     }, []);
 
+    useEffect(() => {
+        const fetchProblem = async () => {
+            setLoading(true);
+            try {
+                const response = await fetch(`${API_BASE}/api/problems/${problemId}`);
+                const data = await response.json();
+                setProblem(data);
+
+                if (data.templates && Array.isArray(data.templates)) {
+                    const template = data.templates.find(t => t.language === language);
+                    if (template) {
+                        setCode(template.code);
+                    }
+                }
+
+            } catch (error) {
+                console.error("Failed to fetch problem", error);
+                setOutput("> Error: Failed to load problem details.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (problemId) {
+            fetchProblem();
+        }
+    }, [problemId, language]);
+
+
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -80,11 +123,11 @@ export default function ProblemSolverPage() {
 
     const handleRunCode = async () => {
         setIsRunning(true);
-        setOutput('Running tests...');
+        setOutput('Running code...');
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/code/run', {
+            const response = await fetch(`${API_BASE}/api/code/run`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -93,16 +136,18 @@ export default function ProblemSolverPage() {
                 body: JSON.stringify({
                     code: code,
                     language: language,
-                    input: '' // In the future, this could come from user input or test cases
+                    problemId: problemId,
+                    input: problem?.examples?.[0]?.input || ''
                 }),
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                setOutput(`> Execution Success (${data.executionTime})\n\n${data.output}`);
+                const resultOutput = data.output || data.result || 'No output received.';
+                setOutput(`> Execution Success (${data.executionTime || 'N/A'})\n\n${resultOutput}`);
             } else {
-                setOutput(`> Execution Failed\n\n${data.message || 'Unknown error'}`);
+                setOutput(`> Execution Failed\n\n${data.message || data.error || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Run code error', error);
@@ -112,21 +157,92 @@ export default function ProblemSolverPage() {
         }
     };
 
+
     const handleSubmit = async () => {
         setIsRunning(true);
-        setOutput('Submitting solution...');
+        setOutput('Submitting solution to judge...');
 
-        // Mock submission for now
-        setTimeout(() => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE}/api/problems/${problemId}/submit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    code: code,
+                    language: language
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                const sub = data.submission;
+                if (sub.status === 'Accepted') {
+                    setOutput(`> status: ACCEPTED\n\n✅ ${sub.passedTestCases}/${sub.totalTestCases} test cases passed!\n🚀 XP Gained: +${data.xpGained}\n⏱️ Time: ${sub.executionTime}ms`);
+                } else {
+                    setOutput(`> status: ${sub.status.toUpperCase()}\n\n❌ ${sub.passedTestCases}/${sub.totalTestCases} passed.\n\n${sub.error || 'Check your logic.'}`);
+                }
+            } else {
+                setOutput(`> Error\n\n${data.message || 'Submission failed.'}`);
+            }
+        } catch (error) {
+            console.error('Submit error', error);
+            setOutput(`> Server Connection Error\n\n${error.message}`);
+        } finally {
             setIsRunning(false);
-            setOutput('> Submission Received\n\nAll Test Cases Passed! \nRank Updated.');
-        }, 2000);
+        }
     };
+
 
     const handleReset = () => {
-        setCode('// Write your solution here\nfunction solve(input) {\n  return input;\n}');
+        if (problem?.templates && Array.isArray(problem.templates)) {
+            const template = problem.templates.find(t => t.language === language);
+            if (template) {
+                setCode(template.code);
+                setOutput('');
+                return;
+            }
+        }
+
+        if (language === 'cpp' || language === 'c') {
+            setCode('#include <stdio.h>\n\nint main() {\n    // Write your code here\n    return 0;\n}');
+        } else if (language === 'python') {
+            setCode('# Write your solution here\ndef solve():\n    pass');
+        } else {
+            setCode('// Write your solution here\nfunction solve(input) {\n  return input;\n}');
+        }
         setOutput('');
     };
+
+
+    const handleLanguageChange = (e) => {
+        const newLang = e.target.value;
+        setLanguage(newLang);
+
+        // Update code with template if language changes
+        if (problem?.templates && Array.isArray(problem.templates)) {
+            const template = problem.templates.find(t => t.language === newLang);
+            if (template) {
+                setCode(template.code);
+                return;
+            }
+        }
+
+        // Default fallbacks
+        if (newLang === 'cpp' || newLang === 'c') {
+            setCode('#include <stdio.h>\n\nint main() {\n    // Write your code here\n    return 0;\n}');
+        } else if (newLang === 'python') {
+            setCode('# Write your solution here\ndef solve():\n    pass');
+        } else if (newLang === 'java') {
+            setCode('public class Solution {\n    public static void main(String[] args) {\n        // Your code here\n    }\n}');
+        } else {
+            setCode('// Write your solution here\nfunction solve(input) {\n  return input;\n}');
+        }
+    };
+
 
     return (
         <div className={`min-h-screen bg-[#F8FAFC] dark:bg-slate-950 font-['JetBrains_Mono'] flex flex-col transition-colors duration-300 ${blindMode ? 'blind-mode-active' : ''}`}>
@@ -163,7 +279,8 @@ export default function ProblemSolverPage() {
                     <div className="flex justify-between items-center h-full">
                         <div className="flex items-center space-x-4">
                             <button
-                                onClick={() => navigate('/practice')}
+                                onClick={() => navigate('/singleplayer')}
+
                                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400 transition-colors"
                             >
                                 <ArrowLeft size={20} />
@@ -243,40 +360,61 @@ export default function ProblemSolverPage() {
 
                 {/* Left Panel: Problem Description */}
                 <div className="w-1/2 overflow-y-auto border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 transition-colors duration-300">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white transition-colors duration-300">1. Even/Odd & Digit Sum</h2>
-                        <span className="px-3 py-1 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-full text-xs font-bold">Easy</span>
-                    </div>
-
-                    <div className="prose prose-slate max-w-none prose-headings:font-mono prose-headings:font-bold prose-code:text-blue-600 dark:prose-code:text-blue-400 prose-code:bg-blue-50 dark:prose-code:bg-blue-900/30 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none text-slate-600 dark:text-slate-400">
-                        <p>
-                            Write a C program to accept an integer from the user, check whether it is <strong>even or odd</strong>, and calculate the <strong>sum of its digits</strong>.
-                        </p>
-                        <p>
-                            If the number is negative, treat it as a signed integer for the even/odd check, but sum the digits of its absolute value.
-                        </p>
-
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example 1:</h3>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
-                            <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 12</p>
-                            <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> Even, Sum: 3</p>
-                            <p className="text-slate-600 dark:text-slate-400"><span className="font-bold text-slate-900 dark:text-slate-100">Explanation:</span> 12 is even. 1 + 2 = 3.</p>
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center h-full space-y-4">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                            <p className="text-slate-500 font-mono italic">SYNTESIZING_PROBLEM_DATA...</p>
                         </div>
+                    ) : problem ? (
+                        <>
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-bold text-slate-900 dark:text-white transition-colors duration-300">{problem.title}</h2>
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${problem.difficulty === 'Easy' ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800' :
+                                    problem.difficulty === 'Medium' ? 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800' :
+                                        'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800'
+                                    }`}>
+                                    {problem.difficulty}
+                                </span>
+                            </div>
 
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example 2:</h3>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
-                            <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 15</p>
-                            <p><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> Odd, Sum: 6</p>
-                            <p className="text-slate-600 dark:text-slate-400"><span className="font-bold text-slate-900 dark:text-slate-100">Explanation:</span> 15 is odd. 1 + 5 = 6.</p>
+                            <div className="prose prose-slate max-w-none prose-headings:font-mono prose-headings:font-bold prose-code:text-blue-600 dark:prose-code:text-blue-400 prose-code:bg-blue-50 dark:prose-code:bg-blue-900/30 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none text-slate-600 dark:text-slate-400">
+                                <div dangerouslySetInnerHTML={{ __html: problem.description }} />
+
+                                {problem.examples && problem.examples.map((ex, index) => (
+                                    <div key={index}>
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example {index + 1}:</h3>
+                                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
+                                            <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> {ex.input}</p>
+                                            <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> {ex.output}</p>
+                                            {ex.explanation && (
+                                                <p className="text-slate-600 dark:text-slate-400"><span className="font-bold text-slate-900 dark:text-slate-100">Explanation:</span> {ex.explanation}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {problem.constraints && (
+                                    <>
+                                        <h3 className="text-lg">Constraints:</h3>
+                                        <ul className="list-disc pl-5 space-y-1">
+                                            {problem.constraints.map((c, i) => (
+                                                <li key={i}>{c}</li>
+                                            ))}
+                                        </ul>
+                                    </>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full space-y-4 text-center">
+                            <AlertCircle size={48} className="text-red-500" />
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Problem not found</h2>
+                            <p className="text-slate-500 max-w-xs">The problem you're looking for could not be localized in our database.</p>
+                            <button onClick={() => navigate('/singleplayer')} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold">RETURN_TO_BASE</button>
                         </div>
-
-                        <h3 className="text-lg">Constraints:</h3>
-                        <ul className="list-disc pl-5 space-y-1">
-                            <li>Input will be a valid integer `n`.</li>
-                            <li><code>-10^9 &lt;= n &lt;= 10^9</code></li>
-                        </ul>
-                    </div>
+                    )}
                 </div>
+
 
                 {/* Right Panel: Editor & Console */}
                 <div className="w-1/2 flex flex-col bg-[#1e1e1e]">
@@ -289,9 +427,20 @@ export default function ProblemSolverPage() {
 
                     {/* Toolbar */}
                     <div className="h-12 bg-[#252526] dark:bg-slate-900 border-b border-[#3e3e42] dark:border-slate-800 flex items-center justify-between px-4 transition-colors">
-                        <div className="text-slate-400 dark:text-slate-500 text-xs font-mono uppercase font-black tracking-widest">
-                            {language === 'cpp' ? 'C++ (GCC 11)' : language === 'c' ? 'C (GCC 11)' : language === 'java' ? 'Java (OpenJDK 17)' : 'JavaScript (ES6)'}
+                        <div className="flex items-center gap-3">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Language:</span>
+                            <select
+                                value={language}
+                                onChange={handleLanguageChange}
+                                className="bg-[#3e3e42] dark:bg-slate-800 text-white text-xs font-mono py-1 px-3 rounded-md border border-[#555] dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 hover:bg-[#4e4e52] transition-colors cursor-pointer"
+                            >
+                                {languages.map(lang => (
+                                    <option key={lang.id} value={lang.id}>{lang.name}</option>
+                                ))}
+                            </select>
                         </div>
+
+
                         <div className="flex gap-2">
                             <button
                                 onClick={handleReset}
@@ -311,7 +460,8 @@ export default function ProblemSolverPage() {
                             defaultLanguage={language}
                             value={code}
                             onChange={(value) => setCode(value)}
-                            theme={theme === 'dark' ? 'vs-dark' : 'light'}
+                            theme="vs-dark"
+
                             options={{
                                 minimap: { enabled: false },
                                 fontSize: 14,

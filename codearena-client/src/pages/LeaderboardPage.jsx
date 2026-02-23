@@ -10,6 +10,8 @@ import {
     Target,
     Activity
 } from 'lucide-react';
+import API_BASE from '../config/api';
+
 
 export default function LeaderboardPage() {
     const navigate = useNavigate();
@@ -19,7 +21,8 @@ export default function LeaderboardPage() {
     useEffect(() => {
         const fetchLeaderboard = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/leaderboard');
+                const response = await fetch(`${API_BASE}/api/leaderboard`);
+
                 const data = await response.json();
                 setLeaderboard(data);
             } catch (error) {

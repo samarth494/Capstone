@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 
 import { useTheme } from '../context/ThemeContext';
+import API_BASE from '../config/api';
+
 
 export default function ReplayPage() {
     const { theme } = useTheme();
@@ -30,7 +32,8 @@ export default function ReplayPage() {
     useEffect(() => {
         const fetchReplay = async () => {
             try {
-                const response = await fetch(`http://localhost:5000/api/battles/${battleId}/replay`);
+                const response = await fetch(`${API_BASE}/api/battles/${battleId}/replay`);
+
                 const data = await response.json();
                 setBattle(data);
 

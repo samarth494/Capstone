@@ -12,6 +12,8 @@ import {
     Zap,
     ZapOff
 } from 'lucide-react';
+import API_BASE from '../config/api';
+
 
 export default function ProfilePage() {
     const { userId } = useParams();
@@ -22,7 +24,8 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const response = await fetch(`http://localhost:5000/api/users/profile/${userId}`);
+                const response = await fetch(`${API_BASE}/api/users/profile/${userId}`);
+
                 const result = await response.json();
                 setData(result);
             } catch (error) {

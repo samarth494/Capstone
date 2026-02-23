@@ -132,7 +132,8 @@ export default function BattleLobbyPage() {
                         </div>
 
                         <nav className="hidden md:flex space-x-8 font-mono text-sm">
-                            <button onClick={() => navigate('/practice')} className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">./Practice</button>
+                            <button onClick={() => navigate('/singleplayer')} className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">./Singleplayer</button>
+
                             <button onClick={() => navigate('/lobby')} className="text-blue-600 dark:text-blue-400 font-bold transition-colors">./Battle_Lobby</button>
                             <button onClick={() => navigate('/leaderboard')} className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">./Leaderboard</button>
                         </nav>
