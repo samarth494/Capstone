@@ -13,23 +13,27 @@ const executionService = require('../services/executionService');
  * This wrapper maps ExecutionService's rich result → that shape.
  */
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Problem Loader
-// Loads test cases from /problems/<id>.js
-// Falls back to a basic "Hello World" stdout match if no file found.
-// ─────────────────────────────────────────────────────────────────────────────
-const getProblem = (problemId) => {
+const Problem = require('../models/Problem');
+
+/**
+ * getProblem 
+ * Fetches problem definition (test cases, validator) from the database.
+ */
+const getProblem = async (problemId) => {
     try {
-        const problemPath = path.join(__dirname, '..', 'problems', `${problemId}.js`);
-        if (fs.existsSync(problemPath)) {
-            return require(problemPath);
-        }
-        return null;
+        const isObjId = /^[0-9a-fA-F]{24}$/.test(problemId);
+        const problem = await (
+            isObjId
+                ? Problem.findById(problemId)
+                : Problem.findOne({ slug: problemId })
+        );
+        return problem;
     } catch (error) {
-        console.error(`[ExecutionHandler] Failed to load problem ${problemId}:`, error.message);
+        console.error(`[ExecutionHandler] Failed to fetch problem from DB [${problemId}]:`, error.message);
         return null;
     }
 };
+
 
 /**
  * executeSubmission
@@ -47,7 +51,8 @@ const executeSubmission = async ({ code, language = 'python', problemId = 'hello
     const startTime = Date.now();
 
     // ── 1. Load Problem Definition ────────────────────────────────────────────
-    const problem = getProblem(problemId);
+    const problem = await getProblem(problemId);
+
 
     if (!problem) {
         return {
@@ -97,21 +102,26 @@ const executeSubmission = async ({ code, language = 'python', problemId = 'hello
         }
 
         if (result.exitCode !== 0) {
+            let errorMsg = result.stderr || 'Runtime Error';
+            if (!result.stderr) {
+                errorMsg = `Process exited with non-zero code (${result.exitCode}). Ensure you return 0 from main.`;
+            }
             return {
                 success: false,
                 executionTime: result.executionTime || 0,
-                logs: `Runtime Error on Test Case #${i + 1}:\n${result.stderr}`
+                logs: `Runtime Error on Test Case #${i + 1}:\n${errorMsg}`
             };
         }
 
         // ── 4. Validate Output ────────────────────────────────────────────────
         const actual = (result.stdout || '').trim();
-        const expected = String(tc.expected).trim();
+        const expected = String(tc.output || tc.expected || '').trim();
 
         // Use problem's own validator if provided, otherwise plain string match
         const isCorrect = typeof problem.validator === 'function'
             ? problem.validator(actual, expected)
             : actual === expected;
+
 
         if (isCorrect) {
             passedCount++;

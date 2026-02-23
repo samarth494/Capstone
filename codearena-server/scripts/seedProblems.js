@@ -6,14 +6,15 @@ const Problem = require('../models/Problem');
 const seedProblems = [
     {
         title: "Hello World",
+        slug: "hello-world",
         description: "Write a program that prints `Hello, World!` to the console.\n\nThis is the simplest problem to get you started.",
         difficulty: "Easy",
         categories: ["Fundamentals"],
         tags: ["Basics", "Output"],
         xpReward: 5,
         templates: [
-            { language: "javascript", code: "// Print Hello, World!\n" },
-            { language: "python", code: "# Print Hello, World!\n" }
+            { language: "javascript", code: "// Print Hello, World!\nconsole.log('Hello, World!');" },
+            { language: "python", code: "# Print Hello, World!\nprint('Hello, World!')" }
         ],
         testCases: [
             { input: "", output: "Hello, World!" }
@@ -24,7 +25,9 @@ const seedProblems = [
     },
     {
         title: "Sum of Two Numbers",
+        slug: "sum-two",
         description: "Read two integers from input (one per line) and print their sum.\n\n### Input\nTwo integers, each on a separate line.\n\n### Output\nA single integer — the sum of the two numbers.",
+
         difficulty: "Easy",
         categories: ["Fundamentals"],
         tags: ["Math", "Input/Output"],

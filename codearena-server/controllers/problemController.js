@@ -4,7 +4,8 @@ const User = require('../models/User');
 const executionService = require('../services/executionService');
 const leaderboardService = require('../services/leaderboardService');
 
-const SUPPORTED_LANGS = ['python', 'c', 'cpp', 'java'];
+const SUPPORTED_LANGS = ['python', 'c', 'cpp', 'java', 'javascript'];
+
 
 // ── GET /api/problems ────────────────────────────────────────────────────────
 const getProblems = async (req, res) => {
@@ -95,8 +96,9 @@ const submitSolution = async (req, res) => {
                 const result = await executionService.executeCode({
                     language: lang,
                     code,
-                    input: tc.input ?? '',
+                    input: String(tc.input ?? ''),
                 });
+
 
                 totalRuntime += result.executionTime ?? 0;
 
@@ -108,9 +110,15 @@ const submitSolution = async (req, res) => {
 
                 if (result.exitCode !== 0) {
                     verdict = 'Runtime Error';
-                    firstError = result.stderr || 'Runtime Error';
+                    // More helpful message if stderr is empty but exit code is non-zero
+                    if (!result.stderr) {
+                        firstError = `Process exited with non-zero code (${result.exitCode}). Ensure you return 0 from main and your logic is correct.`;
+                    } else {
+                        firstError = result.stderr;
+                    }
                     break;
                 }
+
 
                 const expected = (tc.output ?? '').trim();
                 const actual = (result.stdout ?? '').trim();

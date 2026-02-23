@@ -3,7 +3,9 @@ const pythonRunner = require('../sandbox/runners/pythonRunner');
 const cRunner = require('../sandbox/runners/cRunner');      // C — Blind Coding only
 const cppRunner = require('../sandbox/runners/cppRunner');
 const javaRunner = require('../sandbox/runners/javaRunner');
+const javascriptRunner = require('../sandbox/runners/javascriptRunner');
 const crypto = require('crypto');
+
 const logger = require('../utils/logger');
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -16,7 +18,9 @@ const RUNNERS = {
     c: cRunner,   // Blind Coding mode only
     cpp: cppRunner,
     java: javaRunner,
+    javascript: javascriptRunner,
 };
+
 
 class ExecutionService {
     /**

@@ -1,6 +1,7 @@
 const executionService = require('../services/executionService');
 
-const SUPPORTED_LANGUAGES = ['python', 'c', 'cpp', 'java'];
+const SUPPORTED_LANGUAGES = ['python', 'c', 'cpp', 'java', 'javascript'];
+
 const MAX_CODE_BYTES = 65_536; // 64 KB
 const MAX_INPUT_BYTES = 4_096;  //  4 KB
 
