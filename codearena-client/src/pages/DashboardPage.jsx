@@ -27,6 +27,21 @@ export default function DashboardPage() {
         }
     }, [navigate, user]);
 
+    // Block back button — user must logout to leave dashboard
+    useEffect(() => {
+        // Push an extra entry so pressing back stays on dashboard
+        window.history.pushState(null, '', window.location.href);
+
+        const handlePopState = () => {
+            window.history.pushState(null, '', window.location.href);
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, []);
+
     if (!user) return null; // Or a loading spinner
 
     const navItems = [

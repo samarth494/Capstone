@@ -9,6 +9,7 @@ const activeBattles = {};
 const competitionRooms = {}; // Tracks players and host for each competition event
 const MAX_COMPETITION_PLAYERS = 2; // Maximum players per competition lobby
 const COUNTDOWN_SECONDS = 10; // Countdown duration before battle starts
+const TOTAL_LEVELS = 3; // Total levels in blind coding competition
 
 // Helper to persist results and update stats
 const addReplayEvent = (roomId, type, playerId, data) => {
@@ -219,7 +220,10 @@ const socketHandler = (server) => {
           );
         }
 
-        socket.emit("battle:timerUpdate", { timeLeft: battle.timer, problemId: battle.problemId });
+        socket.emit("battle:timerUpdate", {
+          timeLeft: battle.timer,
+          problemId: battle.problemId,
+        });
 
         // Start timer when both players have joined
         if (battle.joinedPlayers.size === 2 && !battle.intervalId) {
@@ -286,64 +290,71 @@ const socketHandler = (server) => {
     });
 
     // Async Submission Handler
-    socket.on("battle:submit", async ({ roomId, code, language = 'python', dryRun = false }) => {
-      console.log(
-        `Handling battle:submit [${language}][DryRun: ${dryRun}] for room ${roomId} from ${socket.id}`,
-      );
+    socket.on(
+      "battle:submit",
+      async ({ roomId, code, language = "python", dryRun = false }) => {
+        console.log(
+          `Handling battle:submit [${language}][DryRun: ${dryRun}] for room ${roomId} from ${socket.id}`,
+        );
 
-      if (!activeBattles[roomId]) {
-        socket.emit("battle:error", { message: "Battle session not found." });
-        return;
-      }
+        if (!activeBattles[roomId]) {
+          socket.emit("battle:error", { message: "Battle session not found." });
+          return;
+        }
 
-      const battle = activeBattles[roomId];
-      if (battle.status !== "active") return;
+        const battle = activeBattles[roomId];
+        if (battle.status !== "active") return;
 
-      // Record submission event
-      addReplayEvent(roomId, "submission", socket.id, { code, language, dryRun });
-
-      // Execute code in Docker sandbox — multi-language, resource-limited
-      const result = await executeSubmission({
-        roomId,
-        code,
-        language,
-        problemId: battle.problemId || 'hello-world',
-      });
-
-      // Record result in the submission event if possible or add a new one?
-      // Let's just update the last event if it was our submission
-      const lastEvent = battle.replayEvents[battle.replayEvents.length - 1];
-      if (
-        lastEvent &&
-        lastEvent.type === "submission" &&
-        lastEvent.data.code === code
-      ) {
-        lastEvent.data.result = result;
-      }
-
-      // Find user who submitted
-      const player = battle.players.find((p) => p.id === socket.id);
-      const username = player ? player.user.username : "Unknown Warrior";
-
-      // Send execution results back to the submitter
-      socket.emit("battle:executionResult", result);
-
-      // Only proceed to victory if it's NOT a dry run and result is success
-      if (!dryRun && result.success && battle.status === "active") {
-        console.log(`VICTORY: ${username} solved ${roomId}`);
-        clearInterval(battle.intervalId);
-        battle.status = "ended";
-        battle.winner = socket.id;
-
-        io.to(roomId).emit("battle:result", {
-          winnerId: socket.id,
-          winnerName: username,
-          reason: "solved",
+        // Record submission event
+        addReplayEvent(roomId, "submission", socket.id, {
+          code,
+          language,
+          dryRun,
         });
 
-        persistBattleResult(roomId, socket.id); // Victory persistence
-      }
-    });
+        // Execute code in Docker sandbox — multi-language, resource-limited
+        const result = await executeSubmission({
+          roomId,
+          code,
+          language,
+          problemId: battle.problemId || "hello-world",
+        });
+
+        // Record result in the submission event if possible or add a new one?
+        // Let's just update the last event if it was our submission
+        const lastEvent = battle.replayEvents[battle.replayEvents.length - 1];
+        if (
+          lastEvent &&
+          lastEvent.type === "submission" &&
+          lastEvent.data.code === code
+        ) {
+          lastEvent.data.result = result;
+        }
+
+        // Find user who submitted
+        const player = battle.players.find((p) => p.id === socket.id);
+        const username = player ? player.user.username : "Unknown Warrior";
+
+        // Send execution results back to the submitter
+        socket.emit("battle:executionResult", result);
+
+        // Only proceed to victory if it's NOT a dry run and result is success
+        if (!dryRun && result.success && battle.status === "active") {
+          console.log(`VICTORY: ${username} solved ${roomId}`);
+          clearInterval(battle.intervalId);
+          battle.status = "ended";
+          battle.winner = socket.id;
+
+          io.to(roomId).emit("battle:result", {
+            winnerId: socket.id,
+            winnerName: username,
+            reason: "solved",
+          });
+
+          persistBattleResult(roomId, socket.id); // Victory persistence
+        }
+      },
+    );
 
     // --- Competition Lobby Logic ---
 
@@ -358,8 +369,11 @@ const socketHandler = (server) => {
           hostId: socket.id,
           startTime: Date.now(),
           started: false,
-          submissions: {}, // Track submissions by user._id
-          battleStartedAt: null, // When the battle actually started
+          currentLevel: 1,
+          totalLevels: TOTAL_LEVELS,
+          levelSubmissions: {}, // { level: { userId: submissionData } }
+          cumulativeScores: {}, // { userId: { userId, username, totalScore, levelScores } }
+          battleStartedAt: null,
         };
         console.log(`Lobby Created for ${eventId}. Host: ${user.username}`);
       }
@@ -421,10 +435,12 @@ const socketHandler = (server) => {
         );
 
         io.to(`competition_${eventId}`).emit("competition:roundStarted", {
-          battleStartsAt, // Absolute timestamp when battle begins
-          serverTime: Date.now(), // Server's current time for client clock-offset calculation
+          battleStartsAt,
+          serverTime: Date.now(),
           countdownSeconds: COUNTDOWN_SECONDS,
           problemId: "blind-coding",
+          level: 1,
+          totalLevels: TOTAL_LEVELS,
         });
       }
     });
@@ -462,18 +478,44 @@ const socketHandler = (server) => {
         serverTime: Date.now(),
         countdownSeconds: COUNTDOWN_SECONDS,
         problemId: "blind-coding",
+        level: 1,
+        totalLevels: TOTAL_LEVELS,
       });
     });
 
-    // --- Competition Submission Handler ---
+    // --- Competition Submission Handler (Multi-Level) ---
     socket.on(
       "competition:submit",
-      ({ eventId, userId, username, score, breakdown, timeTaken, status }) => {
+      ({
+        eventId,
+        userId,
+        username,
+        score,
+        breakdown,
+        timeTaken,
+        status,
+        level,
+      }) => {
         const room = competitionRooms[eventId];
         if (!room) return;
 
-        // Store this player's submission
-        room.submissions[userId] = {
+        const currentLevel = level || room.currentLevel;
+
+        // Initialize level submissions if needed
+        if (!room.levelSubmissions[currentLevel]) {
+          room.levelSubmissions[currentLevel] = {};
+        }
+
+        // Prevent duplicate submissions for same level
+        if (room.levelSubmissions[currentLevel][userId]) {
+          console.log(
+            `[Competition ${eventId}] Duplicate submit ignored for ${username} on level ${currentLevel}`,
+          );
+          return;
+        }
+
+        // Store this player's submission for this level
+        room.levelSubmissions[currentLevel][userId] = {
           userId,
           username,
           score,
@@ -486,22 +528,41 @@ const socketHandler = (server) => {
           status: status || "completed",
         };
 
+        // Update cumulative scores
+        if (!room.cumulativeScores[userId]) {
+          room.cumulativeScores[userId] = {
+            userId,
+            username,
+            totalScore: 0,
+            levelScores: {},
+          };
+        }
+        room.cumulativeScores[userId].totalScore += score;
+        room.cumulativeScores[userId].levelScores[currentLevel] = score;
+
         console.log(
-          `[Competition ${eventId}] ${username} submitted. Score: ${score}, Status: ${status}. Submissions: ${Object.keys(room.submissions).length}/${room.players.length}`,
+          `[Competition ${eventId}] Level ${currentLevel}: ${username} submitted. Score: ${score}, Status: ${status}. Submissions: ${Object.keys(room.levelSubmissions[currentLevel]).length}/${room.players.length}`,
         );
 
         // Notify all players that someone submitted
         io.to(`competition_${eventId}`).emit("competition:playerSubmitted", {
           userId,
           username,
-          totalSubmitted: Object.keys(room.submissions).length,
+          totalSubmitted: Object.keys(room.levelSubmissions[currentLevel])
+            .length,
           totalPlayers: room.players.length,
+          level: currentLevel,
         });
 
-        // Check if ALL players have submitted
-        if (Object.keys(room.submissions).length >= room.players.length) {
-          // Build the final leaderboard sorted by score (desc), then timeTaken (asc)
-          const leaderboardData = Object.values(room.submissions)
+        // Check if ALL players have submitted for this level
+        if (
+          Object.keys(room.levelSubmissions[currentLevel]).length >=
+          room.players.length
+        ) {
+          // Build level leaderboard sorted by score (desc), then timeTaken (asc)
+          const levelLeaderboard = Object.values(
+            room.levelSubmissions[currentLevel],
+          )
             .sort((a, b) => {
               if (b.score !== a.score) return b.score - a.score;
               return (a.timeTaken || Infinity) - (b.timeTaken || Infinity);
@@ -511,16 +572,45 @@ const socketHandler = (server) => {
               rank: index + 1,
             }));
 
-          console.log(
-            `[Competition ${eventId}] All players submitted! Broadcasting leaderboard.`,
-          );
-          console.log(leaderboardData);
+          // Build cumulative leaderboard
+          const cumulativeLeaderboard = Object.values(room.cumulativeScores)
+            .sort((a, b) => b.totalScore - a.totalScore)
+            .map((entry, index) => ({
+              ...entry,
+              rank: index + 1,
+            }));
 
-          // Broadcast final leaderboard to all players in room
-          io.to(`competition_${eventId}`).emit("competition:finalLeaderboard", {
-            players: leaderboardData,
-            eventId,
-          });
+          if (currentLevel < room.totalLevels) {
+            // Move to next level
+            room.currentLevel = currentLevel + 1;
+
+            console.log(
+              `[Competition ${eventId}] Level ${currentLevel} complete! All submitted. Moving to level ${room.currentLevel}.`,
+            );
+
+            // Broadcast level completion with leaderboard
+            io.to(`competition_${eventId}`).emit("competition:levelComplete", {
+              level: currentLevel,
+              levelLeaderboard,
+              cumulativeLeaderboard,
+              nextLevel: room.currentLevel,
+              totalLevels: room.totalLevels,
+              eventId,
+            });
+          } else {
+            // Competition finished! All 3 levels done.
+            console.log(
+              `[Competition ${eventId}] COMPETITION COMPLETE! Winner: ${cumulativeLeaderboard[0]?.username} with ${cumulativeLeaderboard[0]?.totalScore} total pts.`,
+            );
+
+            io.to(`competition_${eventId}`).emit("competition:competitionEnd", {
+              level: currentLevel,
+              levelLeaderboard,
+              cumulativeLeaderboard,
+              winner: cumulativeLeaderboard[0],
+              eventId,
+            });
+          }
         }
       },
     );

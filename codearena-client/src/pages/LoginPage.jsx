@@ -22,13 +22,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // If user is already logged in, redirect to dashboard
-  React.useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [navigate]);
+  // No auto-redirect: user can always visit login page
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;

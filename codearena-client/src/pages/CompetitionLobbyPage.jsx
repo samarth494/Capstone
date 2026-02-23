@@ -70,30 +70,18 @@ export default function CompetitionLobbyPage() {
                 const { battleStartsAt, serverTime } = data;
                 setServerTimeOffset(serverTime - Date.now());
                 setIsStarting(true);
-
-                const targetTime = battleStartsAt;
-                const updateCountdown = () => {
-                    const now = Date.now() + (serverTime - Date.now()); // approximate server now
-                    const diff = Math.ceil((targetTime - Date.now()) / 1000);
-
-                    if (diff <= 0) {
-                        setCountdown(0);
-                        setTimeout(() => {
-                            navigate('/problem/blind-coding', {
-                                state: {
-                                    blindMode: true,
-                                    language: 'c'
-                                }
-                            });
-                        }, 1000);
-                        return;
-                    }
-                    setCountdown(diff);
-                    setTimeout(updateCountdown, 1000);
-                };
-                updateCountdown();
+                setTimeout(() => {
+                    navigate('/problem/blind-coding', {
+                        state: {
+                            blindMode: true,
+                            language: 'c',
+                            eventId: eventId,
+                            level: 1,
+                            totalLevels: 3
+                        }
+                    });
+                }, 2000);
             });
-
 
             // Listen for errors
             socket.on('competition:error', ({ message }) => {
@@ -140,12 +128,36 @@ export default function CompetitionLobbyPage() {
     };
 
     const handleStartBattle = () => {
-        const socket = getSocket();
-        if (socket && isHost) {
-            socket.emit('competition:startRound', { eventId });
-        }
-    };
+        setIsStarting(true);
+        let count = 10;
+        setCountdown(count);
+        playBeep(800, 200); // Initial start beep
 
+        const interval = setInterval(() => {
+            count--;
+            setCountdown(count);
+
+            if (count > 0) {
+                playBeep(440, 150); // Tick beep
+            } else if (count === 0) {
+                playBeep(880, 1000); // Level start beep (longer)
+            }
+
+            // Wait 3 seconds showing "Level 1 Start"
+            if (count < -3) {
+                clearInterval(interval);
+                navigate('/problem/blind-coding', {
+                    state: {
+                        blindMode: true,
+                        language: 'c',
+                        eventId: eventId,
+                        level: 1,
+                        totalLevels: 3
+                    }
+                });
+            }
+        }, 1000);
+    };
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 font-['JetBrains_Mono'] transition-colors duration-300 overflow-x-hidden">
