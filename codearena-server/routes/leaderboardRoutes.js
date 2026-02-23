@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const leaderboardService = require('../services/leaderboardService');
 
-// @desc    Get top users by wins
-// @route   GET /api/leaderboard
-// @access  Public
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/leaderboard
+// Battle wins leaderboard (existing — unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
     try {
         const topUsers = await User.find({})
@@ -29,8 +31,35 @@ router.get('/', async (req, res) => {
 
         res.json(leaderboard);
     } catch (error) {
-        console.error("Error fetching leaderboard:", error);
+        console.error('Error fetching leaderboard:', error);
         res.status(500).json({ message: 'Server error fetching leaderboard' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/leaderboard/live
+// Competition/singleplayer problem-solving leaderboard.
+//
+// Query params:
+//   ?eventId=global       (default) — singleplayer
+//   ?eventId=blind-coding — a specific competition event
+//
+// Ranking: solved DESC → totalRuntime ASC → lastSolvedAt ASC
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/live', async (req, res) => {
+    try {
+        const eventId = req.query.eventId || 'global';
+        const rankings = await leaderboardService.calculateRankings(eventId);
+
+        res.json({
+            success: true,
+            eventId,
+            rankings,
+            updatedAt: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Error fetching live leaderboard:', error);
+        res.status(500).json({ message: 'Server error fetching live leaderboard' });
     }
 });
 

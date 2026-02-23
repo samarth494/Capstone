@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_BASE from '../config/api';
+import { getUser, getAuthToken, logout } from '../utils/auth';
 import {
     Swords,
     LogOut,
@@ -27,15 +28,15 @@ export default function SingleplayerPage() {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        const token = localStorage.getItem('token');
+        const storedUser = getUser();
+        const token = getAuthToken();
 
         if (!token || !storedUser) {
             navigate('/login');
             return;
         }
 
-        setUser(JSON.parse(storedUser));
+        setUser(storedUser);
         fetchProblems(activeCategory);
     }, [navigate, activeCategory]);
 
@@ -53,8 +54,7 @@ export default function SingleplayerPage() {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        logout();
         navigate('/login');
     };
 

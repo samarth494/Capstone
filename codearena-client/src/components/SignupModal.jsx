@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { Terminal, Lock, User, Mail, Check, ArrowRight, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { API_BASE_URL } from "../config/api";
 import { login } from "../utils/auth";
+import API_BASE from "../config/api";
 
 export default function SignupModal({ isOpen, onClose, onSwitchToLogin, redirectTo }) {
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin, redirect
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      const response = await fetch(`${API_BASE}/api/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -69,7 +69,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin, redirect
         login(data.token, userToSave, true);
 
         onClose();
-        navigate(redirectTo || "/dashboard", { replace: true });
+        navigate("/dashboard", { replace: true });
       } else {
         setError(data.message || "Registration failed");
       }

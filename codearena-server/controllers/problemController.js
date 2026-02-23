@@ -1,156 +1,219 @@
 const Problem = require('../models/Problem');
 const Submission = require('../models/Submission');
-const runner = require('../utils/runner');
+const User = require('../models/User');
+const executionService = require('../services/executionService');
+const leaderboardService = require('../services/leaderboardService');
 
-// Get all problems (filtered by category/difficulty if needed)
+const SUPPORTED_LANGS = ['python', 'c', 'cpp', 'java'];
+
+// ── GET /api/problems ────────────────────────────────────────────────────────
 const getProblems = async (req, res) => {
     try {
         const { category, difficulty } = req.query;
-        let query = {};
+        const query = {};
 
-        if (category && category !== 'All') {
-            query.categories = category;
-        }
-        if (difficulty && difficulty !== 'All') {
-            query.difficulty = difficulty;
-        }
+        if (category && category !== 'All') query.categories = category;
+        if (difficulty && difficulty !== 'All') query.difficulty = difficulty;
 
-        const problems = await Problem.find(query).select('-testCases -templates'); // Hide test cases
-        res.json(problems);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+        const problems = await Problem
+            .find(query)
+            .select('-testCases -templates')
+            .lean();
+
+        return res.json(problems);
+    } catch (err) {
+        console.error('[Problems] getProblems:', err.message);
+        return res.status(500).json({ message: 'Failed to fetch problems.' });
     }
 };
 
-// Get single problem details
+// ── GET /api/problems/:id ────────────────────────────────────────────────────
 const getProblemById = async (req, res) => {
     try {
         const { id } = req.params;
-        let problem;
+        const isObjId = /^[0-9a-fA-F]{24}$/.test(id);
 
-        // Try find by ID first if it's a valid ObjectId
-        if (id.match(/^[0-9a-fA-F]{24}$/)) {
-            problem = await Problem.findById(id).select('-testCases.output -testCases.isPrime');
-        } else {
-            // Otherwise try finding by slug
-            problem = await Problem.findOne({ slug: id }).select('-testCases.output -testCases.isPrime');
-        }
+        const problem = await (
+            isObjId
+                ? Problem.findById(id)
+                : Problem.findOne({ slug: id })
+        ).select('-testCases.output');   // hide expected outputs from client
 
-        if (!problem) return res.status(404).json({ message: 'Problem not found' });
-        res.json(problem);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+        if (!problem) return res.status(404).json({ message: 'Problem not found.' });
+
+        return res.json(problem);
+    } catch (err) {
+        console.error('[Problems] getProblemById:', err.message);
+        return res.status(500).json({ message: 'Failed to fetch problem.' });
     }
 };
 
-// Submit a solution
+// ── POST /api/problems/:id/submit ────────────────────────────────────────────
 const submitSolution = async (req, res) => {
+    const { code, language, eventId } = req.body;
+    const problemId = req.params.id;
+    const userId = req.user._id;
+    const user = req.user;
+
+    // ── Validate ──────────────────────────────────────────────────────────────
+    if (!code || !language) {
+        return res.status(400).json({ message: 'code and language are required.' });
+    }
+
+    const lang = language.toLowerCase();
+    if (!SUPPORTED_LANGS.includes(lang)) {
+        return res.status(400).json({
+            message: `'${language}' is not supported. Use: ${SUPPORTED_LANGS.join(', ')}.`,
+        });
+    }
+
+    if (Buffer.byteLength(code, 'utf8') > 65_536) {
+        return res.status(400).json({ message: 'Code exceeds the 64 KB size limit.' });
+    }
+
     try {
-        const { code, language } = req.body;
-        const problemId = req.params.id;
-        const userId = req.user._id;
+        // ── 1. Fetch Problem ──────────────────────────────────────────────────
+        const isObjId = /^[0-9a-fA-F]{24}$/.test(problemId);
+        const problem = await (
+            isObjId
+                ? Problem.findById(problemId)
+                : Problem.findOne({ slug: problemId })
+        );
 
-        let problem;
-        if (problemId.match(/^[0-9a-fA-F]{24}$/)) {
-            problem = await Problem.findById(problemId);
-        } else {
-            problem = await Problem.findOne({ slug: problemId });
-        }
+        if (!problem) return res.status(404).json({ message: 'Problem not found.' });
 
-        if (!problem) return res.status(404).json({ message: 'Problem not found' });
+        const testCases = problem.testCases || [];
+        let passedCount = 0;
+        let totalRuntime = 0;
+        let verdict = 'Accepted';
+        let firstError = '';
+        const submittedAt = new Date();
 
-        // Run against all test cases
-        let passed = 0;
-        let total = problem.testCases.length;
-        let totalTime = 0;
-        let error = null;
-        let status = 'Accepted';
+        // ── 2. Run All Test Cases ─────────────────────────────────────────────
+        if (testCases.length > 0) {
+            for (const tc of testCases) {
+                const result = await executionService.executeCode({
+                    language: lang,
+                    code,
+                    input: tc.input ?? '',
+                });
 
-        for (const testCase of problem.testCases) {
-            try {
-                const result = await runner.runCode(language, code, testCase.input);
-                totalTime += parseFloat(result.executionTime || 0);
+                totalRuntime += result.executionTime ?? 0;
 
-                if (result.stderr) {
-                    status = 'Runtime Error';
-                    error = result.stderr;
+                if (result.status === 'timeout') {
+                    verdict = 'Time Limit Exceeded';
+                    firstError = 'Your solution exceeded the time limit.';
                     break;
                 }
 
-                if (result.stdout.trim() !== testCase.output.trim()) {
-                    status = 'Wrong Answer';
-                    error = `Expected: ${testCase.output.trim()}, Got: ${result.stdout.trim()}`;
-                    break; // Stop on first failure
+                if (result.exitCode !== 0) {
+                    verdict = 'Runtime Error';
+                    firstError = result.stderr || 'Runtime Error';
+                    break;
                 }
-                passed++;
-            } catch (err) {
-                status = 'Runtime Error';
-                error = err.message;
-                break;
+
+                const expected = (tc.output ?? '').trim();
+                const actual = (result.stdout ?? '').trim();
+
+                if (actual === expected) {
+                    passedCount++;
+                } else {
+                    verdict = 'Wrong Answer';
+                    firstError = `Expected:\n${expected}\n\nGot:\n${actual}`;
+                    break;
+                }
+            }
+        } else {
+            // No test cases: just check it runs without error
+            const result = await executionService.executeCode({ language: lang, code, input: '' });
+            totalRuntime = result.executionTime ?? 0;
+            if (result.exitCode !== 0) {
+                verdict = 'Runtime Error';
+                firstError = result.stderr || '';
+            } else {
+                passedCount = 1;
             }
         }
 
-        // Create submission record
-        const submission = new Submission({
+        const totalTests = testCases.length || 1;
+
+        // ── 3. Persist Submission ─────────────────────────────────────────────
+        await Submission.create({
             user: userId,
-            problem: problem._id, // Use the actual ObjectId
-            language,
+            problem: problem._id,
+            language: lang,
             code,
-            status,
-            passedTestCases: passed,
-            totalTestCases: total,
-            executionTime: totalTime,
-            error
+            status: verdict,
+            passedTestCases: passedCount,
+            totalTestCases: totalTests,
+            executionTime: totalRuntime,
+            error: firstError || undefined,
         });
 
-        await submission.save();
+        // ── 4. On Accepted — update user & leaderboard ────────────────────────
+        if (verdict === 'Accepted') {
+            await User.findByIdAndUpdate(userId, {
+                $addToSet: { solvedProblems: problem._id },
+                $inc: { xp: problem.xpReward || 10 },
+            });
 
-        // Calculate XP if accepted
-        let xpGained = 0;
-        if (status === 'Accepted') {
-            // Check if already solved correctly before? Maybe one time reward?
-            // For now, simple reward
-            xpGained = problem.xpReward;
+            // Fire-and-forget (non-blocking — never crash submission flow)
+            leaderboardService.updateLeaderboard({
+                userId,
+                username: user.username,
+                problemId: problem._id,
+                status: verdict,
+                executionTime: totalRuntime,
+                submittedAt,
+                eventId: eventId || 'global',
+            }).catch((e) => console.error('[Leaderboard] update failed:', e.message));
         }
 
-        res.json({
-            submission,
-            xpGained
+        // ── 5. Respond ────────────────────────────────────────────────────────
+        return res.json({
+            success: true,
+            submission: {
+                status: verdict,
+                passedTestCases: passedCount,
+                totalTestCases: totalTests,
+                executionTime: totalRuntime,
+                language: lang,
+                error: firstError || undefined,
+            },
+            xpGained: verdict === 'Accepted' ? (problem.xpReward || 10) : 0,
         });
 
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: error.message });
+    } catch (err) {
+        console.error('[Problems] submitSolution:', err.message);
+        return res.status(500).json({ message: 'Submission failed. Please try again.' });
     }
 };
 
-// Get user submissions for a problem
+// ── GET /api/problems/:id/submissions ───────────────────────────────────────
 const getSubmissions = async (req, res) => {
     try {
         const { id } = req.params;
-        let query = { user: req.user._id };
+        const isObjId = /^[0-9a-fA-F]{24}$/.test(id);
 
-        if (id.match(/^[0-9a-fA-F]{24}$/)) {
-            query.problem = id;
-        } else {
-            const problem = await Problem.findOne({ slug: id });
-            if (problem) {
-                query.problem = problem._id;
-            } else {
-                return res.json([]); // No problem found with that slug
-            }
+        let problemObjId = id;
+        if (!isObjId) {
+            const problem = await Problem.findOne({ slug: id }).select('_id');
+            if (!problem) return res.json([]);
+            problemObjId = problem._id;
         }
 
-        const submissions = await Submission.find(query).sort({ createdAt: -1 });
-        res.json(submissions);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+        const submissions = await Submission
+            .find({ user: req.user._id, problem: problemObjId })
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .select('-code')      // don't send full code on list
+            .lean();
+
+        return res.json(submissions);
+    } catch (err) {
+        console.error('[Problems] getSubmissions:', err.message);
+        return res.status(500).json({ message: 'Failed to fetch submissions.' });
     }
 };
 
-module.exports = {
-    getProblems,
-    getProblemById,
-    submitSolution,
-    getSubmissions
-};
+module.exports = { getProblems, getProblemById, submitSolution, getSubmissions };
