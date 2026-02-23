@@ -13,20 +13,19 @@ import {
 
 import { initiateSocketConnection, joinQueue, subscribeToMatchFound, disconnectSocket, getSocket } from '../services/socket';
 
-import { getUser, getAuthToken, logout } from '../utils/auth';
-
 export default function BattleLobbyPage() {
     const navigate = useNavigate();
     const [user, setUser] = useState(() => {
-        return getUser();
+        const savedUser = localStorage.getItem('user');
+        return savedUser ? JSON.parse(savedUser) : null;
     });
     const [isMatchmaking, setIsMatchmaking] = useState(false);
     const [matchmakingTime, setMatchmakingTime] = useState(0);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     useEffect(() => {
-        const token = getAuthToken();
-        const storedUser = getUser();
+        const token = localStorage.getItem('token');
+        const storedUser = localStorage.getItem('user');
 
         if (!token || !storedUser) {
             navigate('/login');
@@ -122,32 +121,32 @@ export default function BattleLobbyPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] font-['JetBrains_Mono'] relative">
+        <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 font-['JetBrains_Mono'] relative transition-colors duration-300">
             {/* Header */}
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+            <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 transition-colors duration-300">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
-                            <Swords className="w-8 h-8 text-blue-600" />
-                            <h1 className="text-xl font-bold text-slate-900 font-mono tracking-tighter">CodeArena_</h1>
+                        <div className="flex items-center space-x-2 cursor-pointer transition-all hover:scale-105" onClick={() => navigate('/dashboard')}>
+                            <Swords className="w-8 h-8 text-blue-600 dark:text-blue-500" />
+                            <h1 className="text-xl font-bold text-slate-900 dark:text-white font-mono tracking-tighter transition-colors">CodeArena_</h1>
                         </div>
 
                         <nav className="hidden md:flex space-x-8 font-mono text-sm">
-
-                            <button onClick={() => navigate('/lobby')} className="text-blue-600 font-bold transition-colors">./Battle_Lobby</button>
-                            <button onClick={() => navigate('/leaderboard')} className="text-slate-500 hover:text-blue-600 transition-colors">./Leaderboard</button>
+                            <button onClick={() => navigate('/practice')} className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">./Practice</button>
+                            <button onClick={() => navigate('/lobby')} className="text-blue-600 dark:text-blue-400 font-bold transition-colors">./Battle_Lobby</button>
+                            <button onClick={() => navigate('/leaderboard')} className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">./Leaderboard</button>
                         </nav>
 
                         <div className="flex items-center space-x-4">
                             {user && (
-                                <div className="hidden md:flex items-center space-x-2 text-sm text-slate-600 mr-4">
+                                <div className="hidden md:flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400 mr-4 transition-colors">
                                     <TerminalIcon size={16} />
                                     <span>{user.username}</span>
                                 </div>
                             )}
                             <button
                                 onClick={() => setShowLogoutConfirm(true)}
-                                className="flex items-center space-x-2 text-slate-500 hover:text-red-600 transition-colors text-sm font-medium"
+                                className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors text-sm font-medium"
                             >
                                 <LogOut size={18} />
                                 <span>Logout</span>
@@ -159,25 +158,25 @@ export default function BattleLobbyPage() {
 
             {/* Logout Confirmation Modal */}
             {showLogoutConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-6 max-w-sm w-full mx-4 transform transition-all scale-100">
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">Confirm Logout</h3>
-                        <p className="text-slate-500 mb-6">
-                            Are you sure you want to terminate your session?
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 p-8 max-w-sm w-full mx-4 transform transition-all scale-100">
+                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">Confirm Logout</h3>
+                        <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed transition-colors">
+                            Are you sure you want to terminate your current session and exit the arena?
                         </p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setShowLogoutConfirm(false)}
-                                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors"
-                            >
-                                Cancel
-                            </button>
+                        <div className="flex flex-col gap-3">
                             <button
                                 onClick={handleLogout}
-                                className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20"
                             >
-                                <LogOut size={16} />
-                                <span>Logout</span>
+                                <LogOut size={18} />
+                                <span>TERMINATE_SESSION</span>
+                            </button>
+                            <button
+                                onClick={() => setShowLogoutConfirm(false)}
+                                className="w-full px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl font-medium transition-colors"
+                            >
+                                Cancel
                             </button>
                         </div>
                     </div>
@@ -186,26 +185,30 @@ export default function BattleLobbyPage() {
 
             {/* Matchmaking Overlay */}
             {isMatchmaking && (
-                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-sm text-white transition-opacity">
-                    <div className="relative">
-                        <div className="absolute inset-0 bg-blue-500 blur-xl opacity-20 animate-pulse rounded-full"></div>
-                        <Swords size={64} className="text-blue-500 animate-bounce relative z-10" />
+                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-md text-white transition-opacity duration-500">
+                    <div className="relative mb-12">
+                        <div className="absolute inset-0 bg-blue-500 blur-3xl opacity-30 animate-pulse rounded-full"></div>
+                        <div className="relative bg-slate-800 p-8 rounded-full border border-blue-500/30 shadow-2xl">
+                            <Swords size={80} className="text-blue-500 animate-bounce" />
+                        </div>
                     </div>
-                    <h2 className="text-3xl font-bold mt-8 mb-2 font-mono tracking-tight animate-pulse">SEARCHING_FOR_OPPONENT...</h2>
-                    <p className="text-slate-400 font-mono text-lg mb-8">
-                        Estimated Wait: &lt; 30s
+                    <h2 className="text-4xl font-bold mb-4 font-mono tracking-tighter animate-pulse">SEARCHING_FOR_OPPONENT...</h2>
+                    <p className="text-slate-400 font-mono text-lg mb-12 max-w-md text-center">
+                        Synthesizing match vectors.
+                        Estimated wait: <span className="text-blue-400">&lt; 30s</span>
                     </p>
 
-                    <div className="flex items-center gap-2 bg-slate-800 px-6 py-3 rounded-full border border-slate-700 mb-12">
-                        <Clock size={20} className="text-blue-400" />
-                        <span className="font-mono text-xl">{formatTime(matchmakingTime)}</span>
+                    <div className="flex items-center gap-4 bg-slate-800/80 backdrop-blur-md px-10 py-5 rounded-2xl border border-slate-700/50 mb-16 shadow-2xl">
+                        <Clock size={28} className="text-blue-400" />
+                        <span className="font-mono text-4xl font-bold tabular-nums">{formatTime(matchmakingTime)}</span>
                     </div>
 
                     <button
                         onClick={cancelMatchmaking}
-                        className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-lg font-bold tracking-wide transition-all transform hover:scale-105 border border-red-400"
+                        className="group flex items-center gap-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white px-10 py-4 rounded-xl font-bold tracking-widest transition-all transform hover:scale-105 border border-red-500/50"
                     >
-                        CANCEL_SEARCH
+                        <span>CANCEL_SEARCH</span>
+                        <Plus size={20} className="rotate-45" />
                     </button>
                 </div>
             )}
@@ -217,85 +220,87 @@ export default function BattleLobbyPage() {
 
                     {/* Left Column: Actions */}
                     <div className="lg:col-span-2 space-y-8">
-                        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-lg relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
-                                <Zap size={120} className="text-blue-600" />
+                        <div className="bg-white dark:bg-slate-900 p-10 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden group transition-all duration-300">
+                            <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-700">
+                                <Zap size={200} className="text-blue-600 dark:text-blue-400" />
                             </div>
-                            <h2 className="text-3xl font-bold text-slate-900 mb-4 font-mono">
-                                QUICK_MATCH
-                            </h2>
-                            <p className="text-slate-500 mb-8 max-w-md text-lg">
-                                Find a worthy opponent instantly. Ranked matches affect your global standing.
-                            </p>
-                            <button
-                                onClick={startMatchmaking}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold text-lg flex items-center gap-3 shadow-lg hover:shadow-blue-500/30 transition-all transform hover:-translate-y-1"
-                            >
-                                <Swords size={24} />
-                                <span>FIND_MATCH</span>
-                            </button>
+                            <div className="relative z-10">
+                                <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-4 font-mono tracking-tight transition-colors">
+                                    QUICK_MATCH
+                                </h2>
+                                <p className="text-slate-500 dark:text-slate-400 mb-10 max-w-md text-lg leading-relaxed transition-colors">
+                                    Find a worthy opponent instantly through our automated matchmaking. Ranked matches affect your global standing.
+                                </p>
+                                <button
+                                    onClick={startMatchmaking}
+                                    className="bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black text-xl flex items-center gap-4 shadow-2xl shadow-blue-500/40 hover:shadow-blue-500/60 transition-all transform hover:-translate-y-1 active:scale-95"
+                                >
+                                    <Swords size={28} />
+                                    <span>FIND_MATCH_NOW</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer group hover:-translate-y-1">
-                                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 text-purple-600 group-hover:scale-110 transition-transform">
-                                    <Plus size={24} />
+                        <div className="grid md:grid-cols-2 gap-6 transition-colors duration-300">
+                            <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all cursor-pointer group hover:-translate-y-1">
+                                <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mb-6 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-all">
+                                    <Plus size={28} />
                                 </div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-2">Create Lobby</h3>
-                                <p className="text-slate-500 text-sm">Host a private match for friends or tournaments.</p>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 transition-colors">Create Lobby</h3>
+                                <p className="text-slate-500 dark:text-slate-400 leading-relaxed transition-colors">Host a private match for friends or specialized tournaments.</p>
                             </div>
-                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer group hover:-translate-y-1">
-                                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 text-green-600 group-hover:scale-110 transition-transform">
-                                    <Users size={24} />
+                            <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all cursor-pointer group hover:-translate-y-1">
+                                <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center mb-6 text-green-600 dark:text-green-400 group-hover:scale-110 transition-all">
+                                    <Users size={28} />
                                 </div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-2">Join with Code</h3>
-                                <p className="text-slate-500 text-sm">Enter a room code to join an existing lobby.</p>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 transition-colors">Join with Code</h3>
+                                <p className="text-slate-500 dark:text-slate-400 leading-relaxed transition-colors">Enter a unique room code to join an existing private lobby.</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Right Column: Active Battles */}
                     <div className="lg:col-span-1">
-                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden h-full flex flex-col">
-                            <div className="p-6 border-b border-slate-100 bg-slate-50">
-                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 font-mono">
-                                    <ActivityIcon size={20} className="text-green-500" />
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden h-full flex flex-col transition-colors duration-300">
+                            <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 transition-colors">
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-3 font-mono transition-colors">
+                                    <ActivityIcon size={24} className="text-green-500 dark:text-green-400" />
                                     LIVE_BATTLES
                                 </h3>
                             </div>
-                            <div className="flex-1 overflow-y-auto max-h-[600px] p-2">
+                            <div className="flex-1 overflow-y-auto max-h-[600px] p-4">
                                 {activeBattles.map(battle => (
-                                    <div key={battle.id} className="p-4 mb-2 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all group cursor-pointer">
-                                        <div className="flex justify-between items-center mb-3">
-                                            <span className="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-600 rounded uppercase">
+                                    <div key={battle.id} className="p-5 mb-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all group cursor-pointer shadow-sm hover:shadow-md">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <span className="text-[10px] font-black tracking-widest px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full uppercase transition-colors">
                                                 {battle.rank}
                                             </span>
-                                            <div className="flex items-center gap-1 text-slate-400 text-xs">
-                                                <Users size={12} />
-                                                <span>{battle.viewers}</span>
+                                            <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-xs font-bold transition-colors">
+                                                <Users size={14} />
+                                                <span>{battle.viewers} VIEWERS</span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-between font-mono text-sm mb-3">
-                                            <span className="text-blue-600 font-medium">{battle.p1}</span>
-                                            <span className="text-slate-300">vs</span>
-                                            <span className={battle.p2 === 'waiting...' ? 'text-slate-400 italic' : 'text-red-500 font-medium'}>
+                                        <div className="flex items-center justify-between font-mono text-sm mb-5">
+                                            <span className="text-blue-600 dark:text-blue-400 font-black transition-colors">{battle.p1}</span>
+                                            <span className="text-slate-300 dark:text-slate-700 font-bold px-2 italic transition-colors">vs</span>
+                                            <span className={battle.p2 === 'waiting...' ? 'text-slate-400 dark:text-slate-600 italic' : 'text-red-500 dark:text-red-400 font-black transition-colors'}>
                                                 {battle.p2}
                                             </span>
                                         </div>
                                         {battle.status === 'Waiting' ? (
-                                            <button className="w-full py-2 bg-white border border-blue-600 text-blue-600 text-xs font-bold rounded hover:bg-blue-50 transition-colors">
-                                                JOIN LOBBY
+                                            <button className="w-full py-3 bg-white dark:bg-slate-900 border-2 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-400 text-xs font-black rounded-xl hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white transition-all transform active:scale-95">
+                                                JOIN_LOBBY
                                             </button>
                                         ) : (
-                                            <button className="w-full py-2 bg-slate-100 text-slate-500 text-xs font-bold rounded hover:bg-slate-200 transition-colors flex items-center justify-center gap-2">
-                                                <Users size={12} />
-                                                SPECTATE
+                                            <button className="w-full py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-black rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 transform active:scale-95">
+                                                <Users size={14} />
+                                                SPECTATE_STREAM
                                             </button>
                                         )}
                                     </div>
                                 ))}
-                                <div className="text-center p-4 text-xs text-slate-400 font-mono">
-                                    -- END OF LIST --
+                                <div className="text-center p-6 text-[10px] text-slate-400 dark:text-slate-600 font-mono tracking-widest transition-colors">
+                                    -- END OF BUFFER --
                                 </div>
                             </div>
                         </div>
@@ -317,7 +322,7 @@ function ActivityIcon({ size, className }) {
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
             className={className}

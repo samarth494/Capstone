@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getUser, logout } from '../utils/auth';
 import Navbar from '../components/Navbar';
 import {
     Swords,
@@ -16,18 +15,17 @@ import {
 
 export default function DashboardPage() {
     const navigate = useNavigate();
-    const [user, setUser] = useState(() => getUser());
+    const [user, setUser] = useState(() => {
+        const savedUser = localStorage.getItem('user');
+        return savedUser ? JSON.parse(savedUser) : null;
+    });
 
     useEffect(() => {
-        if (!user) {
-            navigate('/');
+        const token = localStorage.getItem('token');
+        if (!token || !user) {
+            navigate('/login');
         }
-    }, [user, navigate]);
-
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
+    }, [navigate, user]);
 
     if (!user) return null; // Or a loading spinner
 
@@ -55,19 +53,15 @@ export default function DashboardPage() {
             borderColor: 'hover:border-blue-500',
             action: () => navigate('/lobby')
         },
-<<<<<<< HEAD
-
-=======
         {
-            title: 'Singleplayer',
-            description: 'Master Fundamentals and Data Structures to level up your XP.',
+            title: 'Practice Problems',
+            description: 'Hone your skills with our collection of algorithmic challenges.',
             icon: Code,
             color: 'text-green-600',
             bgColor: 'bg-green-50',
             borderColor: 'hover:border-green-500',
-            action: () => navigate('/singleplayer')
+            action: () => navigate('/practice')
         },
->>>>>>> singleplayer
         {
             title: 'Leaderboard',
             description: 'See where you stand among the top developers globally.',
@@ -89,24 +83,24 @@ export default function DashboardPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] font-['JetBrains_Mono']">
+        <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 font-['JetBrains_Mono'] transition-colors duration-300">
             <Navbar items={navItems} user={user} />
 
             {/* Welcome Section */}
-            <section className="bg-white border-b border-slate-200 py-12 px-4 relative overflow-hidden">
+            <section className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 py-12 px-4 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-blue-600"></div>
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div>
-                            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2 font-mono tracking-tight">
-                                <span className="text-blue-600 mr-2">&gt;</span>WELCOME_BACK(<span className="text-blue-600">{user.username}</span>)
+                            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 font-mono tracking-tight">
+                                <span className="text-blue-600 dark:text-blue-400 mr-2">&gt;</span>WELCOME_BACK(<span className="text-blue-600 dark:text-blue-400">{user.username}</span>)
                             </h2>
                             <p className="text-slate-500 font-mono text-lg">
                                 Ready to enter the arena? System status: <span className="text-green-500">ONLINE</span>
                             </p>
                         </div>
                         <div className="flex space-x-4">
-                            <button className="flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg transition-colors border border-slate-200">
+                            <button className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg transition-all border border-slate-200 dark:border-slate-700">
                                 <GitBranch size={16} />
                                 <span>v2.4.0</span>
                             </button>
@@ -120,14 +114,14 @@ export default function DashboardPage() {
                 <div className="max-w-7xl mx-auto">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
                         {stats.map((stat, idx) => (
-                            <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
+                            <div key={idx} className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group">
                                 <div className="flex justify-between items-start mb-2">
-                                    <div className="p-2 rounded-lg bg-slate-50 group-hover:bg-blue-50 transition-colors">
-                                        <stat.icon className="w-5 h-5 text-slate-500 group-hover:text-blue-600" />
+                                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                                        <stat.icon className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                                     </div>
                                 </div>
-                                <div className="text-2xl font-bold text-slate-900 font-mono mb-1">{stat.value}</div>
-                                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{stat.label}</div>
+                                <div className="text-2xl font-bold text-slate-900 dark:text-white font-mono mb-1">{stat.value}</div>
+                                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{stat.label}</div>
                             </div>
                         ))}
                     </div>
@@ -137,8 +131,8 @@ export default function DashboardPage() {
             {/* Main Actions Grid */}
             <section className="pb-16 px-4">
                 <div className="max-w-7xl mx-auto">
-                    <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                        <Target className="text-blue-600" size={20} />
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                        <Target className="text-blue-600 dark:text-blue-400" size={20} />
                         AVAILABLE_MODULES
                     </h3>
 
@@ -147,18 +141,18 @@ export default function DashboardPage() {
                             <div
                                 key={idx}
                                 onClick={card.action}
-                                className={`bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-lg transition-all cursor-pointer group hover:-translate-y-1 ${card.borderColor} border-opacity-50`}
+                                className={`bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-lg transition-all cursor-pointer group hover:-translate-y-1 ${card.borderColor} dark:hover:border-blue-500/50 border-opacity-50`}
                             >
-                                <div className={`w-12 h-12 rounded-lg ${card.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                                    <card.icon className={`w-6 h-6 ${card.color}`} />
+                                <div className={`w-12 h-12 rounded-lg ${card.bgColor} dark:bg-slate-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                                    <card.icon className={`w-6 h-6 ${card.color} dark:text-blue-400`} />
                                 </div>
-                                <h4 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
+                                <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                     {card.title}
                                 </h4>
-                                <p className="text-slate-500 text-sm leading-relaxed">
+                                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
                                     {card.description}
                                 </p>
-                                <div className="mt-4 flex items-center text-sm font-medium text-slate-400 group-hover:text-blue-600 transition-colors">
+                                <div className="mt-4 flex items-center text-sm font-medium text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                     <span>Initialize</span>
                                     <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
                                 </div>
@@ -171,28 +165,28 @@ export default function DashboardPage() {
             {/* Recent Activity Mockup */}
             <section className="pb-16 px-4">
                 <div className="max-w-7xl mx-auto">
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
-                            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <div className="bg-slate-50 dark:bg-slate-800 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
                                 <TerminalIcon size={16} />
                                 Console_Log
                             </h3>
                         </div>
                         <div className="p-6 font-mono text-sm space-y-3">
                             <div className="flex gap-4 items-start">
-                                <span className="text-slate-400">23:02:11</span>
-                                <span className="text-green-600">SUCCESS</span>
-                                <span className="text-slate-600">System initialized. Welcome, {user.username}.</span>
+                                <span className="text-slate-400 dark:text-slate-500">23:02:11</span>
+                                <span className="text-green-600 dark:text-green-400">SUCCESS</span>
+                                <span className="text-slate-600 dark:text-slate-300">System initialized. Welcome, {user.username}.</span>
                             </div>
                             <div className="flex gap-4 items-start">
-                                <span className="text-slate-400">23:02:12</span>
-                                <span className="text-blue-600">INFO</span>
-                                <span className="text-slate-600">Connected to competitive servers...</span>
+                                <span className="text-slate-400 dark:text-slate-500">23:02:12</span>
+                                <span className="text-blue-600 dark:text-blue-400">INFO</span>
+                                <span className="text-slate-600 dark:text-slate-300">Connected to competitive servers...</span>
                             </div>
                             <div className="flex gap-4 items-start">
-                                <span className="text-slate-400">23:02:15</span>
-                                <span className="text-yellow-600">WARN</span>
-                                <span className="text-slate-600">No active battles found in local region.</span>
+                                <span className="text-slate-400 dark:text-slate-500">23:02:15</span>
+                                <span className="text-yellow-600 dark:text-yellow-400">WARN</span>
+                                <span className="text-slate-600 dark:text-slate-300">No active battles found in local region.</span>
                             </div>
                         </div>
                     </div>

@@ -1,21 +1,11 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Swords, ArrowLeft, Zap, Trophy, Clock,
-  ChevronRight, Cpu, Star, Users,
-  Play, Target, Activity, Terminal, LogOut
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import LoginModal from '../components/LoginModal';
-import SignupModal from '../components/SignupModal';
-import { getUser, logout } from '../utils/auth';
+import { useTheme } from '../context/ThemeContext';
 
 const problems = [
   // 🟢 Beginner Tier (1-5)
   {
-    id: 1, title: 'Hello World', tier: 'beginner', tierLabel: 'Beginner',
-    concept: 'Output string', coreSkill: 'Basic syntax',
-    pressureFactor: 'Warm-up', timeLimit: 5, points: 100,
+    id: 1, title: 'Two Sum', tier: 'beginner', tierLabel: 'Beginner',
+    concept: 'Hash map lookup', coreSkill: 'O(n) thinking',
+    pressureFactor: 'Avoid brute force', timeLimit: 10, points: 100,
   },
   {
     id: 2, title: 'Valid Parentheses', tier: 'beginner', tierLabel: 'Beginner',
@@ -124,29 +114,29 @@ const problems = [
 
 const tierConfig = {
   beginner: {
-    bgLight: 'bg-green-50', border: 'border-green-200', text: 'text-green-700',
-    badge: 'bg-green-100 text-green-700 border-green-200',
-    dot: 'bg-green-500', hoverBorder: 'hover:border-green-300',
+    bgLight: 'bg-green-50 dark:bg-green-900/10', border: 'border-green-200 dark:border-green-800/50', text: 'text-green-700 dark:text-green-400',
+    badge: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800',
+    dot: 'bg-green-500', hoverBorder: 'hover:border-green-300 dark:hover:border-green-600',
   },
   'easy-intermediate': {
-    bgLight: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700',
-    badge: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    dot: 'bg-yellow-500', hoverBorder: 'hover:border-yellow-300',
+    bgLight: 'bg-yellow-50 dark:bg-yellow-900/10', border: 'border-yellow-200 dark:border-yellow-800/50', text: 'text-yellow-700 dark:text-yellow-400',
+    badge: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
+    dot: 'bg-yellow-500', hoverBorder: 'hover:border-yellow-300 dark:hover:border-green-600',
   },
   intermediate: {
-    bgLight: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700',
-    badge: 'bg-orange-100 text-orange-700 border-orange-200',
-    dot: 'bg-orange-500', hoverBorder: 'hover:border-orange-300',
+    bgLight: 'bg-orange-50 dark:bg-orange-900/10', border: 'border-orange-200 dark:border-orange-800/50', text: 'text-orange-700 dark:text-orange-400',
+    badge: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800',
+    dot: 'bg-orange-500', hoverBorder: 'hover:border-orange-300 dark:hover:border-green-600',
   },
   advanced: {
-    bgLight: 'bg-red-50', border: 'border-red-200', text: 'text-red-700',
-    badge: 'bg-red-100 text-red-700 border-red-200',
-    dot: 'bg-red-500', hoverBorder: 'hover:border-red-300',
+    bgLight: 'bg-red-50 dark:bg-red-900/10', border: 'border-red-200 dark:border-red-800/50', text: 'text-red-700 dark:text-red-400',
+    badge: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
+    dot: 'bg-red-500', hoverBorder: 'hover:border-red-300 dark:hover:border-green-600',
   },
   expert: {
-    bgLight: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700',
-    badge: 'bg-purple-100 text-purple-700 border-purple-200',
-    dot: 'bg-purple-500', hoverBorder: 'hover:border-purple-300',
+    bgLight: 'bg-purple-50 dark:bg-purple-900/10', border: 'border-purple-200 dark:border-purple-800/50', text: 'text-purple-700 dark:text-purple-400',
+    badge: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800',
+    dot: 'bg-purple-500', hoverBorder: 'hover:border-purple-300 dark:hover:border-green-600',
   },
 };
 
@@ -168,12 +158,11 @@ const fadeInUp = {
 
 export default function DataStructureBattlePage() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [selectedTier, setSelectedTier] = useState('all');
   const [hoveredProblem, setHoveredProblem] = useState(null);
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
 
   const switchToSignup = () => {
     setShowLoginModal(false);
@@ -193,54 +182,46 @@ export default function DataStructureBattlePage() {
       : problems.filter((p) => p.tier === selectedTier);
 
   return (
-    <div className="min-h-screen bg-slate-50 overflow-x-hidden selection:bg-blue-200 selection:text-blue-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 overflow-x-hidden selection:bg-blue-200 dark:selection:bg-blue-900 selection:text-blue-900 dark:selection:text-blue-100 transition-colors duration-300">
       {/* Header — same as homepage */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 transition-all duration-300">
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate('/singleplayer')}
-                className="flex items-center text-slate-400 hover:text-slate-900 transition-colors group"
+                onClick={() => navigate('/')}
+                className="flex items-center text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors group"
               >
                 <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
                 <span className="font-mono text-sm">cd ..</span>
               </button>
-              <div className="h-5 w-px bg-slate-200"></div>
-              <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
-                <Swords className="w-6 h-6 text-blue-600" />
-                <span className="text-lg font-bold text-slate-900 font-mono tracking-tighter">CodeArena_</span>
+              <div className="h-5 w-px bg-slate-200 dark:bg-slate-800"></div>
+              <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
+                <Swords className="w-6 h-6 text-blue-600 dark:text-blue-500" />
+                <span className="text-lg font-bold text-slate-900 dark:text-white font-mono tracking-tighter transition-colors">CodeArena_</span>
               </div>
             </div>
             <div className="flex items-center space-x-6">
               <div className="hidden md:flex items-center space-x-2 text-sm text-slate-500">
                 <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-                <span><span className="text-slate-700 font-semibold">247</span> online</span>
+                <span><span className="text-slate-700 dark:text-slate-300 font-semibold">247</span> online</span>
               </div>
               <div className="hidden md:flex items-center space-x-2 text-sm text-slate-500">
-                <Swords className="w-4 h-4 text-blue-500" />
-                <span><span className="text-slate-700 font-semibold">38</span> battles active</span>
+                <Swords className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                <span><span className="text-slate-700 dark:text-slate-300 font-semibold">38</span> battles active</span>
               </div>
-
-              {/* User Profile / Logout */}
-              {user && (
-                <div className="flex items-center gap-4">
-                  <div className="hidden md:flex items-center space-x-2 text-sm text-slate-600 border px-3 py-1.5 rounded-full bg-slate-50">
-                    <Terminal size={14} />
-                    <span className="font-bold">{user.username}</span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      logout();
-                      navigate('/login');
-                    }}
-                    className="text-slate-500 hover:text-red-600 transition-colors"
-                    title="Logout"
-                  >
-                    <LogOut size={18} />
-                  </button>
-                </div>
-              )}
+              <button
+                onClick={() => navigate('/login')}
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium font-mono text-sm transition-colors"
+              >
+                Log_In
+              </button>
+              <button
+                onClick={() => navigate('/signup')}
+                className="bg-slate-900 dark:bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-slate-800 dark:hover:bg-blue-500 font-medium shadow-lg shadow-slate-200 dark:shadow-none transition-all hover:shadow-xl active:scale-95"
+              >
+                Get Started
+              </button>
             </div>
           </div>
         </div>
@@ -258,49 +239,49 @@ export default function DataStructureBattlePage() {
             transition={{ duration: 0.6 }}
           >
             {/* Breadcrumb */}
-            <div className="flex items-center space-x-2 text-sm text-slate-400 font-mono mb-6">
-              <span className="hover:text-blue-600 cursor-pointer transition-colors" onClick={() => navigate('/dashboard')}>home</span>
+            <div className="flex items-center space-x-2 text-sm text-slate-400 dark:text-slate-500 font-mono mb-6 transition-colors">
+              <span className="hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors" onClick={() => navigate('/')}>home</span>
               <ChevronRight className="w-3 h-3" />
-              <span className="hover:text-blue-600 cursor-pointer transition-colors">battles</span>
+              <span className="hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors">battles</span>
               <ChevronRight className="w-3 h-3" />
-              <span className="text-slate-700">data-structures</span>
+              <span className="text-slate-700 dark:text-slate-300 transition-colors">data-structures</span>
             </div>
 
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div>
                 <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
-                    <Swords className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center border border-blue-100 dark:border-blue-800 transition-colors">
+                    <Swords className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-slate-900 font-mono tracking-tight">
+                    <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white font-mono tracking-tight transition-colors">
                       Classic Duel{' '}
-                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
                         Speed Run
                       </span>
                     </h1>
                   </div>
                 </div>
-                <p className="text-slate-500 text-lg max-w-xl">
+                <p className="text-slate-500 dark:text-slate-400 text-lg max-w-xl transition-colors">
                   Race your opponent through 20 data structure challenges. First to solve wins. No second chances.
                 </p>
               </div>
 
               {/* Quick Stats */}
-              <div className="flex items-center space-x-6 bg-white rounded-xl border border-slate-200 px-6 py-4 shadow-sm">
+              <div className="flex items-center space-x-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-6 py-4 shadow-sm transition-colors">
                 <div className="text-center">
-                  <div className="text-2xl font-bold font-mono text-slate-900">20</div>
-                  <div className="text-xs text-slate-400 uppercase tracking-wider">Problems</div>
+                  <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white transition-colors">20</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider transition-colors">Problems</div>
                 </div>
-                <div className="h-10 w-px bg-slate-100"></div>
+                <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 transition-colors"></div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold font-mono text-blue-600">5</div>
-                  <div className="text-xs text-slate-400 uppercase tracking-wider">Tiers</div>
+                  <div className="text-2xl font-bold font-mono text-blue-600 dark:text-blue-400 transition-colors">5</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider transition-colors">Tiers</div>
                 </div>
-                <div className="h-10 w-px bg-slate-100"></div>
+                <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 transition-colors"></div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold font-mono text-indigo-600">4K+</div>
-                  <div className="text-xs text-slate-400 uppercase tracking-wider">Points</div>
+                  <div className="text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400 transition-colors">4K+</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider transition-colors">Points</div>
                 </div>
               </div>
             </div>
@@ -309,14 +290,14 @@ export default function DataStructureBattlePage() {
       </section>
 
       {/* Tier Filter */}
-      <section className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-16 z-40">
+      <section className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-16 z-40 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-1 py-3 overflow-x-auto">
             <button
               onClick={() => setSelectedTier('all')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${selectedTier === 'all'
-                ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
-                : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-lg shadow-slate-200 dark:shadow-none'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
             >
               All Tiers
@@ -327,7 +308,7 @@ export default function DataStructureBattlePage() {
                 onClick={() => setSelectedTier(tier.key)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 whitespace-nowrap ${selectedTier === tier.key
                   ? `${tierConfig[tier.key].bgLight} ${tierConfig[tier.key].text} border ${tierConfig[tier.key].border}`
-                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
               >
                 <span>{tier.icon}</span>
@@ -374,15 +355,15 @@ export default function DataStructureBattlePage() {
                     animate="visible"
                     onMouseEnter={() => setHoveredProblem(problem.id)}
                     onMouseLeave={() => setHoveredProblem(null)}
-                    className={`relative bg-white rounded-xl border border-slate-200 overflow-hidden transition-all duration-300 cursor-pointer group hover:shadow-md ${tc.hoverBorder}`}
+                    className={`relative bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-all duration-300 cursor-pointer group hover:shadow-md ${tc.hoverBorder}`}
                   >
                     {/* Left tier indicator */}
                     <div className={`absolute left-0 top-0 bottom-0 w-1 ${tc.dot} transition-all ${isHovered ? 'w-1.5' : ''}`}></div>
 
                     <div className="flex items-center px-6 py-5">
                       {/* Problem Number */}
-                      <div className={`w-10 h-10 rounded-lg ${tc.bgLight} border ${tc.border} flex items-center justify-center mr-5 shrink-0`}>
-                        <span className={`font-bold font-mono text-sm ${tc.text}`}>
+                      <div className={`w-10 h-10 rounded-lg ${tc.bgLight} border ${tc.border} flex items-center justify-center mr-5 shrink-0 transition-colors`}>
+                        <span className={`font-bold font-mono text-sm ${tc.text} transition-colors`}>
                           {String(problem.id).padStart(2, '0')}
                         </span>
                       </div>
@@ -390,14 +371,14 @@ export default function DataStructureBattlePage() {
                       {/* Problem Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-3 mb-1">
-                          <h3 className="text-lg font-semibold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                             {problem.title}
                           </h3>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${tc.badge} shrink-0`}>
+                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${tc.badge} shrink-0 transition-colors`}>
                             {problem.tierLabel}
                           </span>
                         </div>
-                        <div className="flex items-center space-x-4 text-sm text-slate-400">
+                        <div className="flex items-center space-x-4 text-sm text-slate-400 dark:text-slate-500 transition-colors">
                           <span className="flex items-center">
                             <Cpu className="w-3.5 h-3.5 mr-1.5" />
                             {problem.concept}
@@ -406,7 +387,7 @@ export default function DataStructureBattlePage() {
                             <Target className="w-3.5 h-3.5 mr-1.5" />
                             {problem.coreSkill}
                           </span>
-                          <span className="hidden lg:flex items-center text-orange-500">
+                          <span className="hidden lg:flex items-center text-orange-500 dark:text-orange-400">
                             <Zap className="w-3.5 h-3.5 mr-1.5" />
                             {problem.pressureFactor}
                           </span>
@@ -415,11 +396,11 @@ export default function DataStructureBattlePage() {
 
                       {/* Right Side */}
                       <div className="flex items-center space-x-6 ml-4 shrink-0">
-                        <div className="hidden md:flex items-center space-x-1.5 text-slate-400 text-sm">
+                        <div className="hidden md:flex items-center space-x-1.5 text-slate-400 dark:text-slate-500 text-sm transition-colors">
                           <Clock className="w-4 h-4" />
                           <span>{problem.timeLimit}m</span>
                         </div>
-                        <div className="hidden md:flex items-center space-x-1.5 text-amber-600 text-sm font-mono">
+                        <div className="hidden md:flex items-center space-x-1.5 text-amber-600 dark:text-amber-500 text-sm font-mono transition-colors">
                           <Star className="w-4 h-4" />
                           <span>{problem.points}pts</span>
                         </div>
@@ -428,8 +409,8 @@ export default function DataStructureBattlePage() {
                           whileTap={{ scale: 0.95 }}
                           onClick={() => setShowLoginModal(true)}
                           className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${isHovered
-                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                            : 'bg-slate-100 text-slate-500 border border-slate-200'
+                            ? 'bg-blue-600 dark:bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-colors'
                             }`}
                         >
                           <Play className="w-4 h-4" />
@@ -446,26 +427,26 @@ export default function DataStructureBattlePage() {
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.2 }}
-                          className="overflow-hidden border-t border-slate-100"
+                          className="overflow-hidden border-t border-slate-100 dark:border-slate-800"
                         >
-                          <div className="px-6 py-4 bg-slate-50/50 flex items-center justify-between">
+                          <div className="px-6 py-4 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between transition-colors">
                             <div className="flex items-center space-x-8 text-sm">
                               <div>
-                                <span className="text-slate-400">Concept: </span>
-                                <span className="text-slate-700 font-medium">{problem.concept}</span>
+                                <span className="text-slate-400 dark:text-slate-500 transition-colors">Concept: </span>
+                                <span className="text-slate-700 dark:text-slate-300 font-medium transition-colors">{problem.concept}</span>
                               </div>
                               <div>
-                                <span className="text-slate-400">Core Skill: </span>
-                                <span className="text-slate-700 font-medium">{problem.coreSkill}</span>
+                                <span className="text-slate-400 dark:text-slate-500 transition-colors">Core Skill: </span>
+                                <span className="text-slate-700 dark:text-slate-300 font-medium transition-colors">{problem.coreSkill}</span>
                               </div>
                               <div>
-                                <span className="text-slate-400">Pressure Factor: </span>
-                                <span className="text-orange-600 font-medium">{problem.pressureFactor}</span>
+                                <span className="text-slate-400 dark:text-slate-500 transition-colors">Pressure Factor: </span>
+                                <span className="text-orange-600 dark:text-orange-400 font-medium transition-colors">{problem.pressureFactor}</span>
                               </div>
                             </div>
                             <div className="flex items-center space-x-3">
-                              <span className="text-xs text-slate-400">{problem.timeLimit} min limit</span>
-                              <span className="text-xs text-amber-600 font-mono font-semibold">+{problem.points} pts</span>
+                              <span className="text-xs text-slate-400 dark:text-slate-500 transition-colors">{problem.timeLimit} min limit</span>
+                              <span className="text-xs text-amber-600 dark:text-amber-500 font-mono font-semibold transition-colors">+{problem.points} pts</span>
                             </div>
                           </div>
                         </motion.div>
@@ -502,7 +483,7 @@ export default function DataStructureBattlePage() {
                 <span>Quick Match</span>
               </button>
               <button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/')}
                 className="w-full sm:w-auto text-white border border-slate-700 px-8 py-4 rounded-lg hover:bg-slate-800 font-medium text-lg transition-colors"
               >
                 Back to Home
