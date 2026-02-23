@@ -71,7 +71,10 @@ export default function CompetitionLobbyPage() {
                     navigate('/problem/blind-coding', {
                         state: {
                             blindMode: true,
-                            language: 'c'
+                            language: 'c',
+                            eventId: eventId,
+                            level: 1,
+                            totalLevels: 3
                         }
                     });
                 }, 2000);
@@ -142,7 +145,10 @@ export default function CompetitionLobbyPage() {
                 navigate('/problem/blind-coding', {
                     state: {
                         blindMode: true,
-                        language: 'c'
+                        language: 'c',
+                        eventId: eventId,
+                        level: 1,
+                        totalLevels: 3
                     }
                 });
             }

@@ -19,6 +19,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
 import BattleLobbyPage from "./pages/BattleLobbyPage";
 import CompetitionLobbyPage from "./pages/CompetitionLobbyPage";
+import RoomLeaderboardPage from "./pages/RoomLeaderboardPage";
 
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
           <Route path="/replay/:battleId" element={<ReplayPage />} />
           <Route path="/dashboard/events" element={<EventsPage />} />
           <Route path="/competition/:eventId/lobby" element={<CompetitionLobbyPage />} />
+          <Route path="/competition/:eventId/leaderboard" element={<RoomLeaderboardPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

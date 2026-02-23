@@ -38,13 +38,7 @@ export default function Frontpage() {
     offset: ["start end", "end start"]
   });
 
-  // If user is already logged in, redirect to dashboard
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [navigate]);
+  // No auto-redirect: always show home page when user visits "/"
 
   // Scroll to top on refresh
   useEffect(() => {
