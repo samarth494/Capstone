@@ -20,6 +20,14 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // If user is already logged in, redirect to dashboard
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setError("");
@@ -63,7 +71,7 @@ export default function LoginPage() {
           email: data.user.email
         };
         localStorage.setItem("user", JSON.stringify(userToSave));
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       } else {
         setError(data.message || "Login failed");
       }
@@ -285,7 +293,7 @@ export default function LoginPage() {
                         email: data.user.email
                       };
                       localStorage.setItem("user", JSON.stringify(userToSave));
-                      navigate("/dashboard");
+                      navigate("/dashboard", { replace: true });
                     } else {
                       setError(data.message || "Google login failed");
                     }

@@ -38,6 +38,14 @@ export default function Frontpage() {
     offset: ["start end", "end start"]
   });
 
+  // If user is already logged in, redirect to dashboard
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
+
   // Scroll to top on refresh
   useEffect(() => {
     if ('scrollRestoration' in window.history) {

@@ -58,7 +58,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
         };
         localStorage.setItem("user", JSON.stringify(userToSave));
         onClose(); // Close modal on success
-        navigate("/dashboard"); // Or stay on page and update UI? Usually redirect to dashboard or refresh. User said "battle karne jaaun", so maybe stay? But mostly dashboard is the entry. I'll navigate to dashboard to be safe, or just close. let's navigate.
+        navigate("/dashboard", { replace: true }); // Replace history so back button doesn't go to previous page
       } else {
         setError(data.message || "Login failed");
       }
