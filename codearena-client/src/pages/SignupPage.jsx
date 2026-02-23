@@ -65,7 +65,7 @@ export default function SignupPage() {
         };
         localStorage.setItem('user', JSON.stringify(userToSave));
 
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
 
       } else {
         setError(data.message || 'Registration failed');
