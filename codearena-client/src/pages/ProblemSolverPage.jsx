@@ -152,20 +152,24 @@ export default function ProblemSolverPage() {
     const { problemId } = useParams();
     const location = useLocation();
     const { theme, toggleTheme } = useTheme();
+
+    // === Competition Mode State (Calculated first to avoid ReferenceErrors) ===
+    const isCompetitionMode = (location.state?.blindMode || false) && location.state?.eventId;
+    const eventId = location.state?.eventId;
+
+    // === Basic States ===
     const [blindMode, setBlindMode] = useState(location.state?.blindMode || false);
     const [user, setUser] = useState(null);
     const [output, setOutput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
     const [language, setLanguage] = useState(location.state?.language || 'javascript');
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
-    // === Competition Mode State ===
-    const isCompetitionMode = blindMode && location.state?.eventId;
-    const eventId = location.state?.eventId;
+    const [problem, setProblem] = useState(null);
+    const [loading, setLoading] = useState(!isCompetitionMode);
     const [currentLevel, setCurrentLevel] = useState(location.state?.level || 1);
     const totalLevels = location.state?.totalLevels || 3;
 
-    // Competition overlays & data
+    // === Competition Runtime Data ===
     const [hasSubmitted, setHasSubmitted] = useState(false);
     const [showWaiting, setShowWaiting] = useState(false);
     const [showLevelLeaderboard, setShowLevelLeaderboard] = useState(false);
@@ -178,12 +182,27 @@ export default function ProblemSolverPage() {
     const [levelStartTime, setLevelStartTime] = useState(Date.now());
     const [nextLevel, setNextLevel] = useState(null);
 
+    const languages = [
+        { id: 'javascript', name: 'JavaScript', version: 'v18.0' },
+        { id: 'python', name: 'Python', version: 'v3.10' },
+        { id: 'cpp', name: 'C++', version: 'GCC 11' },
+        { id: 'c', name: 'C', version: 'GCC 11' },
+        { id: 'java', name: 'Java', version: 'JDK 17' }
+    ];
+
     // Code state - different for competition vs regular
     const getStarterCode = (level) => {
         if (isCompetitionMode && LEVEL_PROBLEMS[level]) {
             return LEVEL_PROBLEMS[level].starterCode;
         }
-        const lang = location.state?.language || 'javascript';
+
+        // If we have a problem object from API (singleplayer)
+        if (!isCompetitionMode && problem?.templates) {
+            const template = problem.templates.find(t => t.language === language);
+            if (template) return template.code;
+        }
+
+        const lang = language || location.state?.language || 'javascript';
         if (lang === 'cpp' || lang === 'c') {
             return '#include <stdio.h>\n\nint main() {\n    // Write your code here\n    return 0;\n}';
         }
@@ -233,8 +252,6 @@ export default function ProblemSolverPage() {
             }
         }
     }, []);
-
-    // === Socket Integration for Competition Mode ===
     useEffect(() => {
         if (!isCompetitionMode) return;
 
@@ -281,6 +298,36 @@ export default function ProblemSolverPage() {
             socket.off('competition:competitionEnd', handleCompetitionEnd);
         };
     }, [isCompetitionMode, currentLevel]);
+
+    // === Fetch Problem (For Singleplayer Mode) ===
+    useEffect(() => {
+        if (isCompetitionMode) return;
+
+        const fetchProblem = async () => {
+            setLoading(true);
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/problems/${problemId}`);
+                const data = await response.json();
+                setProblem(data);
+
+                if (data.templates && Array.isArray(data.templates)) {
+                    const template = data.templates.find(t => t.language === language);
+                    if (template) {
+                        setCode(template.code);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch problem", error);
+                setOutput("> Error: Failed to load problem details.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (problemId) {
+            fetchProblem();
+        }
+    }, [problemId, language, isCompetitionMode]);
 
     // === Move to Next Level ===
     const handleNextLevel = () => {
@@ -458,18 +505,67 @@ export default function ProblemSolverPage() {
             await handleCompetitionSubmit();
         } else {
             setIsRunning(true);
-            setOutput('Submitting solution...');
-            setTimeout(() => {
+            setOutput('⚡ Submitting to judge for verification...');
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/api/problems/${problemId}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        code: code,
+                        language: language
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.success) {
+                        setOutput(`> ✅ SOLUTION_ACCEPTED\n\nVerdict: ${data.verdict}\nPassed: ${data.passedCount}/${data.totalTests}\nRuntime: ${data.runtime}ms\n\nXP Awarded: +${problem?.xpReward || 5}`);
+                        setHasSubmitted(true);
+                    } else {
+                        setOutput(`> ❌ SOLUTION_REJECTED\n\nVerdict: ${data.verdict}\n${data.error || ''}`);
+                    }
+                } else {
+                    setOutput(`> ❌ Submission Failed\n\n${data.message || data.error || 'Server error'}`);
+                }
+            } catch (error) {
+                console.error('Submit error', error);
+                setOutput(`> Server Connection Error\n\n${error.message}`);
+            } finally {
                 setIsRunning(false);
-                setOutput('> Submission Received\n\nAll Test Cases Passed! \nRank Updated.');
-            }, 2000);
+            }
         }
     };
 
 
     const handleReset = () => {
+        if (!isCompetitionMode && problem?.templates) {
+            const template = problem.templates.find(t => t.language === language);
+            if (template) {
+                setCode(template.code);
+                setOutput('');
+                return;
+            }
+        }
         setCode(getStarterCode(currentLevel));
         setOutput('');
+    };
+
+    const handleLanguageChange = (e) => {
+        const newLang = e.target.value;
+        setLanguage(newLang);
+
+        if (!isCompetitionMode && problem?.templates) {
+            const template = problem.templates.find(t => t.language === newLang);
+            if (template) {
+                setCode(template.code);
+            }
+        }
     };
 
     // Current problem for display
@@ -550,13 +646,12 @@ export default function ProblemSolverPage() {
                             {isCompetitionMode && (
                                 <div className="flex items-center gap-2 ml-4">
                                     {[1, 2, 3].map(lvl => (
-                                        <div key={lvl} className={`flex items-center justify-center w-8 h-8 rounded-lg text-xs font-black border-2 transition-all ${
-                                            lvl === currentLevel
-                                                ? 'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-500/30 scale-110'
-                                                : lvl < currentLevel
-                                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-300 dark:border-green-700'
-                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-700'
-                                        }`}>
+                                        <div key={lvl} className={`flex items-center justify-center w-8 h-8 rounded-lg text-xs font-black border-2 transition-all ${lvl === currentLevel
+                                            ? 'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-500/30 scale-110'
+                                            : lvl < currentLevel
+                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-300 dark:border-green-700'
+                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-700'
+                                            }`}>
                                             {lvl < currentLevel ? <Check size={14} /> : lvl}
                                         </div>
                                     ))}
@@ -636,54 +731,72 @@ export default function ProblemSolverPage() {
 
                 {/* Left Panel: Problem Description */}
                 <div className="w-1/2 overflow-y-auto border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 transition-colors duration-300">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white transition-colors duration-300">
-                            {isCompetitionMode
-                                ? `Level ${currentLevel}. ${currentProblem?.title}`
-                                : '1. Even/Odd & Digit Sum'
-                            }
-                        </h2>
-                        <span className={`px-3 py-1 border rounded-full text-xs font-bold ${
-                            isCompetitionMode
-                                ? getDifficultyColor(currentProblem?.difficulty)
-                                : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800'
-                        }`}>
-                            {isCompetitionMode ? currentProblem?.difficulty : 'Easy'}
-                        </span>
-                    </div>
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center h-full space-y-4">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                            <p className="text-slate-500 font-mono italic">SYNTESIZING_PROBLEM_DATA...</p>
+                        </div>
+                    ) : (isCompetitionMode || problem) ? (
+                        <>
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-bold text-slate-900 dark:text-white transition-colors duration-300">
+                                    {isCompetitionMode
+                                        ? `Level ${currentLevel}. ${currentProblem?.title}`
+                                        : problem?.title || 'Problem Details'
+                                    }
+                                </h2>
+                                <span className={`px-3 py-1 border rounded-full text-xs font-bold ${isCompetitionMode
+                                    ? getDifficultyColor(currentProblem?.difficulty)
+                                    : getDifficultyColor(problem?.difficulty)
+                                    }`}>
+                                    {isCompetitionMode ? currentProblem?.difficulty : (problem?.difficulty || 'Easy')}
+                                </span>
+                            </div>
 
-                    <div className="prose prose-slate max-w-none prose-headings:font-mono prose-headings:font-bold prose-code:text-blue-600 dark:prose-code:text-blue-400 prose-code:bg-blue-50 dark:prose-code:bg-blue-900/30 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none text-slate-600 dark:text-slate-400">
-                        {isCompetitionMode ? (
-                            currentProblem?.description
-                        ) : (
-                            <>
-                                <p>
-                                    Write a C program to accept an integer from the user, check whether it is <strong>even or odd</strong>, and calculate the <strong>sum of its digits</strong>.
-                                </p>
-                                <p>
-                                    If the number is negative, treat it as a signed integer for the even/odd check, but sum the digits of its absolute value.
-                                </p>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example 1:</h3>
-                                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
-                                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 12</p>
-                                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> Even, Sum: 3</p>
-                                    <p className="text-slate-600 dark:text-slate-400"><span className="font-bold text-slate-900 dark:text-slate-100">Explanation:</span> 12 is even. 1 + 2 = 3.</p>
-                                </div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example 2:</h3>
-                                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
-                                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 15</p>
-                                    <p><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> Odd, Sum: 6</p>
-                                    <p className="text-slate-600 dark:text-slate-400"><span className="font-bold text-slate-900 dark:text-slate-100">Explanation:</span> 15 is odd. 1 + 5 = 6.</p>
-                                </div>
-                                <h3 className="text-lg">Constraints:</h3>
-                                <ul className="list-disc pl-5 space-y-1">
-                                    <li>Input will be a valid integer `n`.</li>
-                                    <li><code>-10^9 &lt;= n &lt;= 10^9</code></li>
-                                </ul>
-                            </>
-                        )}
-                    </div>
+                            <div className="prose prose-slate max-w-none prose-headings:font-mono prose-headings:font-bold prose-code:text-blue-600 dark:prose-code:text-blue-400 prose-code:bg-blue-50 dark:prose-code:bg-blue-900/30 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none text-slate-600 dark:text-slate-400">
+                                {isCompetitionMode ? (
+                                    currentProblem?.description
+                                ) : (
+                                    <>
+                                        <div dangerouslySetInnerHTML={{ __html: problem.description }} />
+
+                                        {problem.examples && problem.examples.map((ex, index) => (
+                                            <div key={index}>
+                                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example {index + 1}:</h3>
+                                                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
+                                                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> {ex.input}</p>
+                                                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> {ex.output}</p>
+                                                    {ex.explanation && (
+                                                        <p className="text-slate-600 dark:text-slate-400"><span className="font-bold text-slate-900 dark:text-slate-100">Explanation:</span> {ex.explanation}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {problem.constraints && (
+                                            <>
+                                                <h3 className="text-lg">Constraints:</h3>
+                                                <ul className="list-disc pl-5 space-y-1">
+                                                    {problem.constraints.map((c, i) => (
+                                                        <li key={i}>{c}</li>
+                                                    ))}
+                                                </ul>
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full space-y-4 text-center">
+                            <AlertCircle size={48} className="text-red-500" />
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Problem not found</h2>
+                            <p className="text-slate-500 max-w-xs">The problem you're looking for could not be localized in our database.</p>
+                            <button onClick={() => navigate('/singleplayer')} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold">RETURN_TO_BASE</button>
+                        </div>
+                    )}
                 </div>
+
 
 
                 {/* Right Panel: Editor & Console */}
@@ -755,14 +868,16 @@ export default function ProblemSolverPage() {
                         <div className="h-10 bg-[#252526] dark:bg-slate-900 px-4 flex items-center justify-between border-b border-[#3e3e42] dark:border-slate-800">
                             <span className="text-slate-300 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Console</span>
                             <div className="flex gap-2">
-                                <button
-                                    onClick={handleRunCode}
-                                    disabled={isRunning || hasSubmitted}
-                                    className="flex items-center gap-1.5 px-3 py-1 bg-[#3e3e42] dark:bg-slate-800 hover:bg-[#4e4e52] dark:hover:bg-slate-700 text-white text-xs rounded transition-colors disabled:opacity-50"
-                                >
-                                    <Play size={12} />
-                                    Run
-                                </button>
+                                {!isCompetitionMode && (
+                                    <button
+                                        onClick={handleRunCode}
+                                        disabled={isRunning || hasSubmitted}
+                                        className="flex items-center gap-1.5 px-3 py-1 bg-[#3e3e42] dark:bg-slate-800 hover:bg-[#4e4e52] dark:hover:bg-slate-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                                    >
+                                        <Play size={12} />
+                                        Run
+                                    </button>
+                                )}
                                 <button
                                     onClick={handleSubmit}
                                     disabled={isRunning || hasSubmitted}
@@ -858,18 +973,16 @@ export default function ProblemSolverPage() {
                                     {levelLeaderboard.map((player, idx) => {
                                         const isMe = player.username === user?.username || player.userId === user?._id;
                                         return (
-                                            <div key={player.userId} className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
-                                                isMe
-                                                    ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-800'
-                                                    : 'bg-slate-50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800'
-                                            }`}>
+                                            <div key={player.userId} className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${isMe
+                                                ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-800'
+                                                : 'bg-slate-50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800'
+                                                }`}>
                                                 <div className="flex items-center gap-4">
-                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm ${
-                                                        idx === 0 ? 'bg-yellow-100 text-yellow-600' :
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-yellow-100 text-yellow-600' :
                                                         idx === 1 ? 'bg-slate-200 text-slate-600' :
-                                                        idx === 2 ? 'bg-amber-100 text-amber-600' :
-                                                        'bg-slate-100 text-slate-500'
-                                                    }`}>
+                                                            idx === 2 ? 'bg-amber-100 text-amber-600' :
+                                                                'bg-slate-100 text-slate-500'
+                                                        }`}>
                                                         {idx === 0 ? <Crown size={16} /> : `#${idx + 1}`}
                                                     </div>
                                                     <span className={`font-bold ${isMe ? 'text-blue-600' : 'text-slate-900 dark:text-white'}`}>
@@ -877,11 +990,10 @@ export default function ProblemSolverPage() {
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                                                        player.status === 'completed'
-                                                            ? 'bg-green-100 text-green-600'
-                                                            : 'bg-red-100 text-red-600'
-                                                    }`}>
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${player.status === 'completed'
+                                                        ? 'bg-green-100 text-green-600'
+                                                        : 'bg-red-100 text-red-600'
+                                                        }`}>
                                                         {player.status}
                                                     </span>
                                                     <span className="font-black text-lg text-purple-600 dark:text-purple-400 flex items-center gap-1">
@@ -902,9 +1014,8 @@ export default function ProblemSolverPage() {
                                         {cumulativeLeaderboard.map((player, idx) => {
                                             const isMe = player.username === user?.username || player.userId === user?._id;
                                             return (
-                                                <div key={player.userId} className={`flex items-center justify-between p-3 rounded-lg mb-1 ${
-                                                    isMe ? 'bg-blue-50/50 dark:bg-blue-500/5' : ''
-                                                }`}>
+                                                <div key={player.userId} className={`flex items-center justify-between p-3 rounded-lg mb-1 ${isMe ? 'bg-blue-50/50 dark:bg-blue-500/5' : ''
+                                                    }`}>
                                                     <div className="flex items-center gap-3">
                                                         <span className="text-xs font-black text-slate-400 w-6">#{idx + 1}</span>
                                                         <span className={`font-bold text-sm ${isMe ? 'text-blue-600' : 'text-slate-700 dark:text-slate-300'}`}>
@@ -999,22 +1110,20 @@ export default function ProblemSolverPage() {
                                     {cumulativeLeaderboard.map((player, idx) => {
                                         const isMe = player.username === user?.username || player.userId === user?._id;
                                         return (
-                                            <div key={player.userId} className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
-                                                idx === 0
-                                                    ? 'bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-800 shadow-lg'
-                                                    : idx === 1
-                                                        ? 'bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700'
-                                                        : idx === 2
-                                                            ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-800'
-                                                            : 'bg-white dark:bg-slate-800/20 border-slate-100 dark:border-slate-800'
-                                            }`}>
+                                            <div key={player.userId} className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${idx === 0
+                                                ? 'bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-800 shadow-lg'
+                                                : idx === 1
+                                                    ? 'bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700'
+                                                    : idx === 2
+                                                        ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-800'
+                                                        : 'bg-white dark:bg-slate-800/20 border-slate-100 dark:border-slate-800'
+                                                }`}>
                                                 <div className="flex items-center gap-4">
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${
-                                                        idx === 0 ? 'bg-yellow-400 text-white shadow-lg' :
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${idx === 0 ? 'bg-yellow-400 text-white shadow-lg' :
                                                         idx === 1 ? 'bg-slate-300 text-white' :
-                                                        idx === 2 ? 'bg-amber-400 text-white' :
-                                                        'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                                                    }`}>
+                                                            idx === 2 ? 'bg-amber-400 text-white' :
+                                                                'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                                        }`}>
                                                         {idx === 0 ? <Crown size={18} /> : idx === 1 ? <Medal size={18} /> : `#${idx + 1}`}
                                                     </div>
                                                     <div>
