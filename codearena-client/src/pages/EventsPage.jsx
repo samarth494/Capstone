@@ -259,7 +259,7 @@ export default function EventsPage() {
                       <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg mr-3 transition-colors">
                         <Users className="w-5 h-5 text-green-600 dark:text-green-500" />
                       </div>
-                      <span>Limit: 30</span>
+                      <span>Limit: 5</span>
                     </div>
                   </div>
 

@@ -145,7 +145,7 @@ const LEVEL_PROBLEMS = {
     }
 };
 
-const LEVEL_TIME_LIMIT = 10 * 60; // 10 minutes per level
+const LEVEL_TIME_LIMIT = 15 * 60; // 15 minutes per level
 
 export default function ProblemSolverPage() {
     const navigate = useNavigate();
@@ -181,6 +181,7 @@ export default function ProblemSolverPage() {
     const [totalPlayers, setTotalPlayers] = useState(0);
     const [levelStartTime, setLevelStartTime] = useState(Date.now());
     const [nextLevel, setNextLevel] = useState(null);
+    const [errorCount, setErrorCount] = useState(0);
 
     const languages = [
         { id: 'javascript', name: 'JavaScript', version: 'v18.0' },
@@ -340,6 +341,7 @@ export default function ProblemSolverPage() {
         setTimeLeft(LEVEL_TIME_LIMIT);
         setLevelStartTime(Date.now());
         setSubmittedCount(0);
+        setErrorCount(0);
         setOutput('');
     };
 
@@ -370,11 +372,14 @@ export default function ProblemSolverPage() {
 
             const data = await response.json();
 
-            if (response.ok) {
+            if (response.ok && data.success) {
                 const resultOutput = data.output || data.result || 'No output received.';
                 setOutput(`> Execution Success (${data.executionTime || 'N/A'})\n\n${resultOutput}`);
             } else {
-                setOutput(`> Execution Failed\n\n${data.message || data.error || 'Unknown error'}`);
+                setErrorCount(prev => prev + 1);
+                const errorHeadline = data.status === 'timeout' ? 'Time Limit Exceeded' : 'Execution Failed';
+                const errorMsg = data.stderr || data.output || data.message || data.error || 'Unknown error';
+                setOutput(`> ${errorHeadline}\n\n${errorMsg}`);
             }
         } catch (error) {
             console.error('Run code error', error);
@@ -418,11 +423,39 @@ export default function ProblemSolverPage() {
                     });
 
                     const data = await response.json();
-                    const actualOutput = data.output?.trim() || '';
-                    const passed = response.ok && actualOutput === tc.expected.trim();
-                    if (passed) totalPassed++;
-                    testResults.push({ input: tc.input, expected: tc.expected, actual: actualOutput, passed });
+                    
+                    // Lenient Comparison Logic:
+                    // 1. Trim everything
+                    // 2. Ignore case
+                    // 3. Match if output ends with expected or contains it in a clean way
+                    const actualOut = data.output?.trim() || '';
+                    const expectedOut = tc.expected.trim();
+                    
+                    const cleanActual = actualOut.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const cleanExpected = expectedOut.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    
+                    const isSuccess = data.success && response.ok;
+                    const passed = isSuccess && (
+                        actualOut === expectedOut || 
+                        actualOut.toLowerCase().endsWith(expectedOut.toLowerCase()) ||
+                        cleanActual.endsWith(cleanExpected)
+                    );
+
+                    if (passed) {
+                        totalPassed++;
+                    } else if (!isSuccess) {
+                        setErrorCount(prev => prev + 1);
+                    }
+
+                    testResults.push({ 
+                        input: tc.input, 
+                        expected: expectedOut, 
+                        actual: actualOut || (data.stderr ? 'Runtime Error' : 'No Output'), 
+                        passed,
+                        error: !isSuccess ? (data.stderr || 'Execution Failed') : null
+                    });
                 } catch (err) {
+                    setErrorCount(prev => prev + 1);
                     testResults.push({ input: tc.input, expected: tc.expected, actual: 'Error', passed: false });
                 }
             }
@@ -431,9 +464,13 @@ export default function ProblemSolverPage() {
             const timeElapsed = Math.floor((Date.now() - levelStartTime) / 1000);
             const timeLeftVal = Math.max(0, LEVEL_TIME_LIMIT - timeElapsed);
 
-            // Calculate score
+            // Calculate score using new logic
             const correctScore = allPassed ? 1000 : 0;
-            const speedBonus = allPassed ? Math.floor((timeLeftVal / LEVEL_TIME_LIMIT) * 500) : 0;
+            // Speed Bonus: Up to 500 pts, formula: (TimeLeft / 900) * 500
+            const speedBonus = allPassed ? Math.floor((timeLeftVal / 900) * 500) : 0;
+            
+            // Clean Code Bonus (Placeholder on client, final rank calculated by server)
+            // But we send the errorCount to server for calculation
             const totalScore = correctScore + speedBonus;
 
             // Build output
@@ -441,7 +478,9 @@ export default function ProblemSolverPage() {
             testResults.forEach((r, i) => {
                 outputStr += `  Test ${i + 1}: ${r.passed ? '✅ PASS' : '❌ FAIL'}\n`;
                 if (!r.passed) {
-                    outputStr += `    Input: ${r.input} | Expected: ${r.expected} | Got: ${r.actual}\n`;
+                    outputStr += `    Input: ${r.input} | Expected: ${r.expected}\n`;
+                    outputStr += `    Received: ${r.actual.length > 50 ? r.actual.substring(0, 50) + '...' : r.actual}\n`;
+                    if (r.error) outputStr += `    Error: ${r.error.split('\n')[0]}\n`;
                 }
             });
             outputStr += `\n> Score: ${totalScore} (Correct: ${correctScore} + Speed: ${speedBonus})`;
@@ -458,8 +497,9 @@ export default function ProblemSolverPage() {
                 score: totalScore,
                 breakdown: {
                     correctCode: correctScore,
-                    cleanCodeBonus: 0,
+                    cleanCodeBonus: 0, // Server will calculate this based on error ranking
                     speedBonus: speedBonus,
+                    errorCount: errorCount,
                 },
                 timeTaken: timeElapsed,
                 status: allPassed ? 'completed' : 'failed',
@@ -996,9 +1036,19 @@ export default function ProblemSolverPage() {
                                                         }`}>
                                                         {player.status}
                                                     </span>
-                                                    <span className="font-black text-lg text-purple-600 dark:text-purple-400 flex items-center gap-1">
-                                                        <Zap size={14} /> {player.score}
-                                                    </span>
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="font-black text-lg text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                                                            <Zap size={14} /> {player.score}
+                                                        </span>
+                                                        {player.breakdown && (
+                                                            <div className="flex gap-2 mt-1 text-[9px] font-bold text-slate-400">
+                                                                <span title="Correct Code">C: {player.breakdown.correctCode}</span>
+                                                                <span title="Speed Bonus">S: {player.breakdown.speedBonus}</span>
+                                                                <span title="Clean Code Bonus">CC: {player.breakdown.cleanCodeBonus}</span>
+                                                                <span title="Errors" className="text-red-400">E: {player.breakdown.errorCount || 0}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );

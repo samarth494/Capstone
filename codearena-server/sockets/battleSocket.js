@@ -604,6 +604,39 @@ const socketHandler = (server) => {
           Object.keys(room.levelSubmissions[currentLevel]).length >=
           room.players.length
         ) {
+          // --- CALCULATE CLEAN CODE BONUS ---
+          // 1. Get all submissions for this level
+          const submissions = Object.values(
+            room.levelSubmissions[currentLevel],
+          );
+
+          // 2. Sort by errorCount (ascending - fewer errors are better)
+          // Use timeTaken as a tie-breaker (less time is better)
+          const sortedByErrors = [...submissions].sort((a, b) => {
+            const errA = a.breakdown?.errorCount || 0;
+            const errB = b.breakdown?.errorCount || 0;
+            if (errA !== errB) return errA - errB;
+            return (a.timeTaken || 0) - (b.timeTaken || 0);
+          });
+
+          // 3. Apply formula: Score = (30 - Rank_Error) * (500/29)
+          sortedByErrors.forEach((sub, index) => {
+            const rankError = index + 1; // 1st rank has fewest errors
+            const cleanCodeBonus = Math.floor((30 - rankError) * (500 / 29));
+
+            // Update this submission's data
+            const originalSub = room.levelSubmissions[currentLevel][sub.userId];
+            originalSub.breakdown.cleanCodeBonus = cleanCodeBonus;
+            originalSub.score += cleanCodeBonus;
+
+            // Update cumulative score (was previously updated with base score only)
+            if (room.cumulativeScores[sub.userId]) {
+              room.cumulativeScores[sub.userId].totalScore += cleanCodeBonus;
+              room.cumulativeScores[sub.userId].levelScores[currentLevel] =
+                originalSub.score;
+            }
+          });
+
           // Build level leaderboard sorted by score (desc), then timeTaken (asc)
           const levelLeaderboard = Object.values(
             room.levelSubmissions[currentLevel],

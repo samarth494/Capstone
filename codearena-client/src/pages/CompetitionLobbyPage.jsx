@@ -167,8 +167,8 @@ export default function CompetitionLobbyPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white selection:bg-blue-500/30">
-            <Navbar theme="dark" />
+        <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 font-['JetBrains_Mono'] text-slate-900 dark:text-white selection:bg-blue-500/30 transition-colors duration-300">
+            <Navbar />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative">
                 {/* Background Decor */}
@@ -186,34 +186,31 @@ export default function CompetitionLobbyPage() {
                             <span>Return_To_Events</span>
                         </button>
                         <div>
-                            <h1 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white font-mono tracking-tighter uppercase mb-4 leading-none">
-                                BLIND_CODING<br />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600 italic">CHAMPIONSHIP</span>
+                            <h1 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4 tracking-tight">
+                                Blind Coding <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">Championship</span>
                             </h1>
                             <div className="flex flex-wrap items-center gap-4">
-                                <div className="flex items-center gap-2 px-4 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                                    <span className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">SECURE_LOBBY_V4</span>
+                                <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-full">
+                                    <div className="w-1.5 h-2 rounded-full bg-blue-600 animate-pulse"></div>
+                                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Active Session</span>
                                 </div>
-                                <div className="px-4 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full">
-                                    <span className="text-slate-500 dark:text-slate-400 font-mono text-[10px] font-black uppercase tracking-widest leading-none">ID: {eventId.slice(-8).toUpperCase()}</span>
+                                <div className="px-3 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full">
+                                    <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest leading-none">ID: {eventId.slice(-8).toUpperCase()}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div className="relative group">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-[3rem] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-                        <div className="relative bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 flex items-center gap-8 min-w-[320px] shadow-2xl transition-all">
+                        <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 flex items-center gap-8 min-w-[320px] shadow-xl transition-all">
                             <div className="relative">
-                                <div className="absolute inset-0 bg-purple-500 blur-xl opacity-20 animate-pulse"></div>
-                                <div className="relative bg-purple-500/10 p-5 rounded-3xl border border-purple-500/20">
-                                    <Clock className="w-10 h-10 text-purple-500 animate-spin-slow" />
+                                <div className="relative bg-blue-500/10 p-5 rounded-2xl border border-blue-500/20">
+                                    <Clock className="w-10 h-10 text-blue-600 dark:text-blue-400" />
                                 </div>
                             </div>
                             <div>
-                                <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em] mb-2 leading-none">TIME_TO_START</div>
-                                <div className="text-5xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter leading-none">
+                                <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 leading-none">Time to Start</div>
+                                <div className="text-5xl font-bold text-slate-900 dark:text-white tabular-nums tracking-tight leading-none">
                                     {formatTime(timeLeft)}
                                 </div>
                             </div>
@@ -226,42 +223,40 @@ export default function CompetitionLobbyPage() {
                     <div className="lg:col-span-8 space-y-10">
                         {/* Admin Controls - Only for Host (Updated) */}
                         {isHost && (
-                            <div className="relative bg-[#111827] p-8 rounded-[3rem] shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8 border border-slate-800/50 overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-purple-600/5 to-blue-600/5 pointer-events-none"></div>
+                            <div className="relative bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-8 border border-slate-200 dark:border-slate-800 overflow-hidden transition-all duration-300">
                                 <div className="flex items-center gap-6 relative z-10">
-                                    <div className="w-16 h-16 bg-slate-900/80 rounded-2xl border border-purple-500/30 flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
-                                        <Crown className="w-8 h-8 text-purple-500 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]" />
+                                    <div className="w-16 h-16 bg-blue-50 dark:bg-slate-800 rounded-2xl border border-blue-100 dark:border-slate-700 flex items-center justify-center shadow-lg transition-transform">
+                                        <Crown className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black text-white tracking-tight leading-none mb-2">HOST_COMMAND_CENTER</h3>
-                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] opacity-80">Full administrative authority granted</p>
+                                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-none mb-2">Host Controls</h3>
+                                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-80">You are the lobby leader</p>
                                     </div>
                                 </div>
-
                                 <button
                                     onClick={handleStartBattle}
-                                    className="relative z-10 w-full md:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white px-12 py-5 rounded-[1.5rem] font-black text-sm flex items-center justify-center gap-4 transition-all shadow-[0_15px_35px_-5px_rgba(139,92,246,0.4)] hover:shadow-purple-500/50 hover:-translate-y-1 active:scale-95 uppercase tracking-[0.2em]"
+                                    className="relative z-10 w-full md:w-auto bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 text-white px-10 py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-all shadow-lg active:scale-95 uppercase tracking-widest"
                                 >
-                                    <Play size={20} fill="currentColor" />
-                                    Launch_Battle
+                                    <Play size={18} fill="currentColor" />
+                                    Launch Battle
                                 </button>
                             </div>
                         )}
 
-                        <section className="bg-white dark:bg-[#111827] rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all duration-500">
-                            <div className="p-10 border-b border-slate-100 dark:border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-8 bg-slate-50/50 dark:bg-slate-900/20">
-                                <div className="flex items-center gap-6">
-                                    <div className="w-14 h-14 bg-blue-500/10 text-blue-500 rounded-2xl border border-blue-500/20 flex items-center justify-center shadow-inner">
-                                        <Users className="w-7 h-7" />
+                        <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden transition-all duration-300">
+                            <div className="p-8 border-b border-slate-100 dark:border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-6 bg-slate-50/50 dark:bg-slate-800/20">
+                                <div className="flex items-center gap-5">
+                                    <div className="w-12 h-12 bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-2xl border border-blue-100 dark:border-slate-700 flex items-center justify-center">
+                                        <Users className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <h2 className="font-black text-2xl text-slate-900 dark:text-white tracking-tight leading-none mb-2">WARRIOR_REGISTRY</h2>
-                                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em] leading-none">Authentication & Sync Protocol</p>
+                                        <h2 className="font-bold text-xl text-slate-900 dark:text-white tracking-tight leading-none mb-2">Warrior Registry</h2>
+                                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">Active Challengers</p>
                                     </div>
                                 </div>
-                                <div className="px-6 py-2.5 bg-slate-900 dark:bg-slate-800 rounded-2xl border border-white/5 shadow-xl">
-                                    <span className="text-[10px] font-black text-white tracking-[0.3em] uppercase">
-                                        {players.length || 1}_/_5 READY
+                                <div className="px-4 py-1.5 bg-slate-900 dark:bg-slate-800 rounded-xl">
+                                    <span className="text-[10px] font-bold text-white tracking-widest uppercase">
+                                        {players.length || 1}/5 Ready
                                     </span>
                                 </div>
                             </div>
@@ -278,29 +273,29 @@ export default function CompetitionLobbyPage() {
                                                     initial={{ opacity: 0, scale: 0.95 }}
                                                     animate={{ opacity: 1, scale: 1 }}
                                                     transition={{ delay: idx * 0.05 }}
-                                                    className={`flex items-center justify-between p-6 rounded-[2rem] border-2 transition-all duration-300 relative group ${isMe
-                                                        ? 'bg-blue-500/[0.03] dark:bg-blue-500/[0.05] border-blue-500/20 shadow-inner'
-                                                        : 'bg-white dark:bg-slate-900/20 border-slate-100 dark:border-slate-800/50 hover:border-blue-500/30'
+                                                    className={`flex items-center justify-between p-5 rounded-3xl border transition-all duration-300 relative group ${isMe
+                                                        ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800 shadow-sm'
+                                                        : 'bg-white dark:bg-slate-800/20 border-slate-100 dark:border-slate-800/50 hover:border-blue-200 dark:hover:border-blue-800'
                                                         }`}
                                                 >
                                                     <div className="flex items-center gap-5 relative z-10">
-                                                        <div className={`w-14 h-14 rounded-[1.2rem] flex items-center justify-center font-black text-xl transition-all transform group-hover:rotate-12 ${isMe ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg transition-all ${isMe ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                                                             }`}>
                                                             {player.username?.charAt(0).toUpperCase()}
                                                         </div>
                                                         <div>
-                                                            <div className="font-black text-slate-900 dark:text-white text-lg tracking-tight mb-1 truncate max-w-[120px]">
-                                                                {player.username.toUpperCase()}
+                                                            <div className="font-bold text-slate-900 dark:text-white text-base tracking-tight mb-1 truncate max-w-[120px]">
+                                                                {player.username}
                                                             </div>
                                                             <div className="flex items-center gap-2">
                                                                 <div className={`w-1.5 h-1.5 rounded-full ${isMe ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`}></div>
-                                                                <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest font-mono">
-                                                                    {isMe ? 'LOCAL_HOST' : 'REMOTE_CLIENT'}
+                                                                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                                                    {isMe ? 'Local Host' : 'Remote Client'}
                                                                 </span>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    {isMe && <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[8px] font-black text-blue-500 uppercase tracking-widest">YOU</div>}
+                                                    {isMe && <div className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded text-[8px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">YOU</div>}
                                                 </motion.div>
                                             );
                                         })}
@@ -337,45 +332,45 @@ export default function CompetitionLobbyPage() {
 
                     {/* Right: Competition Rules */}
                     <div className="lg:col-span-4 space-y-10">
-                        <section className="bg-white dark:bg-[#111827] rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden sticky top-8 transition-all duration-500">
-                            <div className="p-10 border-b border-slate-100 dark:border-slate-800/50 flex items-center gap-5 bg-slate-50/50 dark:bg-slate-900/20">
-                                <div className="w-14 h-14 bg-red-500/10 text-red-500 rounded-2xl border border-red-500/20 flex items-center justify-center shadow-inner">
-                                    <Swords className="w-7 h-7" />
+                        <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden sticky top-8 transition-all duration-300">
+                            <div className="p-8 border-b border-slate-100 dark:border-slate-800/50 flex items-center gap-4 bg-slate-50/50 dark:bg-slate-800/20">
+                                <div className="w-12 h-12 bg-red-50 dark:bg-slate-800 text-red-600 dark:text-red-400 rounded-2xl border border-red-100 dark:border-slate-700 flex items-center justify-center">
+                                    <Swords className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <h2 className="font-black text-2xl text-slate-900 dark:text-white tracking-tight leading-none mb-2">COMBAT_PROTOCOL</h2>
-                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em] leading-none">Rules of Engagement</p>
+                                    <h2 className="font-bold text-xl text-slate-900 dark:text-white tracking-tight leading-none mb-2">Combat Protocol</h2>
+                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">Rules of Engagement</p>
                                 </div>
                             </div>
-
-                            <div className="p-10 space-y-8">
+ 
+                            <div className="p-8 space-y-6">
                                 {[
-                                    { id: '01', title: 'ZERO_VISIBILITY', desc: 'No visual feedback. Code in the void.' },
-                                    { id: '02', title: 'SINGLE_AUTH', desc: 'One attempt per level. Precision is key.' },
-                                    { id: '03', title: 'MATRIX_SYNC', desc: 'No external documentation allowed.' },
-                                    { id: '04', title: 'TEMPORAL_LIMIT', desc: '15:00 minutes total. Speed awards score.' }
+                                    { id: '01', title: 'Zero Visibility', desc: 'No visual feedback. Code in the void.' },
+                                    { id: '02', title: 'Manual Only', desc: 'One attempt per level. Precision is key.' },
+                                    { id: '03', title: 'Offline Mode', desc: 'No external documentation allowed.' },
+                                    { id: '04', title: 'Time Limit', desc: '15:00 minutes total. Speed awards score.' }
                                 ].map((rule, i) => (
-                                    <div key={i} className="group flex items-start gap-6 p-2 transition-all">
-                                        <div className="text-xl font-black text-slate-200 dark:text-slate-800 font-mono transition-colors group-hover:text-purple-500">
+                                    <div key={i} className="group flex items-start gap-4">
+                                        <div className="text-xl font-bold text-slate-200 dark:text-slate-800 font-mono transition-colors group-hover:text-blue-500">
                                             {rule.id}
                                         </div>
                                         <div>
-                                            <h3 className="font-black text-slate-900 dark:text-white text-xs uppercase tracking-widest leading-none mb-2 group-hover:text-blue-500 transition-colors">
+                                            <h3 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-widest leading-none mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                                 {rule.title}
                                             </h3>
-                                            <p className="text-[11px] text-slate-500 dark:text-slate-500 leading-relaxed font-bold italic opacity-70">
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
                                                 {rule.desc}
                                             </p>
                                         </div>
                                     </div>
                                 ))}
-
-                                <div className="bg-red-500/5 p-6 rounded-[2rem] border border-red-500/10 relative overflow-hidden group mt-10">
-                                    <div className="flex items-center gap-3 justify-center text-red-500 mb-2">
-                                        <Zap size={16} />
-                                        <span className="font-black text-[10px] uppercase tracking-[0.4em]">BAN_PROTOCOL_ACTIVE</span>
+ 
+                                <div className="bg-red-50 dark:bg-red-900/10 p-5 rounded-2xl border border-red-100 dark:border-red-900/20 relative overflow-hidden group mt-6">
+                                    <div className="flex items-center gap-2 justify-center text-red-600 dark:text-red-400 mb-1">
+                                        <Zap size={14} />
+                                        <span className="font-bold text-[10px] uppercase tracking-widest">Protocol Active</span>
                                     </div>
-                                    <p className="text-[9px] text-red-500/60 font-black text-center uppercase tracking-widest leading-relaxed">
+                                    <p className="text-[9px] text-red-500/70 dark:text-red-400/60 font-bold text-center uppercase tracking-widest leading-relaxed">
                                         Manual integrity checks in progress. Disqualification is final.
                                     </p>
                                 </div>
@@ -415,24 +410,23 @@ export default function CompetitionLobbyPage() {
                                         className="space-y-8"
                                     >
                                         <div className="flex flex-col items-center gap-3">
-                                            <div className="px-4 py-1.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-full flex items-center gap-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></div>
-                                                <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest font-mono">
-                                                    SYSTEM_INITIALIZATION_SEQUENCING
+                                            <div className="px-4 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-500/20 rounded-full flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping"></div>
+                                                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+                                                    Match Initialization
                                                 </span>
                                             </div>
-                                            <h3 className="text-slate-400 dark:text-slate-500 font-mono text-xs font-bold uppercase tracking-[0.3em]">
+                                            <h3 className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-widest">
                                                 Battle Begins In
                                             </h3>
                                         </div>
 
                                         <div className="relative">
-                                            <div className="text-[14rem] font-black text-slate-900 dark:text-white tabular-nums leading-none tracking-tighter font-mono drop-shadow-2xl">
+                                            <div className="text-[14rem] font-bold text-slate-900 dark:text-white tabular-nums leading-none tracking-tight drop-shadow-2xl">
                                                 {countdown}
                                             </div>
-                                            {/* Minimalist circular progress */}
                                             <div className="absolute inset-0 flex items-center justify-center -z-10">
-                                                <div className="w-80 h-80 rounded-full border-4 border-slate-100 dark:border-slate-800 border-dashed opacity-50 animate-spin-slow"></div>
+                                                <div className="w-80 h-80 rounded-full border-2 border-slate-100 dark:border-slate-800 border-dashed opacity-50 animate-spin-slow"></div>
                                             </div>
                                         </div>
 
@@ -455,17 +449,17 @@ export default function CompetitionLobbyPage() {
                                     >
                                         <div className="relative w-40 h-40 mx-auto">
                                             <div className="absolute inset-0 bg-blue-500 blur-3xl opacity-20"></div>
-                                            <div className="relative bg-blue-600 p-8 rounded-[2rem] shadow-2xl shadow-blue-500/40">
+                                            <div className="relative bg-blue-600 p-8 rounded-3xl shadow-xl shadow-blue-500/20 transition-all">
                                                 <Swords className="w-full h-full text-white animate-bounce" />
                                             </div>
                                         </div>
                                         
                                         <div>
-                                            <h2 className="text-8xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic font-mono mb-2">
-                                                GO_!
+                                            <h2 className="text-8xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic mb-2">
+                                                Go!
                                             </h2>
-                                            <p className="text-blue-600 dark:text-blue-400 font-mono font-black text-sm uppercase tracking-widest">
-                                                Transmission_Active
+                                            <p className="text-blue-600 dark:text-blue-400 font-bold text-sm uppercase tracking-widest">
+                                                Match Starting
                                             </p>
                                         </div>
                                     </motion.div>
