@@ -506,36 +506,106 @@ export default function ProblemSolverPage() {
             setTestCaseResults(testResults);
 
             const allPassed = totalPassed === levelProblem.testCases.length;
+            const totalTests = levelProblem.testCases.length;
+            const passRatio = totalTests > 0 ? totalPassed / totalTests : 0;
             const timeElapsed = Math.floor((Date.now() - levelStartTime) / 1000);
             const timeLeftVal = Math.max(0, LEVEL_TIME_LIMIT - timeElapsed);
+            const timeRatio = LEVEL_TIME_LIMIT > 0 ? timeLeftVal / LEVEL_TIME_LIMIT : 0;
 
-            // ═══════════════════════════════════════════════
-            // SCORE CALCULATION (LeetCode-inspired)
-            // ═══════════════════════════════════════════════
+            // ═══════════════════════════════════════════════════════════════
+            // COMPREHENSIVE FAIR SCORING SYSTEM
+            // ═══════════════════════════════════════════════════════════════
+            // Max possible per level: 50 + 1000 + 500 + 150 + 500 = 2200
             //
-            // 1. CORRECTNESS (0-1000 pts)
-            //    Full marks only if ALL test cases pass.
-            //    Partial credit: (passed/total) * 600  (capped at 600 for partial)
-            //    All passed: flat 1000 pts
-            const correctScore = allPassed
-                ? 1000
-                : Math.floor((totalPassed / levelProblem.testCases.length) * 600);
+            // DESIGN PRINCIPLES:
+            //   1. Correctness is KING — more test cases passed = always higher
+            //   2. Speed rewards scale with performance tier
+            //   3. Everyone who submits gets something (vs timeout = 0)
+            //   4. Effort-based scoring prevents empty submissions gaming
+            //   5. Server-side relative bonus prevents ties
+            // ═══════════════════════════════════════════════════════════════
 
-            // 2. SPEED BONUS (0-500 pts, ONLY if all test cases passed)
-            //    Formula: (timeLeft / totalTime) * 500
-            //    Solved instantly = 500, solved at last second = 0
-            const speedBonus = allPassed
-                ? Math.floor((timeLeftVal / LEVEL_TIME_LIMIT) * 500)
-                : 0;
+            // ── 1. PARTICIPATION (50 pts) ──
+            // Awarded for manually submitting. Timeout auto-submit = 0.
+            // Ensures manual submitters always rank above AFK timeouts.
+            const participationBonus = 50;
 
-            // 3. CLEAN CODE BONUS — calculated SERVER-SIDE after all players submit
-            //    Based on relative compile error ranking among players
+            // ── 2. CORRECTNESS (0-1000 pts) ──
+            // All passed: flat 1000 (perfect bonus for 100% completion)
+            // Partial:    smooth curve — (passed/total)^0.8 * 800
+            //             The exponent < 1 means diminishing returns are generous:
+            //             1/5 passed ≈ 200pts, 3/5 passed ≈ 540pts, 4/5 ≈ 680pts
+            //             This rewards partial progress fairly.
+            // Zero:       0 pts
+            let correctScore;
+            if (allPassed) {
+                correctScore = 1000;
+            } else if (totalPassed > 0) {
+                correctScore = Math.floor(Math.pow(passRatio, 0.8) * 800);
+            } else {
+                correctScore = 0;
+            }
 
-            const totalScore = correctScore + speedBonus;
+            // ── 3. EFFORT BONUS (0-150 pts) — CALCULATED FIRST (gates speed) ──
+            // Rewards writing REAL code vs submitting starter unchanged.
+            // Anti-gaming: strips comments & whitespace before measuring length.
+            //   • Strips // single-line comments   → can't pad with // comment walls
+            //   • Strips /* block comments */       → can't pad with /* ... */
+            //   • Strips all whitespace             → newlines/spaces don't count
+            // Only actual logic characters count toward effort score.
+            const stripComments = (src) => src
+                .replace(/\/\/[^\n]*/g, '')        // remove // single-line comments
+                .replace(/\/\*[\s\S]*?\*\//g, '')  // remove /* block comments */
+                .replace(/\s/g, '');               // remove all whitespace
+            const starterCode = getStarterCode(currentLevel);
+            const codeLength = stripComments(code).length;
+            const starterLength = stripComments(starterCode).length;
+            const codeDiff = Math.max(0, codeLength - starterLength);
+            const effortBonus = Math.min(150, Math.floor(codeDiff * 1.5));
 
-            // Build output
+            // ── ANTI-GAMING: Minimum effort threshold ──
+            // If you barely changed the starter code (< 10 non-whitespace chars added),
+            // you get NO speed bonus. This prevents the exploit where someone submits
+            // trivial error-free code like "return 0;" instantly to get speed points
+            // without actually trying to solve the problem.
+            const MIN_EFFORT_FOR_SPEED = 10; // characters of meaningful code change
+            const hasMinimumEffort = codeDiff >= MIN_EFFORT_FOR_SPEED || allPassed;
+            // allPassed override: if your code actually passes all tests, you earned speed
+            // regardless of code length (one-liners that work should be rewarded)
+
+            // ── 4. SPEED BONUS (tiered by performance, gated by effort) ──
+            // The better you perform, the more speed matters.
+            //   All passed:     0-500 pts (max reward for fast + correct)
+            //   Partial pass:   0-300 pts (still rewarded for trying fast)
+            //   Zero pass:      0-100 pts (small consolation for fast submit)
+            // BUT: requires minimum effort threshold to prevent gaming
+            let speedBonusMax;
+            if (!hasMinimumEffort) {
+                speedBonusMax = 0; // Anti-gaming: no speed reward for trivial submissions
+            } else if (allPassed) {
+                speedBonusMax = 500;
+            } else if (totalPassed > 0) {
+                speedBonusMax = 300;
+            } else {
+                speedBonusMax = 100;
+            }
+            const speedBonus = Math.floor(timeRatio * speedBonusMax);
+
+            // ── 5. RELATIVE PERFORMANCE BONUS (0-500 pts) ──
+            // Calculated SERVER-SIDE after all players submit.
+            // Ranks players by: testsPassed (desc) → errorCount (asc) → timeTaken (asc)
+            // This ensures fair differentiation in ALL scenarios:
+            //   • Everyone fails:  ranked by who had fewest errors + fastest
+            //   • Some pass:       passers ranked above failers
+            //   • Everyone passes: ranked by fewest errors + fastest
+
+            const totalScore = participationBonus + correctScore + speedBonus + effortBonus;
+
+            // ── BUILD OUTPUT ──
+            const perfTier = allPassed ? '🏆 PERFECT' : totalPassed > 0 ? '⚡ PARTIAL' : '🔧 ATTEMPT';
             let outputStr = `═══ SUBMISSION RESULTS ═══\n\n`;
-            outputStr += `  Test Cases: ${totalPassed}/${levelProblem.testCases.length} passed\n\n`;
+            outputStr += `  Performance: ${perfTier}\n`;
+            outputStr += `  Test Cases:  ${totalPassed}/${totalTests} passed (${Math.round(passRatio * 100)}%)\n\n`;
             testResults.forEach((r, i) => {
                 outputStr += `  Case ${i + 1}: ${r.passed ? '✅ PASS' : '❌ FAIL'}`;
                 if (r.executionTime) outputStr += ` (${r.executionTime}ms)`;
@@ -548,16 +618,19 @@ export default function ProblemSolverPage() {
                 }
             });
             outputStr += `\n═══ SCORE BREAKDOWN ═══\n`;
-            outputStr += `  Correctness:  ${correctScore} / 1000${allPassed ? ' (Perfect!)' : ''}\n`;
-            outputStr += `  Speed Bonus:  ${speedBonus} / 500${!allPassed ? ' (requires all passed)' : ''}\n`;
-            outputStr += `  Clean Code:   Calculated after all players submit\n`;
+            outputStr += `  Participation:  +${participationBonus}\n`;
+            outputStr += `  Correctness:    ${correctScore} / 1000 ${allPassed ? '(Perfect!)' : totalPassed > 0 ? `(${totalPassed}/${totalTests} passed)` : '(No tests passed)'}\n`;
+            outputStr += `  Effort Bonus:   ${effortBonus} / 150${!hasMinimumEffort ? ' ⚠️ Below minimum effort!' : ''}\n`;
+            outputStr += `  Speed Bonus:    ${speedBonus} / ${speedBonusMax} ${!hasMinimumEffort ? '(blocked: write more code!)' : allPassed ? '' : totalPassed > 0 ? '(partial tier)' : '(attempt tier)'}\n`;
+            const isSolo = totalPlayers <= 1;
+            outputStr += `  Relative Bonus: ${isSolo ? '0 (solo — no opponents to rank against)' : 'Calculated after all players submit (0-500)'}\n`;
             outputStr += `  ─────────────────────\n`;
-            outputStr += `  Total:        ${totalScore} pts\n`;
-            outputStr += `  Time Taken:   ${Math.floor(timeElapsed / 60)}m ${timeElapsed % 60}s\n`;
-            outputStr += `  Errors:       ${compileErrorCount} compile/runtime errors`;
+            outputStr += `  Base Total:     ${totalScore} pts${isSolo ? '' : ' (+ up to 500 relative bonus)'}\n`;
+            outputStr += `  Time Taken:     ${Math.floor(timeElapsed / 60)}m ${timeElapsed % 60}s\n`;
+            outputStr += `  Compile Errors: ${compileErrorCount}`;
             setOutput(outputStr);
 
-            // Send to server
+            // ── SEND TO SERVER ──
             const socket = getSocket();
             const storedUser = JSON.parse(localStorage.getItem('user'));
 
@@ -567,15 +640,18 @@ export default function ProblemSolverPage() {
                 username: storedUser.username,
                 score: totalScore,
                 breakdown: {
+                    participationBonus,
                     correctCode: correctScore,
-                    cleanCodeBonus: 0, // Server calculates this after all players submit
-                    speedBonus: speedBonus,
-                    errorCount: compileErrorCount, // Only compile/runtime errors
+                    speedBonus,
+                    effortBonus,
+                    relativeBonus: 0, // Server calculates after all submit
+                    errorCount: compileErrorCount,
                     testsPassed: totalPassed,
-                    testsTotal: levelProblem.testCases.length,
+                    testsTotal: totalTests,
+                    passRatio: Math.round(passRatio * 100), // % for server ranking
                 },
                 timeTaken: timeElapsed,
-                status: allPassed ? 'completed' : 'failed',
+                status: allPassed ? 'completed' : totalPassed > 0 ? 'partial' : 'failed',
                 level: currentLevel,
             });
 
@@ -597,12 +673,23 @@ export default function ProblemSolverPage() {
         const storedUser = JSON.parse(localStorage.getItem('user'));
         if (!socket || !storedUser) return;
 
+        // Timeout = absolute minimum score. No participation, no speed, no effort.
         socket.emit('competition:submit', {
             eventId: eventId,
             userId: storedUser._id,
             username: storedUser.username,
             score: 0,
-            breakdown: { correctCode: 0, cleanCodeBonus: 0, speedBonus: 0, errorCount: compileErrorCount, testsPassed: 0, testsTotal: LEVEL_PROBLEMS[currentLevel]?.testCases?.length || 0 },
+            breakdown: {
+                participationBonus: 0,
+                correctCode: 0,
+                speedBonus: 0,
+                effortBonus: 0,
+                relativeBonus: 0,
+                errorCount: compileErrorCount,
+                testsPassed: 0,
+                testsTotal: LEVEL_PROBLEMS[currentLevel]?.testCases?.length || 0,
+                passRatio: 0,
+            },
             timeTaken: LEVEL_TIME_LIMIT,
             status: 'timeout',
             level: currentLevel,
@@ -610,7 +697,7 @@ export default function ProblemSolverPage() {
 
         setHasSubmitted(true);
         setShowWaiting(true);
-        setOutput('> ⏰ Time expired! Auto-submitted with score 0.');
+        setOutput('> ⏰ Time expired! Auto-submitted with score 0.\n  You receive no points for timed-out rounds.\n  Submit manually next time for participation bonus!');
     };
 
     const handleSubmit = async () => {
@@ -1001,21 +1088,19 @@ export default function ProblemSolverPage() {
                             <div className="flex items-center gap-1">
                                 <button
                                     onClick={() => setActiveConsoleTab('testcases')}
-                                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-t transition-colors ${
-                                        activeConsoleTab === 'testcases'
-                                            ? 'text-white bg-[#1e1e1e] border-t-2 border-blue-500'
-                                            : 'text-slate-500 hover:text-slate-300'
-                                    }`}
+                                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-t transition-colors ${activeConsoleTab === 'testcases'
+                                        ? 'text-white bg-[#1e1e1e] border-t-2 border-blue-500'
+                                        : 'text-slate-500 hover:text-slate-300'
+                                        }`}
                                 >
                                     Testcase
                                 </button>
                                 <button
                                     onClick={() => setActiveConsoleTab('output')}
-                                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-t transition-colors ${
-                                        activeConsoleTab === 'output'
-                                            ? 'text-white bg-[#1e1e1e] border-t-2 border-green-500'
-                                            : 'text-slate-500 hover:text-slate-300'
-                                    }`}
+                                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-t transition-colors ${activeConsoleTab === 'output'
+                                        ? 'text-white bg-[#1e1e1e] border-t-2 border-green-500'
+                                        : 'text-slate-500 hover:text-slate-300'
+                                        }`}
                                 >
                                     Output
                                 </button>
@@ -1053,11 +1138,10 @@ export default function ProblemSolverPage() {
                                     <div className="flex items-center gap-1 px-4 py-2 border-b border-[#3e3e42] bg-[#1e1e1e]">
                                         <button
                                             onClick={() => { setActiveTestCaseTab(0); setCustomInput(''); }}
-                                            className={`px-2.5 py-1 text-[10px] font-bold rounded transition-colors ${
-                                                activeTestCaseTab === 0
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-[#3e3e42] text-slate-400 hover:text-white'
-                                            }`}
+                                            className={`px-2.5 py-1 text-[10px] font-bold rounded transition-colors ${activeTestCaseTab === 0
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-[#3e3e42] text-slate-400 hover:text-white'
+                                                }`}
                                         >
                                             Custom
                                         </button>
@@ -1067,11 +1151,10 @@ export default function ProblemSolverPage() {
                                                 <button
                                                     key={i}
                                                     onClick={() => { setActiveTestCaseTab(i + 1); setCustomInput(tc.input || ''); }}
-                                                    className={`px-2.5 py-1 text-[10px] font-bold rounded transition-colors flex items-center gap-1 ${
-                                                        activeTestCaseTab === i + 1
-                                                            ? 'bg-blue-600 text-white'
-                                                            : 'bg-[#3e3e42] text-slate-400 hover:text-white'
-                                                    }`}
+                                                    className={`px-2.5 py-1 text-[10px] font-bold rounded transition-colors flex items-center gap-1 ${activeTestCaseTab === i + 1
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'bg-[#3e3e42] text-slate-400 hover:text-white'
+                                                        }`}
                                                 >
                                                     {testCaseResults[i] && (
                                                         <span className={`w-1.5 h-1.5 rounded-full ${testCaseResults[i].passed ? 'bg-green-400' : 'bg-red-400'}`}></span>
@@ -1235,46 +1318,67 @@ export default function ProblemSolverPage() {
                                                         </span>
                                                         <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase mt-1 ${player.status === 'completed'
                                                             ? 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400'
-                                                            : 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400'
+                                                            : player.status === 'partial'
+                                                                ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400'
+                                                                : player.status === 'timeout'
+                                                                    ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-500'
+                                                                    : 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400'
                                                             }`}>
-                                                            {player.status}
+                                                            {player.status === 'completed' ? '✓ SOLVED'
+                                                                : player.status === 'partial' ? `◐ ${player.breakdown?.testsPassed || 0}/${player.breakdown?.testsTotal || '?'} PASSED`
+                                                                    : player.status === 'timeout' ? '⏰ TIMEOUT'
+                                                                        : '✗ FAILED'}
                                                         </span>
                                                     </div>
                                                 </div>
 
                                                 {/* Detailed Points Breakdown */}
                                                 {player.breakdown && (
-                                                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 md:grid-cols-5 gap-4">
-                                                        <div className="flex flex-col" title="Points for correctly solving the problem">
+                                                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 grid grid-cols-3 md:grid-cols-7 gap-3">
+                                                        <div className="flex flex-col" title="Points for submitting (50 for manual, 0 for timeout)">
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Participation</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
+                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">+{player.breakdown.participationBonus || 0}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col" title="Points for test cases passed (max 1000 for all passed)">
                                                             <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Correctness</span>
                                                             <div className="flex items-center gap-2">
                                                                 <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
                                                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">+{player.breakdown.correctCode}</span>
                                                             </div>
                                                         </div>
-                                                        <div className="flex flex-col" title="Bonus points for finishing early">
-                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Speed_Bonus</span>
+                                                        <div className="flex flex-col" title="Bonus for faster submission (scales with performance)">
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Speed</span>
                                                             <div className="flex items-center gap-2">
                                                                 <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
                                                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">+{player.breakdown.speedBonus}</span>
                                                             </div>
                                                         </div>
-                                                        <div className="flex flex-col" title="Bonus for low error count ranking">
-                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Error-Free</span>
+                                                        <div className="flex flex-col" title="Bonus for writing meaningful code vs starter template">
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Effort</span>
                                                             <div className="flex items-center gap-2">
-                                                                <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
-                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">+{player.breakdown.cleanCodeBonus}</span>
+                                                                <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
+                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">+{player.breakdown.effortBonus || 0}</span>
                                                             </div>
                                                         </div>
-                                                        <div className="flex flex-col" title="Total compiler errors encountered">
+                                                        <div className="flex flex-col" title="Server-calculated bonus based on relative ranking among all players">
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Ranking</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
+                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">+{player.breakdown.relativeBonus || 0}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col" title="Total compiler/runtime errors encountered during this level">
                                                             <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Errors</span>
                                                             <div className="flex items-center gap-2">
                                                                 <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
                                                                 <span className="text-xs font-bold text-red-500 group-hover:text-red-600">{player.breakdown.errorCount || 0}</span>
                                                             </div>
                                                         </div>
-                                                        <div className="flex flex-col" title="Total time taken to complete level">
-                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Time_Taken</span>
+                                                        <div className="flex flex-col" title="Total time taken to submit">
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Time</span>
                                                             <div className="flex items-center gap-2">
                                                                 <Clock size={12} className="text-slate-400 group-hover:text-slate-500" />
                                                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">{formatTime(player.timeTaken)}</span>

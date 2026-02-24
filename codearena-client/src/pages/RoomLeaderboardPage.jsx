@@ -26,7 +26,7 @@ export default function RoomLeaderboardPage() {
     // Get room data from navigation state
     const roomPlayers = location.state?.players || [];
     const currentUserScore = location.state?.myScore || 0;
-    const currentUserBreakdown = location.state?.myBreakdown || { correctCode: 0, cleanCodeBonus: 0, speedBonus: 0 };
+    const currentUserBreakdown = location.state?.myBreakdown || { participationBonus: 0, correctCode: 0, speedBonus: 0, effortBonus: 0, relativeBonus: 0 };
     const roundNumber = location.state?.round || 1;
     const quitReason = location.state?.reason || 'completed'; // 'completed' | 'quit' | 'timeout'
 
@@ -135,7 +135,7 @@ export default function RoomLeaderboardPage() {
                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">YOUR TOTAL</div>
                             <div className="text-2xl font-bold text-purple-600 flex items-center gap-1">
                                 <Zap size={18} />
-                                {currentUserScore} <span className="text-sm text-slate-400 font-normal">/ 2000</span>
+                                {currentUserScore} <span className="text-sm text-slate-400 font-normal">/ 2200</span>
                             </div>
                         </div>
 
@@ -197,9 +197,11 @@ export default function RoomLeaderboardPage() {
                                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest w-16">RANK</th>
                                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">WARRIOR</th>
                                     <th className="px-4 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">STATUS</th>
-                                    <th className="px-4 py-4 text-[10px] font-bold text-green-500 uppercase tracking-widest text-center">CORRECT<br/>+1000</th>
-                                    <th className="px-4 py-4 text-[10px] font-bold text-blue-500 uppercase tracking-widest text-center">CLEAN CODE<br/>+500</th>
-                                    <th className="px-4 py-4 text-[10px] font-bold text-purple-500 uppercase tracking-widest text-center">SPEED<br/>+500</th>
+                                    <th className="px-4 py-4 text-[10px] font-bold text-cyan-500 uppercase tracking-widest text-center">PARTCPN<br />+50</th>
+                                    <th className="px-4 py-4 text-[10px] font-bold text-green-500 uppercase tracking-widest text-center">CORRECT<br />+1000</th>
+                                    <th className="px-4 py-4 text-[10px] font-bold text-blue-500 uppercase tracking-widest text-center">SPEED<br />+500</th>
+                                    <th className="px-4 py-4 text-[10px] font-bold text-amber-500 uppercase tracking-widest text-center">EFFORT<br />+150</th>
+                                    <th className="px-4 py-4 text-[10px] font-bold text-purple-500 uppercase tracking-widest text-center">RANKING<br />+500</th>
                                     <th className="px-4 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">TOTAL</th>
                                     <th className="px-4 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">TIME</th>
                                 </tr>
@@ -207,14 +209,14 @@ export default function RoomLeaderboardPage() {
                             <tbody className="divide-y divide-slate-100">
                                 {leaderboard.length === 0 ? (
                                     <tr>
-                                        <td colSpan="8" className="px-8 py-20 text-center text-slate-400 font-sans italic">
+                                        <td colSpan="10" className="px-8 py-20 text-center text-slate-400 font-sans italic">
                                             No battle data available yet.
                                         </td>
                                     </tr>
                                 ) : (
                                     leaderboard.map((player, index) => {
                                         const isMe = player.username === user?.username || player.id === user?._id;
-                                        const bd = player.breakdown || { correctCode: 0, cleanCodeBonus: 0, speedBonus: 0 };
+                                        const bd = player.breakdown || { participationBonus: 0, correctCode: 0, speedBonus: 0, effortBonus: 0, relativeBonus: 0 };
                                         return (
                                             <tr
                                                 key={player.id || index}
@@ -258,22 +260,34 @@ export default function RoomLeaderboardPage() {
                                                         {(player.status || 'PENDING').toUpperCase()}
                                                     </span>
                                                 </td>
-                                                {/* Correct Code: +1000 */}
+                                                {/* Participation */}
                                                 <td className="px-4 py-5 text-center">
-                                                    <span className={`font-bold text-sm ${bd.correctCode > 0 ? 'text-green-600' : 'text-slate-300'}`}>
-                                                        {bd.correctCode > 0 ? '+1000' : '0'}
+                                                    <span className={`font-bold text-sm ${bd.participationBonus > 0 ? 'text-cyan-600' : 'text-slate-300'}`}>
+                                                        +{bd.participationBonus || 0}
                                                     </span>
                                                 </td>
-                                                {/* Clean Code Bonus */}
+                                                {/* Correct Code */}
                                                 <td className="px-4 py-5 text-center">
-                                                    <span className={`font-bold text-sm ${bd.cleanCodeBonus > 0 ? 'text-blue-600' : 'text-slate-300'}`}>
-                                                        +{bd.cleanCodeBonus || 0}
+                                                    <span className={`font-bold text-sm ${bd.correctCode > 0 ? 'text-green-600' : 'text-slate-300'}`}>
+                                                        +{bd.correctCode || 0}
                                                     </span>
                                                 </td>
                                                 {/* Speed Bonus */}
                                                 <td className="px-4 py-5 text-center">
-                                                    <span className={`font-bold text-sm ${bd.speedBonus > 0 ? 'text-purple-600' : 'text-slate-300'}`}>
+                                                    <span className={`font-bold text-sm ${bd.speedBonus > 0 ? 'text-blue-600' : 'text-slate-300'}`}>
                                                         +{bd.speedBonus || 0}
+                                                    </span>
+                                                </td>
+                                                {/* Effort Bonus */}
+                                                <td className="px-4 py-5 text-center">
+                                                    <span className={`font-bold text-sm ${bd.effortBonus > 0 ? 'text-amber-600' : 'text-slate-300'}`}>
+                                                        +{bd.effortBonus || 0}
+                                                    </span>
+                                                </td>
+                                                {/* Ranking Bonus */}
+                                                <td className="px-4 py-5 text-center">
+                                                    <span className={`font-bold text-sm ${bd.relativeBonus > 0 ? 'text-purple-600' : 'text-slate-300'}`}>
+                                                        +{bd.relativeBonus || 0}
                                                     </span>
                                                 </td>
                                                 {/* Total Score */}
@@ -303,9 +317,9 @@ export default function RoomLeaderboardPage() {
                     <div className="text-slate-400 text-xs space-y-1">
                         <p className="flex items-center gap-2">
                             <Star size={14} className="text-yellow-500" />
-                            <strong>Scoring:</strong> Correct Code (+1000) + Clean Code Bonus (up to +500) + Speed Bonus (up to +500) = Max 2000 pts
+                            <strong>Scoring:</strong> Participation (50) + Correctness (0-1000) + Speed (0-500) + Effort (0-150) + Ranking (0-500) = Max 2200 pts
                         </p>
-                        <p className="ml-6 text-[10px]">Speed Bonus = (TimeLeft / 600) × 500 &nbsp;|&nbsp; Clean Code = (2 - ErrorRank) × (500/1)</p>
+                        <p className="ml-6 text-[10px]">Speed scales with performance tier &nbsp;|&nbsp; Ranking bonus based on tests passed → errors → time</p>
                     </div>
 
                     <div className="flex gap-3">
