@@ -7,7 +7,7 @@ const { calculateRank } = require("../utils/rankUtils");
 const battleQueue = []; // Simple in-memory queue
 const activeBattles = {};
 const competitionRooms = {}; // Tracks players and host for each competition event
-const MAX_COMPETITION_PLAYERS = 2; // Maximum players per competition lobby
+const MAX_COMPETITION_PLAYERS = 5; // Maximum players per competition lobby
 const COUNTDOWN_SECONDS = 10; // Countdown duration before battle starts
 const TOTAL_LEVELS = 3; // Total levels in blind coding competition
 
@@ -374,8 +374,46 @@ const socketHandler = (server) => {
           levelSubmissions: {}, // { level: { userId: submissionData } }
           cumulativeScores: {}, // { userId: { userId, username, totalScore, levelScores } }
           battleStartedAt: null,
+          timeLeft: 300, // 5 minutes start time
         };
-        console.log(`Lobby Created for ${eventId}. Host: ${user.username}`);
+
+        // Start the 5-minute lobby timer
+        const room = competitionRooms[eventId];
+        room.timerInterval = setInterval(() => {
+          if (room.started) {
+            clearInterval(room.timerInterval);
+            return;
+          }
+
+          room.timeLeft--;
+          io.to(`competition_${eventId}`).emit(
+            "competition:timerUpdate",
+            room.timeLeft,
+          );
+
+          if (room.timeLeft <= 0) {
+            clearInterval(room.timerInterval);
+            if (!room.started && room.players.length > 0) {
+              room.started = true;
+              const battleStartsAt = Date.now() + COUNTDOWN_SECONDS * 1000;
+              console.log(
+                `[Competition ${eventId}] Timer Expired! Auto-starting with ${room.players.length} players.`,
+              );
+              io.to(`competition_${eventId}`).emit("competition:roundStarted", {
+                battleStartsAt,
+                serverTime: Date.now(),
+                countdownSeconds: COUNTDOWN_SECONDS,
+                problemId: "blind-coding",
+                level: 1,
+                totalLevels: TOTAL_LEVELS,
+              });
+            }
+          }
+        }, 1000);
+
+        console.log(
+          `Lobby Created for ${eventId}. Host: ${user.username}. Auto-start timer (5m) initiated.`,
+        );
       }
 
       const room = competitionRooms[eventId];
@@ -421,6 +459,9 @@ const socketHandler = (server) => {
         hostId: room.hostId,
       });
 
+      // Send current timer to the newly joined player
+      socket.emit("competition:timerUpdate", room.timeLeft);
+
       console.log(
         `User ${user.username} joined competition ${eventId}. Total: ${room.players.length}/${MAX_COMPETITION_PLAYERS}`,
       );
@@ -428,10 +469,12 @@ const socketHandler = (server) => {
       // AUTO-START: When lobby is full, start the round automatically
       if (room.players.length >= MAX_COMPETITION_PLAYERS && !room.started) {
         room.started = true;
-        const battleStartsAt = Date.now() + COUNTDOWN_SECONDS * 1000; // Exact timestamp when battle begins
+        if (room.timerInterval) clearInterval(room.timerInterval);
+
+        const battleStartsAt = Date.now() + COUNTDOWN_SECONDS * 1000;
 
         console.log(
-          `Competition ${eventId} AUTO-STARTED! Lobby full (${room.players.length}/${MAX_COMPETITION_PLAYERS}). Battle starts at: ${new Date(battleStartsAt).toISOString()}`,
+          `Competition ${eventId} AUTO-STARTED! Lobby full. Battle starts at: ${new Date(battleStartsAt).toISOString()}`,
         );
 
         io.to(`competition_${eventId}`).emit("competition:roundStarted", {
@@ -468,6 +511,8 @@ const socketHandler = (server) => {
       }
 
       room.started = true;
+      if (room.timerInterval) clearInterval(room.timerInterval);
+
       const battleStartsAt = Date.now() + COUNTDOWN_SECONDS * 1000;
 
       console.log(
@@ -610,6 +655,13 @@ const socketHandler = (server) => {
               winner: cumulativeLeaderboard[0],
               eventId,
             });
+
+            // CRITICAL: Delete the room state so players can start a new competition
+            // without needing a server restart.
+            delete competitionRooms[eventId];
+            console.log(
+              `[Competition ${eventId}] Competition state cleared for new session.`,
+            );
           }
         }
       },
