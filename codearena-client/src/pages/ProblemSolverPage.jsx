@@ -162,12 +162,18 @@ export default function ProblemSolverPage() {
     const [user, setUser] = useState(null);
     const [output, setOutput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
-    const [language, setLanguage] = useState(location.state?.language || 'javascript');
+    const [language, setLanguage] = useState(isCompetitionMode ? 'c' : (location.state?.language || 'javascript'));
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [problem, setProblem] = useState(null);
     const [loading, setLoading] = useState(!isCompetitionMode);
     const [currentLevel, setCurrentLevel] = useState(location.state?.level || 1);
     const totalLevels = location.state?.totalLevels || 3;
+
+    // === Custom Input / Test Case Selection (LeetCode-style) ===
+    const [customInput, setCustomInput] = useState('');
+    const [activeTestCaseTab, setActiveTestCaseTab] = useState(0); // 0 = custom, 1+ = test case index
+    const [activeConsoleTab, setActiveConsoleTab] = useState('output'); // 'output' | 'testcases'
+    const [testCaseResults, setTestCaseResults] = useState([]);
 
     // === Competition Runtime Data ===
     const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -181,7 +187,7 @@ export default function ProblemSolverPage() {
     const [totalPlayers, setTotalPlayers] = useState(0);
     const [levelStartTime, setLevelStartTime] = useState(Date.now());
     const [nextLevel, setNextLevel] = useState(null);
-    const [errorCount, setErrorCount] = useState(0);
+    const [compileErrorCount, setCompileErrorCount] = useState(0); // Only tracks compile/runtime errors, not wrong answers
 
     const languages = [
         { id: 'javascript', name: 'JavaScript', version: 'v18.0' },
@@ -353,7 +359,11 @@ export default function ProblemSolverPage() {
         setTimeLeft(LEVEL_TIME_LIMIT);
         setLevelStartTime(Date.now());
         setSubmittedCount(0);
-        setErrorCount(0);
+        setCompileErrorCount(0);
+        setTestCaseResults([]);
+        setCustomInput('');
+        setActiveTestCaseTab(0);
+        setActiveConsoleTab('output');
         setOutput('');
     };
 
@@ -363,9 +373,24 @@ export default function ProblemSolverPage() {
         navigate('/login');
     };
 
+    // Get the stdin input based on what tab is active
+    const getRunInput = () => {
+        if (activeTestCaseTab === 0) return customInput; // Custom input tab
+        // Test case tab → use that test case's input
+        const problemData = isCompetitionMode ? LEVEL_PROBLEMS[currentLevel] : problem;
+        const testCases = isCompetitionMode ? problemData?.testCases : problemData?.testCases;
+        if (testCases && testCases[activeTestCaseTab - 1]) {
+            return testCases[activeTestCaseTab - 1].input || '';
+        }
+        return customInput;
+    };
+
     const handleRunCode = async () => {
         setIsRunning(true);
-        setOutput('Running code...');
+        setOutput('⏳ Running code...');
+        setActiveConsoleTab('output');
+
+        const stdinInput = getRunInput();
 
         try {
             const token = localStorage.getItem('token');
@@ -378,7 +403,7 @@ export default function ProblemSolverPage() {
                 body: JSON.stringify({
                     code: code,
                     language: language,
-                    input: ''
+                    input: stdinInput
                 }),
             });
 
@@ -386,16 +411,29 @@ export default function ProblemSolverPage() {
 
             if (response.ok && data.success) {
                 const resultOutput = data.output || data.result || 'No output received.';
-                setOutput(`> Execution Success (${data.executionTime || 'N/A'})\n\n${resultOutput}`);
+                // If running against a specific test case, show expected vs actual
+                let comparison = '';
+                if (activeTestCaseTab > 0) {
+                    const problemData = isCompetitionMode ? LEVEL_PROBLEMS[currentLevel] : problem;
+                    const tc = problemData?.testCases?.[activeTestCaseTab - 1];
+                    if (tc) {
+                        const expected = (tc.expected || tc.output || '').trim();
+                        const actual = resultOutput.trim();
+                        const passed = actual === expected;
+                        comparison = `\n\n── Test Case ${activeTestCaseTab} ──\n  Input:    ${stdinInput}\n  Expected: ${expected}\n  Output:   ${actual}\n  Status:   ${passed ? '✅ PASS' : '❌ FAIL'}`;
+                    }
+                }
+                setOutput(`> Execution Success (${data.executionTime || 'N/A'}ms)\n\n${resultOutput}${comparison}`);
             } else {
-                setErrorCount(prev => prev + 1);
-                const errorHeadline = data.status === 'timeout' ? 'Time Limit Exceeded' : 'Execution Failed';
+                // Only count compile/runtime errors, NOT wrong answers
+                setCompileErrorCount(prev => prev + 1);
+                const errorHeadline = data.status === 'timeout' ? 'Time Limit Exceeded' : 'Compilation / Runtime Error';
                 const errorMsg = data.stderr || data.output || data.message || data.error || 'Unknown error';
-                setOutput(`> ${errorHeadline}\n\n${errorMsg}`);
+                setOutput(`> ❌ ${errorHeadline}\n\n${errorMsg}`);
             }
         } catch (error) {
             console.error('Run code error', error);
-            setOutput(`> Server Connection Error\n\n${error.message}`);
+            setOutput(`> 🔌 Server Connection Error\n\n${error.message}`);
         } finally {
             setIsRunning(false);
         }
@@ -406,21 +444,21 @@ export default function ProblemSolverPage() {
         if (hasSubmitted) return;
 
         setIsRunning(true);
-        setOutput('⚡ Running test cases...');
+        setOutput('⚡ Running all test cases...');
+        setActiveConsoleTab('testcases');
 
-        const problem = LEVEL_PROBLEMS[currentLevel];
-        if (!problem) return;
+        const levelProblem = LEVEL_PROBLEMS[currentLevel];
+        if (!levelProblem) return;
 
         let totalPassed = 0;
         let testResults = [];
-        let submissionErrors = 0;
 
         try {
             const token = localStorage.getItem('token');
 
             // Run against all test cases
-            for (let i = 0; i < problem.testCases.length; i++) {
-                const tc = problem.testCases[i];
+            for (let i = 0; i < levelProblem.testCases.length; i++) {
+                const tc = levelProblem.testCases[i];
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/code/run`, {
                         method: 'POST',
@@ -430,75 +468,93 @@ export default function ProblemSolverPage() {
                         },
                         body: JSON.stringify({
                             code: code,
-                            language: language,
+                            language: 'c', // Always C in competition
                             input: tc.input
                         }),
                     });
 
                     const data = await response.json();
 
-                    // Lenient Comparison Logic:
-                    const actualOut = data.output?.trim() || '';
+                    const isSuccess = data.success && response.ok;
+                    const actualOut = (data.output || '').trim();
                     const expectedOut = tc.expected.trim();
 
-                    const cleanActual = actualOut.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    const cleanExpected = expectedOut.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    // Strict comparison — exact match after trimming
+                    const passed = isSuccess && actualOut === expectedOut;
 
-                    const isSuccess = data.success && response.ok;
-                    // Even more lenient: check if cleaned output contains cleaned expected
-                    const passed = isSuccess && (
-                        actualOut === expectedOut ||
-                        actualOut.toLowerCase().includes(expectedOut.toLowerCase()) ||
-                        cleanActual.includes(cleanExpected)
-                    );
-
-                    if (passed) {
-                        totalPassed++;
-                    } else {
-                        submissionErrors++;
-                        // Also update persistent error count
-                        setErrorCount(prev => prev + 1);
+                    // Track compile/runtime errors (NOT wrong answers)
+                    if (!isSuccess && (data.stderr || data.status === 'timeout')) {
+                        setCompileErrorCount(prev => prev + 1);
                     }
+
+                    if (passed) totalPassed++;
 
                     testResults.push({
                         input: tc.input,
                         expected: expectedOut,
                         actual: actualOut || (data.stderr ? 'Runtime Error' : 'No Output'),
                         passed,
-                        error: !isSuccess ? (data.stderr || 'Execution Failed') : null
+                        error: !isSuccess ? (data.stderr || 'Execution Failed') : null,
+                        executionTime: data.executionTime || 0
                     });
                 } catch (err) {
-                    submissionErrors++;
-                    setErrorCount(prev => prev + 1);
-                    testResults.push({ input: tc.input, expected: tc.expected, actual: 'Error', passed: false });
+                    setCompileErrorCount(prev => prev + 1);
+                    testResults.push({ input: tc.input, expected: tc.expected, actual: 'Connection Error', passed: false, error: err.message });
                 }
             }
 
-            const allPassed = totalPassed === problem.testCases.length;
+            setTestCaseResults(testResults);
+
+            const allPassed = totalPassed === levelProblem.testCases.length;
             const timeElapsed = Math.floor((Date.now() - levelStartTime) / 1000);
             const timeLeftVal = Math.max(0, LEVEL_TIME_LIMIT - timeElapsed);
 
-            // Calculate score using partial credit
-            // Base Correctness: 1000 points max, partial credit allowed
-            const correctScore = Math.floor((totalPassed / problem.testCases.length) * 1000);
+            // ═══════════════════════════════════════════════
+            // SCORE CALCULATION (LeetCode-inspired)
+            // ═══════════════════════════════════════════════
+            //
+            // 1. CORRECTNESS (0-1000 pts)
+            //    Full marks only if ALL test cases pass.
+            //    Partial credit: (passed/total) * 600  (capped at 600 for partial)
+            //    All passed: flat 1000 pts
+            const correctScore = allPassed
+                ? 1000
+                : Math.floor((totalPassed / levelProblem.testCases.length) * 600);
 
-            // Speed Bonus: Up to 500 pts, ONLY if all passed
-            const speedBonus = allPassed ? Math.floor((timeLeftVal / 900) * 500) : 0;
+            // 2. SPEED BONUS (0-500 pts, ONLY if all test cases passed)
+            //    Formula: (timeLeft / totalTime) * 500
+            //    Solved instantly = 500, solved at last second = 0
+            const speedBonus = allPassed
+                ? Math.floor((timeLeftVal / LEVEL_TIME_LIMIT) * 500)
+                : 0;
+
+            // 3. CLEAN CODE BONUS — calculated SERVER-SIDE after all players submit
+            //    Based on relative compile error ranking among players
 
             const totalScore = correctScore + speedBonus;
-            const finalErrorCount = errorCount + submissionErrors;
 
             // Build output
-            let outputStr = `> Level Results: ${totalPassed}/${problem.testCases.length} passed\n\n`;
+            let outputStr = `═══ SUBMISSION RESULTS ═══\n\n`;
+            outputStr += `  Test Cases: ${totalPassed}/${levelProblem.testCases.length} passed\n\n`;
             testResults.forEach((r, i) => {
-                outputStr += `  Test ${i + 1}: ${r.passed ? '✅ PASS' : '❌ FAIL'}\n`;
+                outputStr += `  Case ${i + 1}: ${r.passed ? '✅ PASS' : '❌ FAIL'}`;
+                if (r.executionTime) outputStr += ` (${r.executionTime}ms)`;
+                outputStr += `\n`;
                 if (!r.passed) {
-                    outputStr += `    Input: ${r.input} | Expected: ${r.expected}\n`;
-                    outputStr += `    Received: ${r.actual.length > 50 ? r.actual.substring(0, 50) + '...' : r.actual}\n`;
-                    if (r.error) outputStr += `    Error: ${r.error.split('\n')[0]}\n`;
+                    outputStr += `    Input:    ${r.input}\n`;
+                    outputStr += `    Expected: ${r.expected}\n`;
+                    outputStr += `    Got:      ${r.actual.length > 80 ? r.actual.substring(0, 80) + '...' : r.actual}\n`;
+                    if (r.error) outputStr += `    Error:    ${r.error.split('\n')[0]}\n`;
                 }
             });
-            outputStr += `\n> Score: ${totalScore} (Correct: ${correctScore} + Speed: ${speedBonus})`;
+            outputStr += `\n═══ SCORE BREAKDOWN ═══\n`;
+            outputStr += `  Correctness:  ${correctScore} / 1000${allPassed ? ' (Perfect!)' : ''}\n`;
+            outputStr += `  Speed Bonus:  ${speedBonus} / 500${!allPassed ? ' (requires all passed)' : ''}\n`;
+            outputStr += `  Clean Code:   Calculated after all players submit\n`;
+            outputStr += `  ─────────────────────\n`;
+            outputStr += `  Total:        ${totalScore} pts\n`;
+            outputStr += `  Time Taken:   ${Math.floor(timeElapsed / 60)}m ${timeElapsed % 60}s\n`;
+            outputStr += `  Errors:       ${compileErrorCount} compile/runtime errors`;
             setOutput(outputStr);
 
             // Send to server
@@ -512,21 +568,22 @@ export default function ProblemSolverPage() {
                 score: totalScore,
                 breakdown: {
                     correctCode: correctScore,
-                    cleanCodeBonus: 0, // Server will calculate this based on error ranking
+                    cleanCodeBonus: 0, // Server calculates this after all players submit
                     speedBonus: speedBonus,
-                    errorCount: finalErrorCount,
+                    errorCount: compileErrorCount, // Only compile/runtime errors
+                    testsPassed: totalPassed,
+                    testsTotal: levelProblem.testCases.length,
                 },
                 timeTaken: timeElapsed,
                 status: allPassed ? 'completed' : 'failed',
                 level: currentLevel,
             });
 
-
             setHasSubmitted(true);
             setShowWaiting(true);
 
         } catch (error) {
-            setOutput(`> Error: ${error.message}`);
+            setOutput(`> ❌ Submission Error: ${error.message}`);
         } finally {
             setIsRunning(false);
         }
@@ -545,7 +602,7 @@ export default function ProblemSolverPage() {
             userId: storedUser._id,
             username: storedUser.username,
             score: 0,
-            breakdown: { correctCode: 0, cleanCodeBonus: 0, speedBonus: 0, errorCount: errorCount },
+            breakdown: { correctCode: 0, cleanCodeBonus: 0, speedBonus: 0, errorCount: compileErrorCount, testsPassed: 0, testsTotal: LEVEL_PROBLEMS[currentLevel]?.testCases?.length || 0 },
             timeTaken: LEVEL_TIME_LIMIT,
             status: 'timeout',
             level: currentLevel,
@@ -860,7 +917,7 @@ export default function ProblemSolverPage() {
                     {blindMode && (
                         <div className="bg-purple-600 text-white px-4 py-2 text-center text-xs font-bold uppercase tracking-wider animate-pulse flex items-center justify-center gap-2">
                             <AlertCircle size={14} />
-                            Blind Mode Active: Code is hidden.
+                            Blind Mode Active: Code is hidden
                         </div>
                     )}
 
@@ -868,23 +925,36 @@ export default function ProblemSolverPage() {
                     <div className="h-12 bg-[#252526] dark:bg-slate-900 border-b border-[#3e3e42] dark:border-slate-800 flex items-center justify-between px-4 transition-colors">
                         <div className="flex items-center gap-3">
                             <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Language:</span>
-                            <select
-                                value={language}
-                                onChange={handleLanguageChange}
-                                className="bg-[#3e3e42] dark:bg-slate-800 text-white text-xs font-mono py-1 px-3 rounded-md border border-[#555] dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 hover:bg-[#4e4e52] transition-colors cursor-pointer"
-                            >
-                                {languages.map(lang => (
-                                    <option key={lang.id} value={lang.id}>{lang.name}</option>
-                                ))}
-                            </select>
+                            {isCompetitionMode ? (
+                                <div className="bg-[#3e3e42] text-green-400 text-xs font-mono py-1 px-3 rounded-md border border-green-800/50 flex items-center gap-1.5">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
+                                    C (GCC 11) — Locked
+                                </div>
+                            ) : (
+                                <select
+                                    value={language}
+                                    onChange={handleLanguageChange}
+                                    className="bg-[#3e3e42] dark:bg-slate-800 text-white text-xs font-mono py-1 px-3 rounded-md border border-[#555] dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 hover:bg-[#4e4e52] transition-colors cursor-pointer"
+                                >
+                                    {languages.map(lang => (
+                                        <option key={lang.id} value={lang.id}>{lang.name}</option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
 
-
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-2">
+                            {isCompetitionMode && (
+                                <span className="text-[10px] font-bold text-red-400 flex items-center gap-1">
+                                    <AlertCircle size={10} />
+                                    {compileErrorCount} error{compileErrorCount !== 1 ? 's' : ''}
+                                </span>
+                            )}
                             <button
                                 onClick={handleReset}
                                 className="p-1.5 text-slate-400 hover:text-white hover:bg-[#3e3e42] dark:hover:bg-slate-800 rounded transition-colors"
                                 title="Reset Code"
+                                disabled={hasSubmitted}
                             >
                                 <RotateCcw size={14} />
                             </button>
@@ -892,7 +962,7 @@ export default function ProblemSolverPage() {
                     </div>
 
                     {/* Monaco Editor */}
-                    <div className="flex-1 overflow-hidden">
+                    <div className="flex-1 overflow-hidden" style={{ minHeight: '300px' }}>
                         <Editor
                             height="100%"
                             language={language === 'cpp' ? 'cpp' : language === 'c' ? 'cpp' : language}
@@ -900,7 +970,6 @@ export default function ProblemSolverPage() {
                             value={code}
                             onChange={(value) => setCode(value)}
                             theme="vs-dark"
-
                             options={{
                                 minimap: { enabled: false },
                                 fontSize: 14,
@@ -911,44 +980,158 @@ export default function ProblemSolverPage() {
                                 quickSuggestions: !blindMode,
                                 parameterHints: { enabled: !blindMode },
                                 suggestOnTriggerCharacters: !blindMode,
-                                wordBasedSuggestions: !blindMode,
+                                wordBasedSuggestions: !blindMode ? 'currentDocument' : 'off',
                                 snippetSuggestions: blindMode ? 'none' : 'inline',
                                 foldGutter: !blindMode,
                                 glyphMargin: !blindMode,
+                                readOnly: hasSubmitted,
+                                tabSize: 4,
+                                insertSpaces: true,
+                                formatOnPaste: true,
+                                bracketPairColorization: { enabled: true },
                             }}
                         />
                     </div>
 
-                    {/* Console Panel */}
-                    <div className="h-48 bg-[#1e1e1e] dark:bg-slate-950 border-t border-[#3e3e42] dark:border-slate-800 flex flex-col transition-colors">
+                    {/* ═══ Bottom Panel: Testcase Input + Console Output (LeetCode-style) ═══ */}
+                    <div className="h-[280px] bg-[#1e1e1e] dark:bg-slate-950 border-t border-[#3e3e42] dark:border-slate-800 flex flex-col transition-colors">
+
+                        {/* Tab Bar + Action Buttons */}
                         <div className="h-10 bg-[#252526] dark:bg-slate-900 px-4 flex items-center justify-between border-b border-[#3e3e42] dark:border-slate-800">
-                            <span className="text-slate-300 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Console</span>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setActiveConsoleTab('testcases')}
+                                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-t transition-colors ${
+                                        activeConsoleTab === 'testcases'
+                                            ? 'text-white bg-[#1e1e1e] border-t-2 border-blue-500'
+                                            : 'text-slate-500 hover:text-slate-300'
+                                    }`}
+                                >
+                                    Testcase
+                                </button>
+                                <button
+                                    onClick={() => setActiveConsoleTab('output')}
+                                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-t transition-colors ${
+                                        activeConsoleTab === 'output'
+                                            ? 'text-white bg-[#1e1e1e] border-t-2 border-green-500'
+                                            : 'text-slate-500 hover:text-slate-300'
+                                    }`}
+                                >
+                                    Output
+                                </button>
+                            </div>
+
                             <div className="flex gap-2">
                                 {(!isCompetitionMode || (isCompetitionMode && !hasSubmitted)) && (
                                     <button
                                         onClick={handleRunCode}
                                         disabled={isRunning || hasSubmitted}
-                                        className="flex items-center gap-1.5 px-3 py-1 bg-[#3e3e42] dark:bg-slate-800 hover:bg-[#4e4e52] dark:hover:bg-slate-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                                        className="flex items-center gap-1.5 px-3 py-1 bg-[#3e3e42] dark:bg-slate-800 hover:bg-[#4e4e52] dark:hover:bg-slate-700 text-white text-xs rounded transition-colors disabled:opacity-50 font-bold"
                                     >
                                         <Play size={12} />
-                                        Test Run
+                                        Run
                                     </button>
                                 )}
                                 <button
                                     onClick={handleSubmit}
                                     disabled={isRunning || hasSubmitted}
-                                    className="flex items-center gap-1.5 px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                                    className="flex items-center gap-1.5 px-4 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors disabled:opacity-50 font-bold"
                                 >
                                     {isRunning ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                                    {isCompetitionMode ? `Submit Level ${currentLevel}` : 'Submit'}
+                                    {isCompetitionMode ? `Submit Lv.${currentLevel}` : 'Submit'}
                                 </button>
                             </div>
                         </div>
-                        <div className="flex-1 p-4 font-mono text-sm text-slate-300 overflow-y-auto">
-                            {output ? (
-                                <pre className="whitespace-pre-wrap">{output}</pre>
-                            ) : (
-                                <span className="text-slate-500 italic">Run your code to see output...</span>
+
+                        {/* Panel Content */}
+                        <div className="flex-1 overflow-hidden">
+
+                            {/* ─── Test Case Input Tab ─── */}
+                            {activeConsoleTab === 'testcases' && (
+                                <div className="h-full flex flex-col">
+                                    {/* Quick test case selector tabs */}
+                                    <div className="flex items-center gap-1 px-4 py-2 border-b border-[#3e3e42] bg-[#1e1e1e]">
+                                        <button
+                                            onClick={() => { setActiveTestCaseTab(0); setCustomInput(''); }}
+                                            className={`px-2.5 py-1 text-[10px] font-bold rounded transition-colors ${
+                                                activeTestCaseTab === 0
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-[#3e3e42] text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            Custom
+                                        </button>
+                                        {(() => {
+                                            const problemData = isCompetitionMode ? LEVEL_PROBLEMS[currentLevel] : problem;
+                                            return (problemData?.testCases || []).map((tc, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => { setActiveTestCaseTab(i + 1); setCustomInput(tc.input || ''); }}
+                                                    className={`px-2.5 py-1 text-[10px] font-bold rounded transition-colors flex items-center gap-1 ${
+                                                        activeTestCaseTab === i + 1
+                                                            ? 'bg-blue-600 text-white'
+                                                            : 'bg-[#3e3e42] text-slate-400 hover:text-white'
+                                                    }`}
+                                                >
+                                                    {testCaseResults[i] && (
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${testCaseResults[i].passed ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                                                    )}
+                                                    Case {i + 1}
+                                                </button>
+                                            ));
+                                        })()}
+                                    </div>
+
+                                    {/* Input area */}
+                                    <div className="flex-1 p-4 overflow-y-auto">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                                            stdin input
+                                        </label>
+                                        <textarea
+                                            value={customInput}
+                                            onChange={(e) => setCustomInput(e.target.value)}
+                                            placeholder="Enter your test input here...\nExample: 12"
+                                            className="w-full h-20 bg-[#2d2d30] text-slate-200 text-sm font-mono p-3 rounded-lg border border-[#3e3e42] focus:border-blue-500 focus:outline-none resize-none placeholder-slate-600"
+                                            disabled={hasSubmitted}
+                                        />
+                                        {activeTestCaseTab > 0 && (() => {
+                                            const problemData = isCompetitionMode ? LEVEL_PROBLEMS[currentLevel] : problem;
+                                            const tc = problemData?.testCases?.[activeTestCaseTab - 1];
+                                            if (!tc) return null;
+                                            return (
+                                                <div className="mt-3 text-xs">
+                                                    <span className="text-slate-500 font-bold">Expected Output: </span>
+                                                    <span className="text-green-400 font-mono">{tc.expected || tc.output}</span>
+                                                    {testCaseResults[activeTestCaseTab - 1] && (
+                                                        <div className="mt-2">
+                                                            <span className="text-slate-500 font-bold">Your Output: </span>
+                                                            <span className={`font-mono ${testCaseResults[activeTestCaseTab - 1].passed ? 'text-green-400' : 'text-red-400'}`}>
+                                                                {testCaseResults[activeTestCaseTab - 1].actual}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ─── Output / Console Tab ─── */}
+                            {activeConsoleTab === 'output' && (
+                                <div className="h-full p-4 font-mono text-sm text-slate-300 overflow-y-auto">
+                                    {output ? (
+                                        <pre className="whitespace-pre-wrap">{output}</pre>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center h-full text-slate-600 gap-2">
+                                            <TerminalIcon size={24} />
+                                            <span className="text-xs font-bold">Run your code to see output</span>
+                                            <span className="text-[10px] text-slate-700">
+                                                Click "Run" for a quick test or "Submit" to evaluate all test cases
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </div>
