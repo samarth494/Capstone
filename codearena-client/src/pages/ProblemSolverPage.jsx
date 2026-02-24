@@ -253,6 +253,18 @@ export default function ProblemSolverPage() {
             }
         }
     }, []);
+
+    // === Competition Auto-Setup ===
+    useEffect(() => {
+        if (isCompetitionMode) {
+            setLanguage('c');
+            if (problemId === 'blind-coding' && !eventId) {
+                console.warn("Competition mode active but eventId missing. Redirecting...");
+                navigate('/events');
+            }
+        }
+    }, [isCompetitionMode, eventId, navigate, problemId]);
+
     useEffect(() => {
         if (!isCompetitionMode) return;
 
@@ -401,6 +413,7 @@ export default function ProblemSolverPage() {
 
         let totalPassed = 0;
         let testResults = [];
+        let submissionErrors = 0;
 
         try {
             const token = localStorage.getItem('token');
@@ -423,38 +436,39 @@ export default function ProblemSolverPage() {
                     });
 
                     const data = await response.json();
-                    
+
                     // Lenient Comparison Logic:
-                    // 1. Trim everything
-                    // 2. Ignore case
-                    // 3. Match if output ends with expected or contains it in a clean way
                     const actualOut = data.output?.trim() || '';
                     const expectedOut = tc.expected.trim();
-                    
+
                     const cleanActual = actualOut.toLowerCase().replace(/[^a-z0-9]/g, '');
                     const cleanExpected = expectedOut.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    
+
                     const isSuccess = data.success && response.ok;
+                    // Even more lenient: check if cleaned output contains cleaned expected
                     const passed = isSuccess && (
-                        actualOut === expectedOut || 
-                        actualOut.toLowerCase().endsWith(expectedOut.toLowerCase()) ||
-                        cleanActual.endsWith(cleanExpected)
+                        actualOut === expectedOut ||
+                        actualOut.toLowerCase().includes(expectedOut.toLowerCase()) ||
+                        cleanActual.includes(cleanExpected)
                     );
 
                     if (passed) {
                         totalPassed++;
-                    } else if (!isSuccess) {
+                    } else {
+                        submissionErrors++;
+                        // Also update persistent error count
                         setErrorCount(prev => prev + 1);
                     }
 
-                    testResults.push({ 
-                        input: tc.input, 
-                        expected: expectedOut, 
-                        actual: actualOut || (data.stderr ? 'Runtime Error' : 'No Output'), 
+                    testResults.push({
+                        input: tc.input,
+                        expected: expectedOut,
+                        actual: actualOut || (data.stderr ? 'Runtime Error' : 'No Output'),
                         passed,
                         error: !isSuccess ? (data.stderr || 'Execution Failed') : null
                     });
                 } catch (err) {
+                    submissionErrors++;
                     setErrorCount(prev => prev + 1);
                     testResults.push({ input: tc.input, expected: tc.expected, actual: 'Error', passed: false });
                 }
@@ -464,17 +478,18 @@ export default function ProblemSolverPage() {
             const timeElapsed = Math.floor((Date.now() - levelStartTime) / 1000);
             const timeLeftVal = Math.max(0, LEVEL_TIME_LIMIT - timeElapsed);
 
-            // Calculate score using new logic
-            const correctScore = allPassed ? 1000 : 0;
-            // Speed Bonus: Up to 500 pts, formula: (TimeLeft / 900) * 500
+            // Calculate score using partial credit
+            // Base Correctness: 1000 points max, partial credit allowed
+            const correctScore = Math.floor((totalPassed / problem.testCases.length) * 1000);
+
+            // Speed Bonus: Up to 500 pts, ONLY if all passed
             const speedBonus = allPassed ? Math.floor((timeLeftVal / 900) * 500) : 0;
-            
-            // Clean Code Bonus (Placeholder on client, final rank calculated by server)
-            // But we send the errorCount to server for calculation
+
             const totalScore = correctScore + speedBonus;
+            const finalErrorCount = errorCount + submissionErrors;
 
             // Build output
-            let outputStr = `> Test Results: ${totalPassed}/${problem.testCases.length} passed\n\n`;
+            let outputStr = `> Level Results: ${totalPassed}/${problem.testCases.length} passed\n\n`;
             testResults.forEach((r, i) => {
                 outputStr += `  Test ${i + 1}: ${r.passed ? '✅ PASS' : '❌ FAIL'}\n`;
                 if (!r.passed) {
@@ -499,12 +514,13 @@ export default function ProblemSolverPage() {
                     correctCode: correctScore,
                     cleanCodeBonus: 0, // Server will calculate this based on error ranking
                     speedBonus: speedBonus,
-                    errorCount: errorCount,
+                    errorCount: finalErrorCount,
                 },
                 timeTaken: timeElapsed,
                 status: allPassed ? 'completed' : 'failed',
                 level: currentLevel,
             });
+
 
             setHasSubmitted(true);
             setShowWaiting(true);
@@ -529,7 +545,7 @@ export default function ProblemSolverPage() {
             userId: storedUser._id,
             username: storedUser.username,
             score: 0,
-            breakdown: { correctCode: 0, cleanCodeBonus: 0, speedBonus: 0 },
+            breakdown: { correctCode: 0, cleanCodeBonus: 0, speedBonus: 0, errorCount: errorCount },
             timeTaken: LEVEL_TIME_LIMIT,
             status: 'timeout',
             level: currentLevel,
@@ -908,14 +924,14 @@ export default function ProblemSolverPage() {
                         <div className="h-10 bg-[#252526] dark:bg-slate-900 px-4 flex items-center justify-between border-b border-[#3e3e42] dark:border-slate-800">
                             <span className="text-slate-300 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Console</span>
                             <div className="flex gap-2">
-                                {!isCompetitionMode && (
+                                {(!isCompetitionMode || (isCompetitionMode && !hasSubmitted)) && (
                                     <button
                                         onClick={handleRunCode}
                                         disabled={isRunning || hasSubmitted}
                                         className="flex items-center gap-1.5 px-3 py-1 bg-[#3e3e42] dark:bg-slate-800 hover:bg-[#4e4e52] dark:hover:bg-slate-700 text-white text-xs rounded transition-colors disabled:opacity-50"
                                     >
                                         <Play size={12} />
-                                        Run
+                                        Test Run
                                     </button>
                                 )}
                                 <button
@@ -1013,43 +1029,76 @@ export default function ProblemSolverPage() {
                                     {levelLeaderboard.map((player, idx) => {
                                         const isMe = player.username === user?.username || player.userId === user?._id;
                                         return (
-                                            <div key={player.userId} className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${isMe
-                                                ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-800'
+                                            <div key={player.userId} className={`p-4 rounded-xl border-2 transition-all group ${isMe
+                                                ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-800 shadow-lg shadow-blue-500/5'
                                                 : 'bg-slate-50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800'
                                                 }`}>
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-yellow-100 text-yellow-600' :
-                                                        idx === 1 ? 'bg-slate-200 text-slate-600' :
-                                                            idx === 2 ? 'bg-amber-100 text-amber-600' :
-                                                                'bg-slate-100 text-slate-500'
-                                                        }`}>
-                                                        {idx === 0 ? <Crown size={16} /> : `#${idx + 1}`}
-                                                    </div>
-                                                    <span className={`font-bold ${isMe ? 'text-blue-600' : 'text-slate-900 dark:text-white'}`}>
-                                                        {player.username} {isMe && <span className="text-[9px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded ml-1">YOU</span>}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${player.status === 'completed'
-                                                        ? 'bg-green-100 text-green-600'
-                                                        : 'bg-red-100 text-red-600'
-                                                        }`}>
-                                                        {player.status}
-                                                    </span>
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="font-black text-lg text-purple-600 dark:text-purple-400 flex items-center gap-1">
-                                                            <Zap size={14} /> {player.score}
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-yellow-100 text-yellow-600' :
+                                                            idx === 1 ? 'bg-slate-200 text-slate-600' :
+                                                                idx === 2 ? 'bg-amber-100 text-amber-600' :
+                                                                    'bg-slate-100 text-slate-500'
+                                                            }`}>
+                                                            {idx === 0 ? <Crown size={16} /> : `#${idx + 1}`}
+                                                        </div>
+                                                        <span className={`font-bold ${isMe ? 'text-blue-600' : 'text-slate-900 dark:text-white'}`}>
+                                                            {player.username} {isMe && <span className="text-[9px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded ml-1 font-black">YOU</span>}
                                                         </span>
-                                                        {player.breakdown && (
-                                                            <div className="flex gap-2 mt-1 text-[9px] font-bold text-slate-400">
-                                                                <span title="Correct Code">C: {player.breakdown.correctCode}</span>
-                                                                <span title="Speed Bonus">S: {player.breakdown.speedBonus}</span>
-                                                                <span title="Clean Code Bonus">CC: {player.breakdown.cleanCodeBonus}</span>
-                                                                <span title="Errors" className="text-red-400">E: {player.breakdown.errorCount || 0}</span>
-                                                            </div>
-                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="font-black text-xl text-purple-600 dark:text-purple-400 flex items-center gap-1.5 transition-transform group-hover:scale-110">
+                                                            <Zap size={18} fill="currentColor" /> {player.score}
+                                                        </span>
+                                                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase mt-1 ${player.status === 'completed'
+                                                            ? 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400'
+                                                            : 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400'
+                                                            }`}>
+                                                            {player.status}
+                                                        </span>
                                                     </div>
                                                 </div>
+
+                                                {/* Detailed Points Breakdown */}
+                                                {player.breakdown && (
+                                                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 md:grid-cols-5 gap-4">
+                                                        <div className="flex flex-col" title="Points for correctly solving the problem">
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Correctness</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
+                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">+{player.breakdown.correctCode}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col" title="Bonus points for finishing early">
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Speed_Bonus</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">+{player.breakdown.speedBonus}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col" title="Bonus for low error count ranking">
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Error-Free</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
+                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">+{player.breakdown.cleanCodeBonus}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col" title="Total compiler errors encountered">
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Errors</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+                                                                <span className="text-xs font-bold text-red-500 group-hover:text-red-600">{player.breakdown.errorCount || 0}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col" title="Total time taken to complete level">
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Time_Taken</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <Clock size={12} className="text-slate-400 group-hover:text-slate-500" />
+                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">{formatTime(player.timeTaken)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -1077,7 +1126,8 @@ export default function ProblemSolverPage() {
                                             );
                                         })}
                                     </div>
-                                )}
+                                )
+                                }
                             </div>
 
                             {/* Next Level Button */}
@@ -1229,3 +1279,4 @@ export default function ProblemSolverPage() {
         </div>
     );
 }
+

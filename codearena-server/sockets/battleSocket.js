@@ -622,7 +622,7 @@ const socketHandler = (server) => {
           // 3. Apply formula: Score = (30 - Rank_Error) * (500/29)
           sortedByErrors.forEach((sub, index) => {
             const rankError = index + 1; // 1st rank has fewest errors
-            const cleanCodeBonus = Math.floor((30 - rankError) * (500 / 29));
+            const cleanCodeBonus = Math.max(0, Math.floor((30 - rankError) * (500 / 29)));
 
             // Update this submission's data
             const originalSub = room.levelSubmissions[currentLevel][sub.userId];
