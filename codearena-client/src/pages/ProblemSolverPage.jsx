@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import {
@@ -13,7 +13,17 @@ import {
     AlertCircle,
     Clock,
     Sun,
-    Moon
+    Moon,
+    X,
+    Trophy,
+    XCircle,
+    Code,
+    Eye,
+    EyeOff,
+    ChevronDown,
+    ChevronUp,
+    Sparkles,
+    Zap
 } from 'lucide-react';
 
 import { useTheme } from '../context/ThemeContext';
@@ -37,6 +47,12 @@ export default function ProblemSolverPage() {
     const [language, setLanguage] = useState(location.state?.language || 'javascript');
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+    // Submit result popup state
+    const [showResultPopup, setShowResultPopup] = useState(false);
+    const [resultData, setResultData] = useState(null);
+    const [showCodeInPopup, setShowCodeInPopup] = useState(false);
+    const [animatedScore, setAnimatedScore] = useState(0);
+
     // Timer state for 15 minutes
     const [timeLeft, setTimeLeft] = useState(15 * 60);
 
@@ -45,7 +61,8 @@ export default function ProblemSolverPage() {
             setTimeLeft((prev) => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    // Optionally auto-submit here
+                    // Auto-submit when time runs out
+                    handleSubmit();
                     return 0;
                 }
                 return prev - 1;
@@ -54,6 +71,24 @@ export default function ProblemSolverPage() {
 
         return () => clearInterval(timer);
     }, []);
+
+    // Animate score counting up
+    useEffect(() => {
+        if (showResultPopup && resultData && resultData.passed) {
+            const targetScore = resultData.score;
+            let current = 0;
+            const step = Math.ceil(targetScore / 40);
+            const interval = setInterval(() => {
+                current += step;
+                if (current >= targetScore) {
+                    current = targetScore;
+                    clearInterval(interval);
+                }
+                setAnimatedScore(current);
+            }, 30);
+            return () => clearInterval(interval);
+        }
+    }, [showResultPopup, resultData]);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -93,7 +128,7 @@ export default function ProblemSolverPage() {
                 body: JSON.stringify({
                     code: code,
                     language: language,
-                    input: '' // In the future, this could come from user input or test cases
+                    input: ''
                 }),
             });
 
@@ -115,17 +150,133 @@ export default function ProblemSolverPage() {
     const handleSubmit = async () => {
         setIsRunning(true);
         setOutput('Submitting solution...');
+        setShowCodeInPopup(false);
+        setAnimatedScore(0);
 
-        // Mock submission for now
-        setTimeout(() => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:5000/api/code/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    code: code,
+                    language: language,
+                    problemId: problemId || 'even-odd-digit-sum',
+                    input: ''
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.compilationError) {
+                // Compilation error — code didn't even compile
+                setResultData({
+                    passed: false,
+                    score: 0,
+                    testCasesPassed: 0,
+                    totalTestCases: data.totalTestCases || 5,
+                    executionTime: data.executionTime || '0.00s',
+                    message: 'Compilation Error',
+                    output: data.output,
+                    errorDetails: data.output
+                });
+                setOutput(`> Compilation Error\n\n${data.output}`);
+            } else if (data.success) {
+                // All test cases passed
+                const timeBonus = Math.round((timeLeft / (15 * 60)) * 40);
+                const baseScore = 60;
+                const totalScore = baseScore + timeBonus;
+
+                setResultData({
+                    passed: true,
+                    score: totalScore,
+                    testCasesPassed: data.testCasesPassed,
+                    totalTestCases: data.totalTestCases,
+                    executionTime: data.executionTime || '0.012s',
+                    message: data.message || 'All test cases passed!',
+                    output: data.output
+                });
+                setOutput(`> Submission Successful\n\nAll Test Cases Passed!\nScore: ${totalScore}/100`);
+            } else {
+                // Some or all test cases failed
+                const score = data.score || Math.round((data.testCasesPassed / data.totalTestCases) * 60);
+
+                setResultData({
+                    passed: false,
+                    score: score,
+                    testCasesPassed: data.testCasesPassed || 0,
+                    totalTestCases: data.totalTestCases || 5,
+                    executionTime: data.executionTime || '0.04s',
+                    message: data.message || 'Some test cases failed.',
+                    output: data.output,
+                    errorDetails: data.output
+                });
+                setOutput(`> Submission Failed\n\n${data.output}`);
+            }
+
+            setShowResultPopup(true);
+
+        } catch (error) {
+            // Server/network error - treat as fail
+            setResultData({
+                passed: false,
+                score: 0,
+                testCasesPassed: 0,
+                totalTestCases: 5,
+                executionTime: '—',
+                message: 'Server connection error. Please try again.',
+                output: error.message,
+                errorDetails: `Connection Error: ${error.message}`
+            });
+            setShowResultPopup(true);
+            setOutput(`> Server Connection Error\n\n${error.message}`);
+        } finally {
             setIsRunning(false);
-            setOutput('> Submission Received\n\nAll Test Cases Passed! \nRank Updated.');
-        }, 2000);
+        }
     };
 
     const handleReset = () => {
-        setCode('// Write your solution here\nfunction solve(input) {\n  return input;\n}');
+        const lang = language;
+        if (lang === 'cpp' || lang === 'c') {
+            setCode('#include <stdio.h>\n\nint main() {\n    // Write your code here\n    return 0;\n}');
+        } else {
+            setCode('// Write your solution here\nfunction solve(input) {\n  return input;\n}');
+        }
         setOutput('');
+    };
+
+    const handleClosePopup = () => {
+        setShowResultPopup(false);
+        setResultData(null);
+        setShowCodeInPopup(false);
+        setAnimatedScore(0);
+    };
+
+    // Generate confetti particles for pass animation
+    const renderConfetti = () => {
+        const particles = [];
+        const colors = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4'];
+        for (let i = 0; i < 40; i++) {
+            const style = {
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 0.5}s`,
+                animationDuration: `${1.5 + Math.random() * 2}s`,
+                backgroundColor: colors[Math.floor(Math.random() * colors.length)],
+                width: `${4 + Math.random() * 6}px`,
+                height: `${4 + Math.random() * 6}px`,
+            };
+            particles.push(
+                <div
+                    key={i}
+                    className="confetti-particle"
+                    style={style}
+                />
+            );
+        }
+        return particles;
     };
 
     return (
@@ -155,8 +306,109 @@ export default function ProblemSolverPage() {
                         opacity: 1 !important;
                         z-index: 100 !important;
                     }
+
+                    /* Result Popup Animations */
+                    @keyframes popupSlideIn {
+                        from {
+                            opacity: 0;
+                            transform: scale(0.8) translateY(20px);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: scale(1) translateY(0);
+                        }
+                    }
+
+                    @keyframes popupShake {
+                        0%, 100% { transform: translateX(0); }
+                        10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+                        20%, 40%, 60%, 80% { transform: translateX(4px); }
+                    }
+
+                    @keyframes confettiFall {
+                        0% {
+                            opacity: 1;
+                            transform: translateY(-20px) rotate(0deg);
+                        }
+                        100% {
+                            opacity: 0;
+                            transform: translateY(400px) rotate(720deg);
+                        }
+                    }
+
+                    @keyframes pulseGlow {
+                        0%, 100% {
+                            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+                        }
+                        50% {
+                            box-shadow: 0 0 40px rgba(16, 185, 129, 0.6);
+                        }
+                    }
+
+                    @keyframes failGlow {
+                        0%, 100% {
+                            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+                        }
+                        50% {
+                            box-shadow: 0 0 40px rgba(239, 68, 68, 0.6);
+                        }
+                    }
+
+                    @keyframes scoreCount {
+                        from { opacity: 0; transform: scale(0.5); }
+                        to { opacity: 1; transform: scale(1); }
+                    }
+
+                    @keyframes slideDown {
+                        from { max-height: 0; opacity: 0; }
+                        to { max-height: 500px; opacity: 1; }
+                    }
+
+                    .popup-enter {
+                        animation: popupSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                    }
+
+                    .popup-fail {
+                        animation: popupSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+                                   popupShake 0.6s ease-in-out 0.4s;
+                    }
+
+                    .confetti-particle {
+                        position: absolute;
+                        top: 0;
+                        border-radius: 2px;
+                        animation: confettiFall linear forwards;
+                        pointer-events: none;
+                    }
+
+                    .pass-glow {
+                        animation: pulseGlow 2s ease-in-out infinite;
+                    }
+
+                    .fail-glow {
+                        animation: failGlow 2s ease-in-out infinite;
+                    }
+
+                    .score-animate {
+                        animation: scoreCount 0.5s ease-out forwards;
+                    }
+
+                    .code-reveal {
+                        animation: slideDown 0.4s ease-out forwards;
+                        overflow: hidden;
+                    }
+
+                    /* Progress bar animation */
+                    @keyframes progressFill {
+                        from { width: 0%; }
+                    }
+
+                    .progress-animate {
+                        animation: progressFill 1s ease-out forwards;
+                    }
                 `}
             </style>
+
             {/* Header */}
             <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 h-16 flex-none transition-colors duration-300">
                 <div className="w-full px-4 sm:px-6 lg:px-8 h-full">
@@ -237,6 +489,217 @@ export default function ProblemSolverPage() {
                     </div>
                 </div>
             )}
+
+            {/* =================== RESULT POPUP MODAL =================== */}
+            {showResultPopup && resultData && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md">
+                    {/* Confetti for pass */}
+                    {resultData.passed && (
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            {renderConfetti()}
+                        </div>
+                    )}
+
+                    <div className={`
+                        relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border 
+                        w-full max-w-lg mx-4 overflow-hidden
+                        ${resultData.passed
+                            ? 'border-emerald-300 dark:border-emerald-700 pass-glow popup-enter'
+                            : 'border-red-300 dark:border-red-800 fail-glow popup-fail'}
+                    `}>
+                        {/* Close button */}
+                        <button
+                            onClick={handleClosePopup}
+                            className="absolute top-4 right-4 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all z-10"
+                        >
+                            <X size={20} />
+                        </button>
+
+                        {/* Top Banner */}
+                        <div className={`
+                            px-6 py-8 text-center relative overflow-hidden
+                            ${resultData.passed
+                                ? 'bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600'
+                                : 'bg-gradient-to-br from-red-500 via-rose-500 to-pink-600'}
+                        `}>
+                            {/* Background pattern */}
+                            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+
+                            {/* Icon */}
+                            <div className={`
+                                inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 
+                                ${resultData.passed
+                                    ? 'bg-white/20 backdrop-blur-sm'
+                                    : 'bg-white/20 backdrop-blur-sm'}
+                            `}>
+                                {resultData.passed
+                                    ? <Trophy className="w-10 h-10 text-white drop-shadow-lg" />
+                                    : <XCircle className="w-10 h-10 text-white drop-shadow-lg" />
+                                }
+                            </div>
+
+                            {/* Title */}
+                            <h2 className="text-3xl font-black text-white mb-2 font-mono tracking-tight drop-shadow-lg">
+                                {resultData.passed ? 'PASSED!' : 'FAILED'}
+                            </h2>
+                            <p className="text-white/80 text-sm font-medium">
+                                {resultData.passed
+                                    ? 'Great job! Your solution is correct.'
+                                    : 'Your code has errors. Review and try again.'}
+                            </p>
+                        </div>
+
+                        {/* Score & Details Section */}
+                        <div className="px-6 py-6">
+                            {/* Score Display */}
+                            <div className="text-center mb-6">
+                                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">
+                                    Your Score
+                                </p>
+                                <div className="score-animate">
+                                    <span className={`
+                                        text-6xl font-black font-mono
+                                        ${resultData.passed
+                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                            : 'text-red-600 dark:text-red-400'}
+                                    `}>
+                                        {resultData.passed ? animatedScore : resultData.score}
+                                    </span>
+                                    <span className="text-2xl font-bold text-slate-400 dark:text-slate-500">/100</span>
+                                </div>
+                            </div>
+
+                            {/* Test Cases Progress */}
+                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-200 dark:border-slate-700">
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Test Cases</span>
+                                    <span className={`text-sm font-mono font-bold ${resultData.passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                        {resultData.testCasesPassed}/{resultData.totalTestCases}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
+                                    <div
+                                        className={`h-full rounded-full progress-animate transition-all ${resultData.passed
+                                            ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                                            : 'bg-gradient-to-r from-red-500 to-rose-500'}`}
+                                        style={{ width: `${(resultData.testCasesPassed / resultData.totalTestCases) * 100}%` }}
+                                    ></div>
+                                </div>
+                                {/* Individual test case indicators */}
+                                <div className="flex gap-2 mt-3">
+                                    {Array.from({ length: resultData.totalTestCases }).map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className={`flex-1 h-1.5 rounded-full ${i < resultData.testCasesPassed
+                                                ? 'bg-emerald-500'
+                                                : 'bg-red-400 dark:bg-red-600'}`}
+                                        ></div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Execution Details */}
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700 text-center">
+                                    <Zap size={16} className="mx-auto mb-1 text-amber-500" />
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">Execution Time</p>
+                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">{resultData.executionTime}</p>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700 text-center">
+                                    <Clock size={16} className="mx-auto mb-1 text-blue-500" />
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">Time Remaining</p>
+                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">{formatTime(timeLeft)}</p>
+                                </div>
+                            </div>
+
+                            {/* Error Details (for fail) */}
+                            {!resultData.passed && resultData.errorDetails && (
+                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <AlertCircle size={16} className="text-red-500" />
+                                        <span className="text-sm font-bold text-red-700 dark:text-red-400">Error Details</span>
+                                    </div>
+                                    <pre className="text-xs text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap bg-red-100/50 dark:bg-red-900/30 rounded-lg p-3 max-h-32 overflow-y-auto">
+                                        {resultData.errorDetails}
+                                    </pre>
+                                </div>
+                            )}
+
+                            {/* Code Reveal Toggle (for blind mode) */}
+                            {blindMode && (
+                                <div className="mb-4">
+                                    <button
+                                        onClick={() => setShowCodeInPopup(!showCodeInPopup)}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all font-bold text-sm"
+                                    >
+                                        {showCodeInPopup ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        {showCodeInPopup ? 'Hide Your Code' : 'Reveal Your Code'}
+                                        {showCodeInPopup ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                    </button>
+
+                                    {showCodeInPopup && (
+                                        <div className="code-reveal mt-3">
+                                            <div className="bg-[#1e1e1e] rounded-xl overflow-hidden border border-slate-700">
+                                                {/* Code header */}
+                                                <div className="flex items-center px-4 py-2 bg-[#252526] border-b border-[#3e3e42]">
+                                                    <div className="flex space-x-1.5 mr-3">
+                                                        <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                                                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                                                        <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                                                    </div>
+                                                    <Code size={12} className="text-slate-400 mr-2" />
+                                                    <span className="text-xs text-slate-400 font-mono">your_submission.{language === 'cpp' ? 'cpp' : language === 'c' ? 'c' : language === 'java' ? 'java' : 'js'}</span>
+                                                </div>
+                                                {/* Code content */}
+                                                <pre className="p-4 text-xs font-mono text-slate-300 overflow-x-auto max-h-48 overflow-y-auto leading-relaxed">
+                                                    <code>{code}</code>
+                                                </pre>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-3 mt-2">
+                                {resultData.passed ? (
+                                    <>
+                                        <button
+                                            onClick={() => {
+                                                handleClosePopup();
+                                                navigate(blindMode ? '/competition/blind-coding/lobby' : '/practice');
+                                            }}
+                                            className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                                        >
+                                            <Sparkles size={16} />
+                                            Continue
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={handleClosePopup}
+                                            className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-sm transition-all"
+                                        >
+                                            Try Again
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                handleClosePopup();
+                                                navigate(blindMode ? '/competition/blind-coding/lobby' : '/practice');
+                                            }}
+                                            className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
+                                        >
+                                            Exit
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* =================== END RESULT POPUP =================== */}
 
             {/* Main Content: Split View */}
             <main className="flex-1 flex overflow-hidden">

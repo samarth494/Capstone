@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import CodeArenaIntro from '../components/CodeArenaIntro';
+import CursorCodeTrail from '../components/CursorCodeTrail';
 import { useTheme } from '../context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
 
@@ -71,6 +72,8 @@ export default function Frontpage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 overflow-x-hidden selection:bg-blue-200 selection:text-blue-900 transition-colors duration-300">
+      {/* Coding-themed cursor trail - Dark mode only */}
+      <CursorCodeTrail />
       {/* Cinematic Intro */}
       <AnimatePresence>
         {showIntro && <CodeArenaIntro onComplete={() => {

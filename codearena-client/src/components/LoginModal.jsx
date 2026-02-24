@@ -129,7 +129,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
                 <div className="group">
                   <div className="flex justify-between items-center mb-1.5 ml-1">
                     <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Password</label>
-                    <a href="#" className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">Forgot?</a>
+                    <Link to="/forgot-password" onClick={onClose} className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">Forgot?</Link>
                   </div>
                   <div className={`flex items-center bg-slate-50 dark:bg-slate-800 border rounded-lg transition-all ${focusedField === "password" ? "border-blue-600 ring-1 ring-blue-600 bg-white dark:bg-slate-900" : "border-slate-200 dark:border-slate-700"}`}>
                     <div className="pl-4 text-slate-400"><Lock size={18} /></div>
