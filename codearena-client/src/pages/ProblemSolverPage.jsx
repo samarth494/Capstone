@@ -311,18 +311,19 @@ export default function ProblemSolverPage() {
                     @keyframes popupSlideIn {
                         from {
                             opacity: 0;
-                            transform: scale(0.8) translateY(20px);
+                            transform: scale(0.95) translateY(30px);
+                            filter: blur(10px);
                         }
                         to {
                             opacity: 1;
                             transform: scale(1) translateY(0);
+                            filter: blur(0px);
                         }
                     }
 
-                    @keyframes popupShake {
-                        0%, 100% { transform: translateX(0); }
-                        10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-                        20%, 40%, 60%, 80% { transform: translateX(4px); }
+                    @keyframes spin {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
                     }
 
                     @keyframes confettiFall {
@@ -332,25 +333,7 @@ export default function ProblemSolverPage() {
                         }
                         100% {
                             opacity: 0;
-                            transform: translateY(400px) rotate(720deg);
-                        }
-                    }
-
-                    @keyframes pulseGlow {
-                        0%, 100% {
-                            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
-                        }
-                        50% {
-                            box-shadow: 0 0 40px rgba(16, 185, 129, 0.6);
-                        }
-                    }
-
-                    @keyframes failGlow {
-                        0%, 100% {
-                            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
-                        }
-                        50% {
-                            box-shadow: 0 0 40px rgba(239, 68, 68, 0.6);
+                            transform: translateY(600px) rotate(720deg);
                         }
                     }
 
@@ -365,12 +348,7 @@ export default function ProblemSolverPage() {
                     }
 
                     .popup-enter {
-                        animation: popupSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-                    }
-
-                    .popup-fail {
-                        animation: popupSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
-                                   popupShake 0.6s ease-in-out 0.4s;
+                        animation: popupSlideIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
                     }
 
                     .confetti-particle {
@@ -379,14 +357,6 @@ export default function ProblemSolverPage() {
                         border-radius: 2px;
                         animation: confettiFall linear forwards;
                         pointer-events: none;
-                    }
-
-                    .pass-glow {
-                        animation: pulseGlow 2s ease-in-out infinite;
-                    }
-
-                    .fail-glow {
-                        animation: failGlow 2s ease-in-out infinite;
                     }
 
                     .score-animate {
@@ -492,7 +462,20 @@ export default function ProblemSolverPage() {
 
             {/* =================== RESULT POPUP MODAL =================== */}
             {showResultPopup && resultData && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/95 dark:bg-slate-950/98 backdrop-blur-3xl transition-colors duration-500">
+                    {/* Background Decor */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] blur-[150px] rounded-full animate-pulse ${resultData.passed ? 'bg-emerald-500/5 dark:bg-emerald-600/10' : 'bg-red-500/5 dark:bg-red-600/10'}`}></div>
+                        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-500/5 dark:bg-purple-500/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/5 dark:bg-blue-500/10 blur-[120px] rounded-full translate-y-1/2 -translate-x-1/2"></div>
+                        {/* Grid overlay */}
+                        <div className="grid grid-cols-12 gap-0 absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
+                            {Array.from({ length: 144 }).map((_, i) => (
+                                <div key={i} className="border border-slate-900 dark:border-white aspect-square"></div>
+                            ))}
+                        </div>
+                    </div>
+
                     {/* Confetti for pass */}
                     {resultData.passed && (
                         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -500,200 +483,217 @@ export default function ProblemSolverPage() {
                         </div>
                     )}
 
-                    <div className={`
-                        relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border 
-                        w-full max-w-lg mx-4 overflow-hidden
-                        ${resultData.passed
-                            ? 'border-emerald-300 dark:border-emerald-700 pass-glow popup-enter'
-                            : 'border-red-300 dark:border-red-800 fail-glow popup-fail'}
-                    `}>
-                        {/* Close button */}
-                        <button
-                            onClick={handleClosePopup}
-                            className="absolute top-4 right-4 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all z-10"
-                        >
-                            <X size={20} />
-                        </button>
-
-                        {/* Top Banner */}
-                        <div className={`
-                            px-6 py-8 text-center relative overflow-hidden
-                            ${resultData.passed
-                                ? 'bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600'
-                                : 'bg-gradient-to-br from-red-500 via-rose-500 to-pink-600'}
-                        `}>
-                            {/* Background pattern */}
-                            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]"></div>
-
-                            {/* Icon */}
-                            <div className={`
-                                inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 
-                                ${resultData.passed
-                                    ? 'bg-white/20 backdrop-blur-sm'
-                                    : 'bg-white/20 backdrop-blur-sm'}
-                            `}>
-                                {resultData.passed
-                                    ? <Trophy className="w-10 h-10 text-white drop-shadow-lg" />
-                                    : <XCircle className="w-10 h-10 text-white drop-shadow-lg" />
-                                }
+                    <div className="relative z-10 max-w-2xl w-full mx-4 popup-enter">
+                        {/* Top Status Icon with Rotating Rings */}
+                        <div className="flex justify-center mb-10">
+                            <div className="relative w-40 h-40 flex items-center justify-center">
+                                {/* Rotating outer ring */}
+                                <div className={`absolute inset-0 rounded-full border-4 border-dashed opacity-40 animate-spin ${resultData.passed ? 'border-emerald-300 dark:border-emerald-700' : 'border-red-300 dark:border-red-800'}`} style={{ animationDuration: '10s' }}></div>
+                                {/* Rotating inner ring */}
+                                <div className={`absolute inset-6 rounded-full border-2 border-dashed opacity-60 ${resultData.passed ? 'border-emerald-200 dark:border-emerald-800' : 'border-red-200 dark:border-red-900'}`} style={{ animation: 'spin 15s linear infinite reverse' }}></div>
+                                {/* Glow */}
+                                <div className={`absolute inset-0 rounded-full blur-2xl ${resultData.passed ? 'bg-emerald-500/10 dark:bg-emerald-500/20' : 'bg-red-500/10 dark:bg-red-500/20'}`}></div>
+                                {/* Center Icon */}
+                                <div className={`relative z-10 w-20 h-20 rounded-2xl flex items-center justify-center border-2 shadow-2xl ${resultData.passed ? 'bg-emerald-50 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-700' : 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-800'}`}>
+                                    {resultData.passed
+                                        ? <Trophy className="w-10 h-10 text-emerald-600 dark:text-emerald-400 drop-shadow-lg" />
+                                        : <XCircle className="w-10 h-10 text-red-600 dark:text-red-400 drop-shadow-lg" />
+                                    }
+                                </div>
                             </div>
+                        </div>
 
-                            {/* Title */}
-                            <h2 className="text-3xl font-black text-white mb-2 font-mono tracking-tight drop-shadow-lg">
-                                {resultData.passed ? 'PASSED!' : 'FAILED'}
+                        {/* Title */}
+                        <div className="text-center mb-10">
+                            <h2 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter uppercase transition-colors mb-3 italic font-mono">
+                                {resultData.passed ? 'MISSION_COMPLETE' : 'EXECUTION_FAILED'}
                             </h2>
-                            <p className="text-white/80 text-sm font-medium">
+                            <p className="text-sm text-slate-500 dark:text-slate-400 font-bold italic max-w-md mx-auto">
                                 {resultData.passed
-                                    ? 'Great job! Your solution is correct.'
-                                    : 'Your code has errors. Review and try again.'}
+                                    ? '"All protocols executed successfully. Target objectives achieved."'
+                                    : '"Critical errors detected in execution pipeline. Review required."'}
                             </p>
                         </div>
 
-                        {/* Score & Details Section */}
-                        <div className="px-6 py-6">
-                            {/* Score Display */}
-                            <div className="text-center mb-6">
-                                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">
-                                    Your Score
-                                </p>
-                                <div className="score-animate">
-                                    <span className={`
-                                        text-6xl font-black font-mono
-                                        ${resultData.passed
-                                            ? 'text-emerald-600 dark:text-emerald-400'
-                                            : 'text-red-600 dark:text-red-400'}
-                                    `}>
-                                        {resultData.passed ? animatedScore : resultData.score}
-                                    </span>
-                                    <span className="text-2xl font-bold text-slate-400 dark:text-slate-500">/100</span>
-                                </div>
-                            </div>
-
-                            {/* Test Cases Progress */}
-                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-200 dark:border-slate-700">
-                                <div className="flex items-center justify-between mb-3">
-                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Test Cases</span>
-                                    <span className={`text-sm font-mono font-bold ${resultData.passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                                        {resultData.testCasesPassed}/{resultData.totalTestCases}
-                                    </span>
-                                </div>
-                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
-                                    <div
-                                        className={`h-full rounded-full progress-animate transition-all ${resultData.passed
-                                            ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
-                                            : 'bg-gradient-to-r from-red-500 to-rose-500'}`}
-                                        style={{ width: `${(resultData.testCasesPassed / resultData.totalTestCases) * 100}%` }}
-                                    ></div>
-                                </div>
-                                {/* Individual test case indicators */}
-                                <div className="flex gap-2 mt-3">
-                                    {Array.from({ length: resultData.totalTestCases }).map((_, i) => (
-                                        <div
-                                            key={i}
-                                            className={`flex-1 h-1.5 rounded-full ${i < resultData.testCasesPassed
-                                                ? 'bg-emerald-500'
-                                                : 'bg-red-400 dark:bg-red-600'}`}
-                                        ></div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Execution Details */}
-                            <div className="grid grid-cols-2 gap-3 mb-4">
-                                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700 text-center">
-                                    <Zap size={16} className="mx-auto mb-1 text-amber-500" />
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">Execution Time</p>
-                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">{resultData.executionTime}</p>
-                                </div>
-                                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700 text-center">
-                                    <Clock size={16} className="mx-auto mb-1 text-blue-500" />
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">Time Remaining</p>
-                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">{formatTime(timeLeft)}</p>
-                                </div>
-                            </div>
-
-                            {/* Error Details (for fail) */}
-                            {!resultData.passed && resultData.errorDetails && (
-                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <AlertCircle size={16} className="text-red-500" />
-                                        <span className="text-sm font-bold text-red-700 dark:text-red-400">Error Details</span>
+                        {/* Main Card */}
+                        <div className={`bg-white dark:bg-slate-900 rounded-[2rem] border-2 shadow-2xl overflow-hidden transition-all ${resultData.passed ? 'border-emerald-200 dark:border-emerald-800/50' : 'border-red-200 dark:border-red-800/50'}`}>
+                            
+                            {/* Card Header */}
+                            <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/20 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <div className={`p-3 rounded-2xl border transition-colors ${resultData.passed ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/50' : 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/50'}`}>
+                                        {resultData.passed ? <Check className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
                                     </div>
-                                    <pre className="text-xs text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap bg-red-100/50 dark:bg-red-900/30 rounded-lg p-3 max-h-32 overflow-y-auto">
-                                        {resultData.errorDetails}
-                                    </pre>
+                                    <div>
+                                        <h3 className="font-black text-lg text-slate-900 dark:text-white transition-colors tracking-tight uppercase">PERFORMANCE_REPORT</h3>
+                                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">Analysis Complete</p>
+                                    </div>
                                 </div>
-                            )}
+                                <button
+                                    onClick={handleClosePopup}
+                                    className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
 
-                            {/* Code Reveal Toggle (for blind mode) */}
-                            {blindMode && (
-                                <div className="mb-4">
-                                    <button
-                                        onClick={() => setShowCodeInPopup(!showCodeInPopup)}
-                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all font-bold text-sm"
-                                    >
-                                        {showCodeInPopup ? <EyeOff size={16} /> : <Eye size={16} />}
-                                        {showCodeInPopup ? 'Hide Your Code' : 'Reveal Your Code'}
-                                        {showCodeInPopup ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                                    </button>
-
-                                    {showCodeInPopup && (
-                                        <div className="code-reveal mt-3">
-                                            <div className="bg-[#1e1e1e] rounded-xl overflow-hidden border border-slate-700">
-                                                {/* Code header */}
-                                                <div className="flex items-center px-4 py-2 bg-[#252526] border-b border-[#3e3e42]">
-                                                    <div className="flex space-x-1.5 mr-3">
-                                                        <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
-                                                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
-                                                        <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-                                                    </div>
-                                                    <Code size={12} className="text-slate-400 mr-2" />
-                                                    <span className="text-xs text-slate-400 font-mono">your_submission.{language === 'cpp' ? 'cpp' : language === 'c' ? 'c' : language === 'java' ? 'java' : 'js'}</span>
-                                                </div>
-                                                {/* Code content */}
-                                                <pre className="p-4 text-xs font-mono text-slate-300 overflow-x-auto max-h-48 overflow-y-auto leading-relaxed">
-                                                    <code>{code}</code>
-                                                </pre>
-                                            </div>
+                            <div className="p-8 space-y-6">
+                                {/* Score Display */}
+                                <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 p-8 rounded-[1.5rem] border-2 border-slate-700 shadow-2xl text-center relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 w-64 h-full bg-white/5 skew-x-[-30deg] translate-x-32 group-hover:translate-x-24 transition-all duration-1000"></div>
+                                    <div className="relative z-10">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3">SCORE_ANALYSIS</p>
+                                        <div className="score-animate">
+                                            <span className={`text-7xl font-black font-mono tabular-nums tracking-tighter ${resultData.passed ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                {resultData.passed ? animatedScore : resultData.score}
+                                            </span>
+                                            <span className="text-3xl font-bold text-slate-500">/100</span>
                                         </div>
+                                    </div>
+                                </div>
+
+                                {/* Test Cases Progress */}
+                                <div className="bg-white dark:bg-slate-800/30 rounded-[1.5rem] p-6 border-2 border-slate-100 dark:border-slate-800 transition-all">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-100 dark:border-blue-900/50">
+                                                <Code size={16} className="text-blue-600 dark:text-blue-400" />
+                                            </div>
+                                            <span className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">TEST_CASE_RESULTS</span>
+                                        </div>
+                                        <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black tracking-[0.2em] uppercase shadow-lg border border-white/5 ${resultData.passed ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
+                                            {resultData.testCasesPassed}/{resultData.totalTestCases} PASSED
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-4 overflow-hidden p-1 border border-slate-200 dark:border-slate-600">
+                                        <div
+                                            className={`h-full rounded-full progress-animate transition-all shadow-lg relative ${resultData.passed
+                                                ? 'bg-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+                                                : 'bg-red-600 shadow-[0_0_15px_rgba(239,68,68,0.5)]'}`}
+                                            style={{ width: `${(resultData.testCasesPassed / resultData.totalTestCases) * 100}%` }}
+                                        >
+                                            <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.1)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.1)_50%,rgba(255,255,255,0.1)_75%,transparent_75%,transparent)] bg-[length:15px_15px]"></div>
+                                        </div>
+                                    </div>
+                                    {/* Individual test case indicators */}
+                                    <div className="flex gap-2 mt-4">
+                                        {Array.from({ length: resultData.totalTestCases }).map((_, i) => (
+                                            <div
+                                                key={i}
+                                                className={`flex-1 h-2 rounded-full transition-all ${i < resultData.testCasesPassed
+                                                    ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                                                    : 'bg-red-500/60 dark:bg-red-600/60'}`}
+                                            ></div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Execution Metrics */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="group bg-white dark:bg-slate-800/30 rounded-[1.5rem] p-5 border-2 border-slate-100 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-900/50 transition-all hover:shadow-xl">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-100 dark:border-amber-900/50 transition-all group-hover:scale-110">
+                                                <Zap size={16} className="text-amber-600 dark:text-amber-400" />
+                                            </div>
+                                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">EXEC_TIME</span>
+                                        </div>
+                                        <p className="text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">{resultData.executionTime}</p>
+                                    </div>
+                                    <div className="group bg-white dark:bg-slate-800/30 rounded-[1.5rem] p-5 border-2 border-slate-100 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-900/50 transition-all hover:shadow-xl">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-100 dark:border-blue-900/50 transition-all group-hover:scale-110">
+                                                <Clock size={16} className="text-blue-600 dark:text-blue-400" />
+                                            </div>
+                                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">TIME_LEFT</span>
+                                        </div>
+                                        <p className="text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">{formatTime(timeLeft)}</p>
+                                    </div>
+                                </div>
+
+                                {/* Error Details (for fail) */}
+                                {!resultData.passed && resultData.errorDetails && (
+                                    <div className="bg-red-500/10 dark:bg-red-500/10 p-5 rounded-[1.5rem] border-2 border-red-500/20 relative overflow-hidden group">
+                                        <div className="absolute inset-0 bg-red-500 opacity-0 group-hover:opacity-5 transition-opacity"></div>
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <AlertCircle size={18} className="text-red-600 dark:text-red-400" />
+                                            <span className="font-black text-xs uppercase tracking-widest text-red-600 dark:text-red-400">ERROR_LOG</span>
+                                        </div>
+                                        <pre className="text-xs text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap bg-red-900/10 dark:bg-red-900/30 rounded-xl p-4 max-h-32 overflow-y-auto border border-red-200 dark:border-red-800">
+                                            {resultData.errorDetails}
+                                        </pre>
+                                    </div>
+                                )}
+
+                                {/* Code Reveal Toggle (for blind mode) */}
+                                {blindMode && (
+                                    <div>
+                                        <button
+                                            onClick={() => setShowCodeInPopup(!showCodeInPopup)}
+                                            className="w-full flex items-center justify-center gap-3 px-5 py-4 bg-purple-500/10 dark:bg-purple-500/10 border-2 border-purple-500/20 rounded-[1.5rem] text-purple-700 dark:text-purple-400 hover:bg-purple-500/15 transition-all font-black text-xs uppercase tracking-widest group"
+                                        >
+                                            {showCodeInPopup ? <EyeOff size={16} /> : <Eye size={16} />}
+                                            {showCodeInPopup ? 'HIDE_SOURCE_CODE' : 'REVEAL_SOURCE_CODE'}
+                                            {showCodeInPopup ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                        </button>
+
+                                        {showCodeInPopup && (
+                                            <div className="code-reveal mt-4">
+                                                <div className="bg-[#1e1e1e] rounded-[1.5rem] overflow-hidden border-2 border-slate-700">
+                                                    {/* Code header */}
+                                                    <div className="flex items-center px-5 py-3 bg-[#252526] border-b border-[#3e3e42]">
+                                                        <div className="flex space-x-1.5 mr-4">
+                                                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                                        </div>
+                                                        <Code size={12} className="text-slate-400 mr-2" />
+                                                        <span className="text-[10px] text-slate-400 font-mono font-black uppercase tracking-widest">your_submission.{language === 'cpp' ? 'cpp' : language === 'c' ? 'c' : language === 'java' ? 'java' : 'js'}</span>
+                                                    </div>
+                                                    {/* Code content */}
+                                                    <pre className="p-5 text-xs font-mono text-slate-300 overflow-x-auto max-h-48 overflow-y-auto leading-relaxed">
+                                                        <code>{code}</code>
+                                                    </pre>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-4 mt-2">
+                                    {resultData.passed ? (
+                                        <button
+                                            onClick={() => {
+                                                handleClosePopup();
+                                                navigate(blindMode ? '/competition/blind-coding/lobby' : '/practice');
+                                            }}
+                                            className="flex-1 px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] transform hover:-translate-y-1 active:scale-95 uppercase tracking-widest"
+                                        >
+                                            <Sparkles size={18} />
+                                            PROCEED_TO_NEXT
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button
+                                                onClick={handleClosePopup}
+                                                className="flex-1 px-6 py-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 uppercase tracking-widest hover:-translate-y-1 active:scale-95"
+                                            >
+                                                <RotateCcw size={16} />
+                                                RETRY
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    handleClosePopup();
+                                                    navigate(blindMode ? '/competition/blind-coding/lobby' : '/practice');
+                                                }}
+                                                className="flex-1 px-6 py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(239,68,68,0.3)] hover:shadow-[0_0_40px_rgba(239,68,68,0.5)] transform hover:-translate-y-1 active:scale-95 uppercase tracking-widest"
+                                            >
+                                                <LogOut size={16} />
+                                                ABORT
+                                            </button>
+                                        </>
                                     )}
                                 </div>
-                            )}
-
-                            {/* Action Buttons */}
-                            <div className="flex gap-3 mt-2">
-                                {resultData.passed ? (
-                                    <>
-                                        <button
-                                            onClick={() => {
-                                                handleClosePopup();
-                                                navigate(blindMode ? '/competition/blind-coding/lobby' : '/practice');
-                                            }}
-                                            className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
-                                        >
-                                            <Sparkles size={16} />
-                                            Continue
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button
-                                            onClick={handleClosePopup}
-                                            className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-sm transition-all"
-                                        >
-                                            Try Again
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                handleClosePopup();
-                                                navigate(blindMode ? '/competition/blind-coding/lobby' : '/practice');
-                                            }}
-                                            className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
-                                        >
-                                            Exit
-                                        </button>
-                                    </>
-                                )}
                             </div>
                         </div>
                     </div>
