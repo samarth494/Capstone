@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log*
+.env
+.env.*
+!.env.example
+sandbox/temp
+temp
+temp_code
+*.log
+logs
+.git
+.gitignore
+.vscode
+.idea
+dist
+build

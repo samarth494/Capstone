@@ -1,0 +1,85 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  CodeArena — Docker Compose (Full Stack)
+# ─────────────────────────────────────────────────────────────────────────────
+#  Usage:
+#    1. Copy .env.docker.example → .env.docker  and fill in your values
+#    2. docker compose up --build -d
+#    3. Open http://localhost in your browser
+#
+#  Architecture:
+#    client (nginx:80) ──proxy──▶ server (node:5000) ──docker.sock──▶ sandbox containers
+#                                        │
+#                                   MongoDB Atlas
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── Backend (Node.js + Express + Socket.io) ─────────────────────────────
+  server:
+    build:
+      context: ./codearena-server
+      dockerfile: Dockerfile
+    container_name: codearena-server
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+      # Sandbox temp MUST be a HOST path so spawned containers can access it.
+      # The server writes code files here, and sandbox "docker run -v" mounts
+      # the SAME host path into the per-language container.
+      - SANDBOX_TEMP_PATH=/tmp/codearena-sandbox
+    ports:
+      - "5000:5000"
+    volumes:
+      # Grant Docker CLI access to host daemon (sibling containers, not DinD)
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Shared temp dir — same HOST path mounted into both server and sandbox containers
+      - /tmp/codearena-sandbox:/tmp/codearena-sandbox
+    depends_on:
+      pull-sandbox-images:
+        condition: service_completed_successfully
+    networks:
+      - codearena-net
+
+  # ── Frontend (Vite → nginx) ─────────────────────────────────────────────
+  client:
+    build:
+      context: ./codearena-client
+      dockerfile: Dockerfile
+      args:
+        # Backend URL as seen from the BROWSER
+        # For local Docker: http://localhost:5000
+        # For VPS with domain: https://api.yourdomain.com
+        VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:5000}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+    container_name: codearena-client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - codearena-net
+
+  # ── Pre-pull sandbox images (one-time init) ─────────────────────────────
+  # Ensures language runtime images are cached so first code execution is fast.
+  pull-sandbox-images:
+    image: docker:cli
+    container_name: codearena-pull-images
+    restart: "no"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: >
+      sh -c "
+        echo '📦 Pre-pulling sandbox images...' &&
+        docker pull python:3.10 &&
+        docker pull node:18-alpine &&
+        docker pull gcc:latest &&
+        docker pull openjdk:17-alpine &&
+        echo '✅ All sandbox images ready!'
+      "
+    networks:
+      - codearena-net
+
+networks:
+  codearena-net:
+    driver: bridge
