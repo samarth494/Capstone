@@ -3,6 +3,11 @@ const { executeSubmission } = require("../utils/executionHandler");
 const User = require("../models/User");
 const Battle = require("../models/Battle");
 const { calculateRank } = require("../utils/rankUtils");
+const {
+  initTabSwitchTracking,
+  handleTabSwitchDetected,
+  isPlayerDisqualified,
+} = require("./tabSwitchHandler");
 
 const battleQueue = []; // Simple in-memory queue
 const activeBattles = {};
@@ -377,6 +382,9 @@ const socketHandler = (server) => {
           timeLeft: 300, // 5 minutes start time
         };
 
+        // Initialize tab-switch anti-cheat tracking
+        initTabSwitchTracking(competitionRooms[eventId]);
+
         // Start the 5-minute lobby timer
         const room = competitionRooms[eventId];
         room.timerInterval = setInterval(() => {
@@ -532,6 +540,14 @@ const socketHandler = (server) => {
       });
     });
 
+    // --- Tab Switch Detection Handler (BLIND Mode Anti-Cheat) ---
+    socket.on("tab-switch-detected", ({ eventId, userId }) => {
+      const room = competitionRooms[eventId];
+      if (!room) return;
+
+      handleTabSwitchDetected({ io, socket, eventId, userId, room });
+    });
+
     // --- Competition Submission Handler (Multi-Level) ---
     socket.on(
       "competition:submit",
@@ -546,6 +562,17 @@ const socketHandler = (server) => {
         level,
       }) => {
         const room = competitionRooms[eventId];
+
+        // Block submissions from disqualified players
+        if (room && isPlayerDisqualified(room, userId)) {
+          console.log(
+            `[Competition ${eventId}] Submission blocked: ${username} is disqualified.`,
+          );
+          socket.emit("competition:error", {
+            message: "You have been disqualified and cannot submit.",
+          });
+          return;
+        }
         if (!room) return;
 
         const currentLevel = level || room.currentLevel;
@@ -592,7 +619,7 @@ const socketHandler = (server) => {
         const bd = sub.breakdown;
 
         // 1. Enforce participation based on status (not client claim)
-        bd.participationBonus = sub.status === 'timeout' ? 0 : 50;
+        bd.participationBonus = sub.status === "timeout" ? 0 : 50;
 
         // 2. Cap all bonus values to their allowed maximums
         bd.correctCode = Math.min(Math.max(0, bd.correctCode || 0), 1000);
@@ -606,15 +633,18 @@ const socketHandler = (server) => {
         //    Client could send timeTaken=5 via DevTools to inflate speed bonus.
         //    We compute the real elapsed time from when the level started.
         if (room.levelStartedAt) {
-          const serverElapsed = Math.floor((Date.now() - room.levelStartedAt) / 1000);
+          const serverElapsed = Math.floor(
+            (Date.now() - room.levelStartedAt) / 1000,
+          );
           const LEVEL_TIME_LIMIT = 300; // Must match client constant
           const claimedTime = sub.timeTaken || serverElapsed;
 
           // Server time is authoritative — client can't claim less than server elapsed
-          if (claimedTime < serverElapsed - 5) { // 5s buffer for network latency
+          if (claimedTime < serverElapsed - 5) {
+            // 5s buffer for network latency
             console.log(
               `[Competition ${eventId}] TIME MANIPULATION detected for ${username}: ` +
-              `claimed ${claimedTime}s but server says ${serverElapsed}s elapsed. Correcting.`,
+                `claimed ${claimedTime}s but server says ${serverElapsed}s elapsed. Correcting.`,
             );
             sub.timeTaken = serverElapsed;
           }
@@ -641,7 +671,7 @@ const socketHandler = (server) => {
           if (bd.speedBonus > serverSpeedBonus) {
             console.log(
               `[Competition ${eventId}] SPEED BONUS adjusted for ${username}: ` +
-              `client claimed ${bd.speedBonus}, server computed ${serverSpeedBonus}`,
+                `client claimed ${bd.speedBonus}, server computed ${serverSpeedBonus}`,
             );
             bd.speedBonus = serverSpeedBonus;
           }
@@ -649,7 +679,11 @@ const socketHandler = (server) => {
 
         // 4. Recalculate total from validated components
         //    This prevents someone from sending score: 99999
-        const validatedScore = bd.participationBonus + bd.correctCode + bd.speedBonus + bd.effortBonus;
+        const validatedScore =
+          bd.participationBonus +
+          bd.correctCode +
+          bd.speedBonus +
+          bd.effortBonus;
         if (sub.score !== validatedScore) {
           console.log(
             `[Competition ${eventId}] SCORE MISMATCH for ${username}: client sent ${sub.score}, validated to ${validatedScore}`,
@@ -773,11 +807,11 @@ const socketHandler = (server) => {
 
             console.log(
               `[Competition] Relative Bonus: ${sub.username} | ` +
-              `Rank ${index + 1}/${numPlayers} | ` +
-              `Tests: ${sub.breakdown?.testsPassed || 0}/${sub.breakdown?.testsTotal || '?'} | ` +
-              `Errors: ${sub.breakdown?.errorCount || 0} | ` +
-              `Status: ${sub.status} | ` +
-              `Bonus: +${relativeBonus}`,
+                `Rank ${index + 1}/${numPlayers} | ` +
+                `Tests: ${sub.breakdown?.testsPassed || 0}/${sub.breakdown?.testsTotal || "?"} | ` +
+                `Errors: ${sub.breakdown?.errorCount || 0} | ` +
+                `Status: ${sub.status} | ` +
+                `Bonus: +${relativeBonus}`,
             );
           });
 
@@ -931,23 +965,32 @@ const socketHandler = (server) => {
                   levelScores: {},
                 };
               }
-              room.cumulativeScores[disconnectedUserId].levelScores[currentLevel] = 0;
+              room.cumulativeScores[disconnectedUserId].levelScores[
+                currentLevel
+              ] = 0;
 
               // Notify remaining players
               const remainingPlayers = room.players.length - 1; // -1 because not yet removed
-              io.to(`competition_${eventId}`).emit("competition:playerSubmitted", {
-                userId: disconnectedUserId,
-                username: disconnectedUsername + " (disconnected)",
-                totalSubmitted: Object.keys(room.levelSubmissions[currentLevel]).length,
-                totalPlayers: remainingPlayers,
-                level: currentLevel,
-              });
+              io.to(`competition_${eventId}`).emit(
+                "competition:playerSubmitted",
+                {
+                  userId: disconnectedUserId,
+                  username: disconnectedUsername + " (disconnected)",
+                  totalSubmitted: Object.keys(
+                    room.levelSubmissions[currentLevel],
+                  ).length,
+                  totalPlayers: remainingPlayers,
+                  level: currentLevel,
+                },
+              );
 
               // ── DEADLOCK CHECK ────────────────────────────────────────
               // If the disconnecting player was the last one needed to
               // complete the level, we must trigger level-complete now.
               // We use remainingPlayers (after removal) as the new player count.
-              const submittedCount = Object.keys(room.levelSubmissions[currentLevel]).length;
+              const submittedCount = Object.keys(
+                room.levelSubmissions[currentLevel],
+              ).length;
               if (remainingPlayers > 0 && submittedCount >= remainingPlayers) {
                 console.log(
                   `[Competition ${eventId}] Disconnect triggered level ${currentLevel} completion with ${remainingPlayers} remaining players.`,
@@ -957,14 +1000,22 @@ const socketHandler = (server) => {
 
                 // Emit the level-complete or competition-end event
                 // (reuse the same logic as the normal submission handler)
-                io.to(`competition_${eventId}`).emit("competition:disconnectForceComplete", {
-                  level: currentLevel,
-                  message: `${disconnectedUsername} disconnected. Level auto-completed.`,
-                });
+                io.to(`competition_${eventId}`).emit(
+                  "competition:disconnectForceComplete",
+                  {
+                    level: currentLevel,
+                    message: `${disconnectedUsername} disconnected. Level auto-completed.`,
+                  },
+                );
 
                 // Update player list for remaining
-                io.to(`competition_${eventId}`).emit("competition:updatePlayers", room.players);
-                io.to(`competition_${eventId}`).emit("competition:hostInfo", { hostId: room.hostId });
+                io.to(`competition_${eventId}`).emit(
+                  "competition:updatePlayers",
+                  room.players,
+                );
+                io.to(`competition_${eventId}`).emit("competition:hostInfo", {
+                  hostId: room.hostId,
+                });
                 return; // Skip the duplicate splice below
               }
             }

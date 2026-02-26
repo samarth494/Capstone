@@ -21,12 +21,15 @@ import {
     Users,
     ArrowRight,
     Star,
-    Loader2
+    Loader2,
+    ShieldAlert
 } from 'lucide-react';
 
 import { useTheme } from '../context/ThemeContext';
 import { getSocket, initiateSocketConnection } from '../services/socket';
 import { API_BASE_URL } from '../config/api';
+import useTabSwitchDetection from '../hooks/useTabSwitchDetection';
+import TabSwitchWarningModal from '../components/TabSwitchWarningModal';
 
 // ===== BLIND CODING LEVEL PROBLEMS =====
 const LEVEL_PROBLEMS = {
@@ -221,6 +224,27 @@ export default function ProblemSolverPage() {
     // Timer state
     const [timeLeft, setTimeLeft] = useState(isCompetitionMode ? LEVEL_TIME_LIMIT : 15 * 60);
     const timerRef = useRef(null);
+
+    // === Tab Switch Detection (BLIND mode anti-cheat) ===
+    // Must be declared AFTER timeLeft to avoid ReferenceError
+    const tabSwitchSocket = getSocket();
+    const storedUserForTabSwitch = (() => {
+        try { return JSON.parse(localStorage.getItem('user')); } catch(e) { return null; }
+    })();
+    const {
+        warnings: tabSwitchWarnings,
+        maxWarnings: tabSwitchMaxWarnings,
+        showWarningModal: showTabSwitchWarning,
+        warningMessage: tabSwitchMessage,
+        isDisqualified: isTabSwitchDQ,
+        dismissWarning: dismissTabSwitchWarning,
+    } = useTabSwitchDetection({
+        socket: tabSwitchSocket,
+        eventId: eventId,
+        userId: storedUserForTabSwitch?._id,
+        isBlindMode: !!isCompetitionMode && !!blindMode,
+        isActive: isCompetitionMode && !hasSubmitted && !showFinalResults && !showLevelLeaderboard && timeLeft > 0,
+    });
 
     // Timer effect
     useEffect(() => {
@@ -858,6 +882,19 @@ export default function ProblemSolverPage() {
                                     <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
                                         LEVEL_{currentLevel}
                                     </span>
+                                    {/* Tab Switch Warning Counter Badge */}
+                                    {isCompetitionMode && blindMode && tabSwitchWarnings > 0 && (
+                                        <div className={`flex items-center gap-1.5 ml-3 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${
+                                            isTabSwitchDQ
+                                                ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 animate-pulse'
+                                                : tabSwitchWarnings >= tabSwitchMaxWarnings - 1
+                                                    ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800'
+                                                    : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800'
+                                        }`}>
+                                            <ShieldAlert size={12} />
+                                            <span>{isTabSwitchDQ ? 'DQ' : `${tabSwitchWarnings}/${tabSwitchMaxWarnings}`}</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -1563,6 +1600,16 @@ export default function ProblemSolverPage() {
                     </div>
                 </div>
             )}
+
+            {/* ===== TAB SWITCH WARNING MODAL ===== */}
+            <TabSwitchWarningModal
+                show={showTabSwitchWarning}
+                warnings={tabSwitchWarnings}
+                maxWarnings={tabSwitchMaxWarnings}
+                message={tabSwitchMessage}
+                isDisqualified={isTabSwitchDQ}
+                onDismiss={dismissTabSwitchWarning}
+            />
         </div>
     );
 }
