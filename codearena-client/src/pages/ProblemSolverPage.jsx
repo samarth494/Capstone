@@ -188,6 +188,9 @@ export default function ProblemSolverPage() {
     const [levelStartTime, setLevelStartTime] = useState(Date.now());
     const [nextLevel, setNextLevel] = useState(null);
     const [compileErrorCount, setCompileErrorCount] = useState(0); // Only tracks compile/runtime errors, not wrong answers
+    const [iAmReady, setIAmReady] = useState(false);       // Did I click PROCEED?
+    const [readyCount, setReadyCount] = useState(0);       // How many clicked PROCEED
+    const [totalReadyPlayers, setTotalReadyPlayers] = useState(0); // Total expected
 
     const languages = [
         { id: 'javascript', name: 'JavaScript', version: 'v18.0' },
@@ -289,13 +292,17 @@ export default function ProblemSolverPage() {
             }
         };
 
-        const handleLevelComplete = ({ level, levelLeaderboard: lb, cumulativeLeaderboard: cb, nextLevel: nl }) => {
+        const handleLevelComplete = ({ level, levelLeaderboard: lb, cumulativeLeaderboard: cb, nextLevel: nl, totalLevels: tl }) => {
             if (level === currentLevel) {
                 setLevelLeaderboard(lb);
                 setCumulativeLeaderboard(cb);
                 setNextLevel(nl);
                 setShowWaiting(false);
                 setShowLevelLeaderboard(true);
+                // Reset ready-up state for this transition
+                setIAmReady(false);
+                setReadyCount(0);
+                setTotalReadyPlayers(tl || 0);
             }
         };
 
@@ -307,14 +314,45 @@ export default function ProblemSolverPage() {
             setShowFinalResults(true);
         };
 
+        // Server tells us how many players have clicked PROCEED
+        const handleReadyUpdate = ({ readyCount: rc, totalCount: tc }) => {
+            setReadyCount(rc);
+            setTotalReadyPlayers(tc);
+        };
+
+        // ALL players are ready — actually advance to the next level
+        const handleNextLevelStart = ({ nextLevel: nl }) => {
+            setShowLevelLeaderboard(false);
+            setCurrentLevel(nl);
+            setCode(getStarterCode(nl));
+            setHasSubmitted(false);
+            setShowWaiting(false);
+            setTimeLeft(LEVEL_TIME_LIMIT);
+            setLevelStartTime(Date.now());
+            setSubmittedCount(0);
+            setCompileErrorCount(0);
+            setTestCaseResults([]);
+            setCustomInput('');
+            setActiveTestCaseTab(0);
+            setActiveConsoleTab('output');
+            setOutput('');
+            setIAmReady(false);
+            setReadyCount(0);
+            setTotalReadyPlayers(0);
+        };
+
         socket.on('competition:playerSubmitted', handlePlayerSubmitted);
         socket.on('competition:levelComplete', handleLevelComplete);
         socket.on('competition:competitionEnd', handleCompetitionEnd);
+        socket.on('competition:readyUpdate', handleReadyUpdate);
+        socket.on('competition:nextLevelStart', handleNextLevelStart);
 
         return () => {
             socket.off('competition:playerSubmitted', handlePlayerSubmitted);
             socket.off('competition:levelComplete', handleLevelComplete);
             socket.off('competition:competitionEnd', handleCompetitionEnd);
+            socket.off('competition:readyUpdate', handleReadyUpdate);
+            socket.off('competition:nextLevelStart', handleNextLevelStart);
         };
     }, [isCompetitionMode, currentLevel]);
 
@@ -348,23 +386,19 @@ export default function ProblemSolverPage() {
         }
     }, [problemId, language, isCompetitionMode]);
 
-    // === Move to Next Level ===
+    // === Signal Ready for Next Level (PROCEED button) ===
+    // Emits to server; the server waits for ALL players, then broadcasts nextLevelStart.
     const handleNextLevel = () => {
-        if (!nextLevel) return;
-        setShowLevelLeaderboard(false);
-        setCurrentLevel(nextLevel);
-        setCode(getStarterCode(nextLevel));
-        setHasSubmitted(false);
-        setShowWaiting(false);
-        setTimeLeft(LEVEL_TIME_LIMIT);
-        setLevelStartTime(Date.now());
-        setSubmittedCount(0);
-        setCompileErrorCount(0);
-        setTestCaseResults([]);
-        setCustomInput('');
-        setActiveTestCaseTab(0);
-        setActiveConsoleTab('output');
-        setOutput('');
+        if (!nextLevel || iAmReady) return; // Prevent double-emit
+        setIAmReady(true);
+        const socket = getSocket();
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        if (socket && eventId) {
+            socket.emit('competition:playerReady', {
+                eventId,
+                userId: storedUser._id || storedUser.id,
+            });
+        }
     };
 
     const handleLogout = () => {
@@ -1272,7 +1306,7 @@ export default function ProblemSolverPage() {
             {showLevelLeaderboard && (
                 <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-xl flex items-center justify-center p-6 overflow-y-auto">
                     <div className="max-w-2xl w-full animate-slide-up">
-                        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+                        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-slate-200 dark:border-slate-800 shadow-2xl">
                             {/* Header */}
                             <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-8 text-center">
                                 <div className="flex items-center justify-center gap-3 mb-4">
@@ -1291,7 +1325,7 @@ export default function ProblemSolverPage() {
                                 <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">
                                     LEVEL {currentLevel} RESULTS
                                 </h3>
-                                <div className="space-y-2">
+                                <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
                                     {levelLeaderboard.map((player, idx) => {
                                         const isMe = player.username === user?.username || player.userId === user?._id;
                                         return (
@@ -1397,37 +1431,65 @@ export default function ProblemSolverPage() {
                                         <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">
                                             CUMULATIVE STANDINGS
                                         </h3>
-                                        {cumulativeLeaderboard.map((player, idx) => {
-                                            const isMe = player.username === user?.username || player.userId === user?._id;
-                                            return (
-                                                <div key={player.userId} className={`flex items-center justify-between p-3 rounded-lg mb-1 ${isMe ? 'bg-blue-50/50 dark:bg-blue-500/5' : ''
-                                                    }`}>
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-xs font-black text-slate-400 w-6">#{idx + 1}</span>
-                                                        <span className={`font-bold text-sm ${isMe ? 'text-blue-600' : 'text-slate-700 dark:text-slate-300'}`}>
-                                                            {player.username}
-                                                        </span>
+                                        <div className="max-h-[20vh] overflow-y-auto pr-1">
+                                            {cumulativeLeaderboard.map((player, idx) => {
+                                                const isMe = player.username === user?.username || player.userId === user?._id;
+                                                return (
+                                                    <div key={player.userId} className={`flex items-center justify-between p-3 rounded-lg mb-1 ${isMe ? 'bg-blue-50/50 dark:bg-blue-500/5' : ''
+                                                        }`}>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-xs font-black text-slate-400 w-6">#{idx + 1}</span>
+                                                            <span className={`font-bold text-sm ${isMe ? 'text-blue-600' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                                {player.username}
+                                                            </span>
+                                                        </div>
+                                                        <span className="font-black text-sm text-slate-900 dark:text-white">{player.totalScore} pts</span>
                                                     </div>
-                                                    <span className="font-black text-sm text-slate-900 dark:text-white">{player.totalScore} pts</span>
-                                                </div>
-                                            );
-                                        })}
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 )
                                 }
                             </div>
 
-                            {/* Next Level Button */}
+                            {/* Next Level Button / Ready-Up Gate */}
                             <div className="p-6 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                <button
-                                    onClick={handleNextLevel}
-                                    className="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all shadow-xl shadow-purple-500/20 hover:shadow-purple-500/40 transform hover:-translate-y-0.5 active:scale-95 uppercase tracking-widest"
-                                    style={{ animation: 'pulse-glow 2s infinite' }}
-                                >
-                                    <Play size={20} fill="currentColor" />
-                                    PROCEED TO LEVEL {nextLevel}
-                                    <ArrowRight size={18} />
-                                </button>
+                                {!iAmReady ? (
+                                    <button
+                                        onClick={handleNextLevel}
+                                        className="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all shadow-xl shadow-purple-500/20 hover:shadow-purple-500/40 transform hover:-translate-y-0.5 active:scale-95 uppercase tracking-widest"
+                                        style={{ animation: 'pulse-glow 2s infinite' }}
+                                    >
+                                        <Play size={20} fill="currentColor" />
+                                        PROCEED TO LEVEL {nextLevel}
+                                        <ArrowRight size={18} />
+                                    </button>
+                                ) : (
+                                    <div className="w-full py-4 bg-slate-100 dark:bg-slate-800 rounded-2xl flex flex-col items-center justify-center gap-2">
+                                        <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                                            <Loader2 size={18} className="animate-spin" />
+                                            <span className="font-black text-sm uppercase tracking-widest">
+                                                Waiting for warriors...
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+                                            <Users size={13} />
+                                            <span>{readyCount} / {totalReadyPlayers || '?'} ready</span>
+                                            <div className="flex gap-1 ml-1">
+                                                {Array.from({ length: totalReadyPlayers || 0 }).map((_, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className={`w-2 h-2 rounded-full transition-all ${i < readyCount
+                                                            ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]'
+                                                            : 'bg-slate-300 dark:bg-slate-600'
+                                                            }`}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1454,7 +1516,7 @@ export default function ProblemSolverPage() {
                     </div>
 
                     <div className="max-w-3xl w-full relative z-10 animate-slide-up">
-                        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-yellow-300 dark:border-yellow-600 shadow-[0_0_60px_rgba(234,179,8,0.3)] overflow-hidden">
+                        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-yellow-300 dark:border-yellow-600 shadow-[0_0_60px_rgba(234,179,8,0.3)]">
                             {/* Winner Header */}
                             <div className="bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 p-10 text-center relative overflow-hidden">
                                 <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.1)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.1)_50%,rgba(255,255,255,0.1)_75%,transparent_75%,transparent)] bg-[length:20px_20px]"></div>
@@ -1493,7 +1555,7 @@ export default function ProblemSolverPage() {
                                 <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">
                                     FINAL STANDINGS
                                 </h3>
-                                <div className="space-y-2">
+                                <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
                                     {cumulativeLeaderboard.map((player, idx) => {
                                         const isMe = player.username === user?.username || player.userId === user?._id;
                                         return (

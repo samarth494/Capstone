@@ -130,7 +130,7 @@ export default function CompetitionLobbyPage() {
         const interval = setInterval(() => {
             const now = Date.now() + serverTimeOffset;
             const diff = Math.ceil((battleStartsAt - now) / 1000);
-            
+
             if (diff >= 0) {
                 setCountdown(diff);
                 if (diff > 0) {
@@ -168,7 +168,7 @@ export default function CompetitionLobbyPage() {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 font-['JetBrains_Mono'] text-slate-900 dark:text-white selection:bg-blue-500/30 transition-colors duration-300">
-            <Navbar />
+            <Navbar user={user} />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative">
                 {/* Background Decor */}
@@ -256,7 +256,7 @@ export default function CompetitionLobbyPage() {
                                 </div>
                                 <div className="px-4 py-1.5 bg-slate-900 dark:bg-slate-800 rounded-xl">
                                     <span className="text-[10px] font-bold text-white tracking-widest uppercase">
-                                        {players.length || 1}/5 Ready
+                                        {players.length || 1}/10 Ready
                                     </span>
                                 </div>
                             </div>
@@ -320,7 +320,7 @@ export default function CompetitionLobbyPage() {
                                         <div className="h-3 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-800">
                                             <motion.div
                                                 className="h-full bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-[0_0_15px_rgba(37,99,235,0.3)]"
-                                                animate={{ width: `${(players.length / 5) * 100}%` }}
+                                                animate={{ width: `${(players.length / 10) * 100}%` }}
                                                 transition={{ duration: 1.5, ease: "anticipate" }}
                                             />
                                         </div>
@@ -342,7 +342,7 @@ export default function CompetitionLobbyPage() {
                                     <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">Rules of Engagement</p>
                                 </div>
                             </div>
- 
+
                             <div className="p-8 space-y-6">
                                 {[
                                     { id: '01', title: 'Zero Visibility', desc: 'No visual feedback. Code in the void.' },
@@ -364,7 +364,7 @@ export default function CompetitionLobbyPage() {
                                         </div>
                                     </div>
                                 ))}
- 
+
                                 <div className="bg-red-50 dark:bg-red-900/10 p-5 rounded-2xl border border-red-100 dark:border-red-900/20 relative overflow-hidden group mt-6">
                                     <div className="flex items-center gap-2 justify-center text-red-600 dark:text-red-400 mb-1">
                                         <Zap size={14} />
@@ -432,7 +432,7 @@ export default function CompetitionLobbyPage() {
 
                                         <div className="max-w-[200px] mx-auto">
                                             <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
-                                                <motion.div 
+                                                <motion.div
                                                     className="h-full bg-blue-600 rounded-full"
                                                     animate={{ width: `${(countdown / 10) * 100}%` }}
                                                     transition={{ duration: 1, ease: "linear" }}
@@ -453,7 +453,7 @@ export default function CompetitionLobbyPage() {
                                                 <Swords className="w-full h-full text-white animate-bounce" />
                                             </div>
                                         </div>
-                                        
+
                                         <div>
                                             <h2 className="text-8xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic mb-2">
                                                 Go!

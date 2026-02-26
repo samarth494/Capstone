@@ -7,7 +7,7 @@ const { calculateRank } = require("../utils/rankUtils");
 const battleQueue = []; // Simple in-memory queue
 const activeBattles = {};
 const competitionRooms = {}; // Tracks players and host for each competition event
-const MAX_COMPETITION_PLAYERS = 5; // Maximum players per competition lobby
+const MAX_COMPETITION_PLAYERS = 10; // Maximum players per competition lobby
 const COUNTDOWN_SECONDS = 10; // Countdown duration before battle starts
 const TOTAL_LEVELS = 3; // Total levels in blind coding competition
 
@@ -429,7 +429,7 @@ const socketHandler = (server) => {
       // If lobby is full, reject
       if (room.players.length >= MAX_COMPETITION_PLAYERS) {
         socket.emit("competition:error", {
-          message: "Lobby is full (max 2 players).",
+          message: "Lobby is full (max 10 players).",
         });
         return;
       }
@@ -818,21 +818,23 @@ const socketHandler = (server) => {
             }));
 
           if (currentLevel < room.totalLevels) {
-            // Move to next level
-            room.currentLevel = currentLevel + 1;
-            // Reset level start time for the new level (client gets ~5s to read results)
-            room.levelStartedAt = Date.now() + 5000;
+            const nextLevel = currentLevel + 1;
+            // Store the pending next level — do NOT advance yet.
+            // room.currentLevel advances only when ALL players signal ready.
+            room.pendingNextLevel = nextLevel;
+            room.readyPlayers = new Set(); // Reset ready set for this transition
 
             console.log(
-              `[Competition ${eventId}] Level ${currentLevel} complete! All submitted. Moving to level ${room.currentLevel}.`,
+              `[Competition ${eventId}] Level ${currentLevel} complete! Waiting for all players to signal ready before starting level ${nextLevel}.`,
             );
 
-            // Broadcast level completion with leaderboard
+            // Broadcast level completion with leaderboard — clients show the overlay.
+            // They must click "PROCEED" to signal they are ready.
             io.to(`competition_${eventId}`).emit("competition:levelComplete", {
               level: currentLevel,
               levelLeaderboard,
               cumulativeLeaderboard,
-              nextLevel: room.currentLevel,
+              nextLevel,
               totalLevels: room.totalLevels,
               eventId,
             });
@@ -860,6 +862,52 @@ const socketHandler = (server) => {
         }
       },
     );
+
+    // ── READY-UP GATE ─────────────────────────────────────────────────────
+    // Each player emits this when they click "PROCEED TO NEXT LEVEL".
+    // The server waits until ALL active players have signalled ready,
+    // then broadcasts competition:nextLevelStart so everyone advances together.
+    socket.on("competition:playerReady", ({ eventId, userId }) => {
+      const room = competitionRooms[eventId];
+      if (!room || !room.pendingNextLevel) return;
+
+      // Register this player as ready
+      room.readyPlayers = room.readyPlayers || new Set();
+      room.readyPlayers.add(userId);
+
+      const readyCount = room.readyPlayers.size;
+      const totalCount = room.players.length;
+
+      console.log(
+        `[Competition ${eventId}] Player ${userId} is ready for level ${room.pendingNextLevel}. Ready: ${readyCount}/${totalCount}`,
+      );
+
+      // Broadcast updated ready count so everyone can see the waiting state
+      io.to(`competition_${eventId}`).emit("competition:readyUpdate", {
+        readyCount,
+        totalCount,
+        nextLevel: room.pendingNextLevel,
+      });
+
+      // When ALL players are ready, advance the level for everyone
+      if (readyCount >= totalCount) {
+        const nextLevel = room.pendingNextLevel;
+        room.currentLevel = nextLevel;
+        room.pendingNextLevel = null;
+        room.readyPlayers = new Set();
+        // The level clock starts now (authoritative server time)
+        room.levelStartedAt = Date.now() + 3000; // 3s buffer after start signal
+
+        console.log(
+          `[Competition ${eventId}] All players ready! Starting level ${nextLevel}.`,
+        );
+
+        io.to(`competition_${eventId}`).emit("competition:nextLevelStart", {
+          nextLevel,
+          levelStartedAt: room.levelStartedAt,
+        });
+      }
+    });
 
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
