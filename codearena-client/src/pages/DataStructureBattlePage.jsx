@@ -1,4 +1,11 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Swords, ArrowLeft, ChevronRight, Cpu, Target, Zap, Clock, Star, Play } from 'lucide-react';
+import LoginModal from '../components/LoginModal';
+import SignupModal from '../components/SignupModal';
 import { useTheme } from '../context/ThemeContext';
+
 
 const problems = [
   // 🟢 Beginner Tier (1-5)

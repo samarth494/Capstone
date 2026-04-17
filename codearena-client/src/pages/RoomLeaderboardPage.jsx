@@ -135,7 +135,7 @@ export default function RoomLeaderboardPage() {
                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">YOUR TOTAL</div>
                             <div className="text-2xl font-bold text-purple-600 flex items-center gap-1">
                                 <Zap size={18} />
-                                {currentUserScore} <span className="text-sm text-slate-400 font-normal">/ 2200</span>
+                                {currentUserScore} <span className="text-sm text-slate-400 font-normal">/ 1680</span>
                             </div>
                         </div>
 
@@ -197,11 +197,10 @@ export default function RoomLeaderboardPage() {
                                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest w-16">RANK</th>
                                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">WARRIOR</th>
                                     <th className="px-4 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">STATUS</th>
-                                    <th className="px-4 py-4 text-[10px] font-bold text-cyan-500 uppercase tracking-widest text-center">PARTCPN<br />+50</th>
+                                    <th className="px-4 py-4 text-[10px] font-bold text-cyan-500 uppercase tracking-widest text-center">PARTCPN<br />+30</th>
                                     <th className="px-4 py-4 text-[10px] font-bold text-green-500 uppercase tracking-widest text-center">CORRECT<br />+1000</th>
                                     <th className="px-4 py-4 text-[10px] font-bold text-blue-500 uppercase tracking-widest text-center">SPEED<br />+500</th>
                                     <th className="px-4 py-4 text-[10px] font-bold text-amber-500 uppercase tracking-widest text-center">EFFORT<br />+150</th>
-                                    <th className="px-4 py-4 text-[10px] font-bold text-purple-500 uppercase tracking-widest text-center">RANKING<br />+500</th>
                                     <th className="px-4 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">TOTAL</th>
                                     <th className="px-4 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">TIME</th>
                                 </tr>
@@ -284,12 +283,6 @@ export default function RoomLeaderboardPage() {
                                                         +{bd.effortBonus || 0}
                                                     </span>
                                                 </td>
-                                                {/* Ranking Bonus */}
-                                                <td className="px-4 py-5 text-center">
-                                                    <span className={`font-bold text-sm ${bd.relativeBonus > 0 ? 'text-purple-600' : 'text-slate-300'}`}>
-                                                        +{bd.relativeBonus || 0}
-                                                    </span>
-                                                </td>
                                                 {/* Total Score */}
                                                 <td className="px-4 py-5 text-center">
                                                     <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${getScoreColor(player.score)}`}>
@@ -317,9 +310,9 @@ export default function RoomLeaderboardPage() {
                     <div className="text-slate-400 text-xs space-y-1">
                         <p className="flex items-center gap-2">
                             <Star size={14} className="text-yellow-500" />
-                            <strong>Scoring:</strong> Participation (50) + Correctness (0-1000) + Speed (0-500) + Effort (0-150) + Ranking (0-500) = Max 2200 pts
+                            <strong>Scoring:</strong> Participation (30) + Correctness (0-1000) + Speed (0-500) + Effort (0-150) = Max 1680 pts
                         </p>
-                        <p className="ml-6 text-[10px]">Speed scales with performance tier &nbsp;|&nbsp; Ranking bonus based on tests passed → errors → time</p>
+                        <p className="ml-6 text-[10px]">Speed scales with performance tier</p>
                     </div>
 
                     <div className="flex gap-3">

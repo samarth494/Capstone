@@ -5,7 +5,67 @@ const Problem = require("../models/Problem");
 
 const seedProblems = [
   {
+    title: "Even or Odd",
+    slug: "even-or-odd",
+    description: "Write a program that determines if a given integer is 'Even' or 'Odd'.\n\n### Input\nA single integer.\n\n### Output\nPrint `Even` if the number is even, otherwise print `Odd`.",
+    difficulty: "Easy",
+    categories: ["Fundamentals"],
+    tags: ["Math", "Conditionals"],
+    xpReward: 10,
+    templates: [
+      { language: "javascript", code: "const readline = require('readline');\nconst rl = readline.createInterface({ input: process.stdin });\nrl.on('line', (line) => {\n    // Your code here\n});\n" },
+      { language: "python", code: "n = int(input())\n# Print Even or Odd\n" },
+      { language: "java", code: "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        int n = scanner.nextInt();\n        // Write logic here\n    }\n}\n" }
+    ],
+    testCases: [
+      { input: "4", output: "Even" },
+      { input: "7", output: "Odd" },
+      { input: "0", output: "Even" },
+      { input: "-3", output: "Odd" }
+    ],
+    examples: [{ input: "4", output: "Even", explanation: "4 is divisible by 2" }]
+  },
+  {
+    title: "Reverse a String",
+    slug: "reverse-string",
+    description: "Write a program that takes a string and prints it in reverse order.\n\n### Input\nA single string.\n\n### Output\nThe reversed string.",
+    difficulty: "Easy",
+    categories: ["Fundamentals"],
+    tags: ["Strings"],
+    xpReward: 10,
+    templates: [
+      { language: "javascript", code: "const readline = require('readline');\nconst rl = readline.createInterface({ input: process.stdin });\nrl.on('line', (line) => {\n    // Output reversed string\n});\n" },
+      { language: "python", code: "s = input()\n# Print reversed string\n" }
+    ],
+    testCases: [
+      { input: "hello", output: "olleh" },
+      { input: "world", output: "dlrow" },
+      { input: "codearena", output: "aneraedoc" }
+    ],
+    examples: [{ input: "hello", output: "olleh", explanation: "Reversing 'hello' gives 'olleh'" }]
+  },
+  {
+    title: "Find Maximum",
+    slug: "find-maximum",
+    description: "Given three integers on separate lines, find and print the largest one.\n\n### Input\nThree integers, each on a new line.\n\n### Output\nA single integer representing the maximum value.",
+    difficulty: "Easy",
+    categories: ["Fundamentals"],
+    tags: ["Math", "Conditionals"],
+    xpReward: 10,
+    templates: [
+      { language: "javascript", code: "const readline = require('readline');\nconst rl = readline.createInterface({ input: process.stdin });\nconst lines = [];\nrl.on('line', (line) => lines.push(line));\nrl.on('close', () => {\n    // Your code here\n});\n" },
+      { language: "python", code: "a = int(input())\nb = int(input())\nc = int(input())\n# Print max\n" }
+    ],
+    testCases: [
+      { input: "10\n5\n8", output: "10" },
+      { input: "-1\n-5\n-3", output: "-1" },
+      { input: "7\n7\n7", output: "7" }
+    ],
+    examples: [{ input: "10\n5\n8", output: "10", explanation: "10 is greater than 5 and 8" }]
+  },
+  {
     title: "Hello World",
+    slug: "hello-world",
     description:
       "Write a program that prints `Hello, World!` to the console.\n\nThis is the simplest problem to get you started.",
     difficulty: "Easy",
@@ -27,6 +87,7 @@ const seedProblems = [
   },
   {
     title: "Sum of Two Numbers",
+    slug: "sum-two-numbers",
     description:
       "Read two integers from input (one per line) and print their sum.\n\n### Input\nTwo integers, each on a separate line.\n\n### Output\nA single integer — the sum of the two numbers.",
     difficulty: "Easy",

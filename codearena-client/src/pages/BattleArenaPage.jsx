@@ -14,6 +14,7 @@ import {
     Moon
 } from 'lucide-react';
 import { getSocket, initiateSocketConnection } from '../services/socket';
+import { API_BASE_URL } from '../config/api';
 import { useTheme } from '../context/ThemeContext';
 
 export default function BattleArenaPage() {
@@ -32,11 +33,29 @@ export default function BattleArenaPage() {
     const [output, setOutput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
     const [gameStatus, setGameStatus] = useState('active'); // active, won, lost, timeout
-    const [timeLeft, setTimeLeft] = useState(60);
+    const [timeLeft, setTimeLeft] = useState(600);
     const [language, setLanguage] = useState('javascript');
     const [opponentActivity, setOpponentActivity] = useState('');
     const [problemId, setProblemId] = useState(null);
+    const problemIdRef = React.useRef(null);
+    const [onlineFriends, setOnlineFriends] = useState([]);
 
+    // Fetch online friends on mount; keep live via socket
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        fetch(`${API_BASE_URL}/api/users/online-friends`, {
+            headers: { Authorization: `Bearer ${token}` }
+        }).then(r => r.json()).then(data => setOnlineFriends(Array.isArray(data) ? data : [])).catch(() => { });
+
+        const socket = getSocket();
+        if (!socket) return;
+        const addOnline = ({ userId, username }) => setOnlineFriends(prev => prev.find(f => f._id === userId) ? prev : [...prev, { _id: userId, username }]);
+        const removeOffline = ({ userId }) => setOnlineFriends(prev => prev.filter(f => f._id !== userId));
+        socket.on('friend:online', addOnline);
+        socket.on('friend:offline', removeOffline);
+        return () => { socket.off('friend:online', addOnline); socket.off('friend:offline', removeOffline); };
+    }, []);
 
 
     const languages = [
@@ -109,7 +128,11 @@ export default function BattleArenaPage() {
 
             if (socket) {
                 console.log(`BATTLE_ARENA: Attempting to join room [${roomId}] as [${currentUser?.username}]`);
-                socket.emit('join_room', roomId, { username: currentUser?.username });
+                socket.emit('join_room', roomId, {
+                    username: currentUser?.username,
+                    _id: currentUser?._id,
+                    id: currentUser?.id
+                });
 
                 socket.on('battle:opponentInfo', (opponentData) => {
                     console.log("Opponent info received:", opponentData);
@@ -121,10 +144,13 @@ export default function BattleArenaPage() {
                     setTimeLeft(duration);
                 });
 
-                socket.on('battle:timerUpdate', ({ timeLeft, problemId: pId }) => {
-                    console.log("Timer update received:", timeLeft, pId);
-                    setTimeLeft(timeLeft);
-                    if (pId && !problemId) setProblemId(pId);
+                socket.on('battle:timerUpdate', ({ timeLeft: tl, problemId: pId }) => {
+                    console.log("Timer update received:", tl, pId);
+                    setTimeLeft(tl);
+                    if (pId && !problemIdRef.current) {
+                        problemIdRef.current = pId;
+                        setProblemId(pId);
+                    }
                 });
 
 
@@ -132,7 +158,7 @@ export default function BattleArenaPage() {
                     console.log("Battle ended:", reason);
                     setGameStatus('timeout');
                     setIsRunning(false);
-                    alert("BATTLE ENDED: Time Limit Reached.");
+                    setOutput("> BATTLE ENDED: Time Limit Reached (timeout).");
                 });
 
                 socket.on('battle:error', ({ message }) => {
@@ -141,12 +167,28 @@ export default function BattleArenaPage() {
                     navigate('/dashboard');
                 });
 
-                socket.on('battle:result', ({ winnerId, winnerName, reason }) => {
-                    console.log("Battle Result Received:", winnerId, winnerName);
-                    if (socket.id === winnerId) {
-                        setGameStatus('won');
+                socket.on('battle:result', ({ winnerId, winnerUserId, winnerName, reason, forfeiterName }) => {
+                    console.log("Battle Result Received:", { winnerId, winnerUserId, winnerName, reason });
+
+                    // When testing with same account, socket.id is the only unique identifier per tab
+                    const isMeWinner = socket.id === winnerId;
+
+                    if (reason === 'forfeit') {
+                        if (isMeWinner) {
+                            setGameStatus('won');
+                            setOutput(`> OPPONENT FORFEITED!\n> ${forfeiterName} has withdrawn from the battle.\n> You win by forfeit!`);
+                        } else {
+                            setGameStatus('lost');
+                            setOutput(`> YOU FORFEITED!\n> The battle has been awarded to ${winnerName}.`);
+                        }
                     } else {
-                        setGameStatus('lost');
+                        if (isMeWinner) {
+                            setGameStatus('won');
+                            setOutput(`> VICTORY!\n> Your solution passed all test cases.`);
+                        } else {
+                            setGameStatus('lost');
+                            setOutput(`> DEFEAT!\n> ${winnerName} solved the problem first.`);
+                        }
                     }
                     setIsRunning(false);
                 });
@@ -190,14 +232,14 @@ export default function BattleArenaPage() {
         } catch (err) {
             console.error("CRITICAL ERROR IN BATTLE_ARENA_EFFECT:", err);
         }
-    }, [roomId, location.state, problemId]);
+    }, [roomId, location.state]);
 
     useEffect(() => {
         const fetchProblem = async () => {
             if (!problemId) return;
             setLoading(true);
             try {
-                const response = await fetch(`${API_BASE}/api/problems/${problemId}`);
+                const response = await fetch(`${API_BASE_URL}/api/problems/${problemId}`);
                 const data = await response.json();
                 setProblem(data);
 
@@ -320,7 +362,13 @@ export default function BattleArenaPage() {
                         {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
                     </button>
                     <button
-                        onClick={() => navigate('/dashboard')}
+                        onClick={() => {
+                            if (gameStatus === 'active') {
+                                const socket = getSocket();
+                                if (socket) socket.emit('battle:forfeit', { roomId });
+                            }
+                            navigate('/dashboard');
+                        }}
                         className="px-5 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-slate-900 hover:bg-red-50 dark:hover:bg-red-950/30 border border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-900/50 rounded-lg transition-all uppercase flex items-center gap-2"
                     >
                         <LogOut size={14} />
@@ -497,36 +545,77 @@ export default function BattleArenaPage() {
             </main>
 
             {/* Battle Result Overlay - Clean Light/Dark Accent */}
-            {(gameStatus === 'won' || gameStatus === 'lost') && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-500">
-                    <div className="bg-white dark:bg-slate-900 p-12 rounded-[2rem] max-w-md w-full text-center shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] border border-slate-200 dark:border-slate-800 transform animate-in zoom-in-95 duration-300">
-                        <div className={`w-28 h-28 mx-auto mb-10 rounded-3xl rotate-12 flex items-center justify-center border-4 ${gameStatus === 'won' ? 'bg-green-50 text-green-500 border-green-100' : 'bg-red-50 text-red-500 border-red-100'}`}>
-                            <div className="-rotate-12">
-                                {gameStatus === 'won' ? <Check size={56} strokeWidth={3} /> : <Swords size={56} strokeWidth={3} />}
+            {(gameStatus === 'won' || gameStatus === 'lost' || gameStatus === 'timeout') && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-930/80 dark:bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-500">
+                    <div className="bg-white dark:bg-slate-900 p-8 md:p-10 rounded-[2rem] max-w-2xl w-full mx-4 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-slate-200 dark:border-slate-800 transform animate-in zoom-in-95 duration-500 overflow-hidden relative">
+
+                        {/* Decorative background elements */}
+                        {gameStatus === 'won' && <div className="absolute -top-32 -right-32 w-64 h-64 bg-green-500/10 dark:bg-green-500/20 rounded-full blur-3xl"></div>}
+                        {gameStatus === 'lost' && <div className="absolute -top-32 -right-32 w-64 h-64 bg-red-500/10 dark:bg-red-500/20 rounded-full blur-3xl"></div>}
+
+                        <div className="flex flex-col md:flex-row gap-8 items-center md:items-start relative z-10">
+
+                            {/* Left Column: Status */}
+                            <div className="flex-1 flex flex-col items-center text-center">
+                                <div className={`w-24 h-24 mb-6 rounded-3xl rotate-12 flex items-center justify-center border-4 shadow-xl ${gameStatus === 'won' ? 'bg-green-50 text-green-500 border-green-100 dark:bg-green-900/30 dark:border-green-500/50' : 'bg-red-50 text-red-500 border-red-100 dark:bg-red-900/30 dark:border-red-500/50'}`}>
+                                    <div className="-rotate-12 transform group-hover:scale-110 transition-transform">
+                                        {gameStatus === 'won' ? <Check size={48} strokeWidth={3} /> : <Swords size={48} strokeWidth={3} />}
+                                    </div>
+                                </div>
+
+                                <h2 className={`text-4xl md:text-5xl font-black font-sans mb-3 tracking-tighter uppercase ${gameStatus === 'won' ? 'text-green-600 dark:text-green-400' : gameStatus === 'lost' ? 'text-red-600 dark:text-red-400' : 'text-slate-500'}`}>
+                                    {gameStatus === 'won' ? 'VICTORY' : gameStatus === 'lost' ? 'DEFEAT' : 'TIMEOUT'}
+                                </h2>
+                                <p className="text-slate-500 dark:text-slate-400 mb-8 font-bold tracking-tight text-sm uppercase">
+                                    {gameStatus === 'won' ? 'Algorithm Execution Superior' : gameStatus === 'lost' ? 'Logic Compromised' : 'Time limit exceeded'}
+                                </p>
+
+                                <div className="space-y-3 w-full">
+                                    <button
+                                        onClick={() => navigate('/dashboard')}
+                                        className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:-translate-y-1 text-sm flex items-center justify-center gap-2"
+                                    >
+                                        <Activity size={16} /> Dashboard
+                                    </button>
+                                    <button
+                                        onClick={() => navigate('/lobby')}
+                                        className="w-full py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold uppercase tracking-widest rounded-xl transition-all text-sm border border-transparent dark:border-slate-700"
+                                    >
+                                        Seek New Match
+                                    </button>
+                                </div>
                             </div>
-                        </div>
 
-                        <h2 className={`text-5xl font-black font-sans mb-4 tracking-tighter ${gameStatus === 'won' ? 'text-green-600' : 'text-red-600'}`}>
-                            {gameStatus === 'won' ? 'VICTORY' : 'DEFEAT'}
-                        </h2>
+                            {/* Right Column: AI Analysis */}
+                            <div className="flex-1 w-full bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+                                <div className="flex items-center gap-2 mb-6 border-b border-slate-200 dark:border-slate-800 pb-3">
+                                    <div className="p-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg">
+                                        <TerminalIcon size={16} />
+                                    </div>
+                                    <h3 className="font-bold text-slate-900 dark:text-white font-mono text-sm tracking-tight">AI_POST_MATCH_ANALYSIS</h3>
+                                    <div className="ml-auto w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                </div>
 
-                        <p className="text-slate-500 mb-12 font-bold tracking-tight text-lg">
-                            {gameStatus === 'won' ? 'Superior logic. Duel completed.' : 'Performance analyzed. Try again.'}
-                        </p>
+                                <div className="space-y-5">
+                                    <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-800 shadow-sm">
+                                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Time Complexity</span>
+                                        <span className="font-mono font-black text-blue-600 dark:text-blue-400 text-sm bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">O(N)</span>
+                                    </div>
+                                    <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-800 shadow-sm">
+                                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Space Complexity</span>
+                                        <span className="font-mono font-black text-green-600 dark:text-green-400 text-sm bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">O(1)</span>
+                                    </div>
 
-                        <div className="space-y-3">
-                            <button
-                                onClick={() => navigate('/dashboard')}
-                                className="w-full py-4 bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-slate-200 dark:shadow-none hover:translate-y-[-2px]"
-                            >
-                                Enter Dashboard
-                            </button>
-                            <button
-                                onClick={() => navigate('/dashboard')}
-                                className="w-full py-4 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-black uppercase tracking-widest rounded-2xl transition-all"
-                            >
-                                Seek New Rival
-                            </button>
+                                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                                        <h4 className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-2">Code Quality Insights</h4>
+                                        <div className="bg-slate-100 dark:bg-slate-800/80 p-3 rounded-lg text-xs font-mono text-slate-600 dark:text-slate-400 leading-relaxed border border-slate-200 dark:border-slate-700 border-l-2 border-l-blue-500">
+                                            {gameStatus === 'won'
+                                                ? "> Exceptional logic. No memory leaks detected. Variable naming is concise and readable. Execution time was optimal for the given constraints."
+                                                : "> Optimization required. Consider reducing nested loops. The opponent utilized a more efficient data structure."}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

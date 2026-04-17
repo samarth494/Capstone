@@ -34,64 +34,62 @@ import TabSwitchWarningModal from '../components/TabSwitchWarningModal';
 // ===== BLIND CODING LEVEL PROBLEMS =====
 const LEVEL_PROBLEMS = {
     1: {
-        title: 'Even/Odd Check',
+        title: 'Largest Among Three Numbers',
         difficulty: 'Easy',
         description: (
             <>
                 <p>
-                    Write a C program that accepts an integer from the user and checks whether it is <strong>even or odd</strong>.
-                </p>
-                <p>
-                    Print <code>"Even"</code> if the number is even, or <code>"Odd"</code> if the number is odd.
+                    Write a C program that reads three integers and prints the <strong>largest among them</strong>.
                 </p>
 
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example 1:</h3>
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
-                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 12</p>
-                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> Even</p>
+                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 10 20 30</p>
+                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> 30</p>
                 </div>
 
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example 2:</h3>
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
-                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 7</p>
-                    <p><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> Odd</p>
+                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> -5 10 0</p>
+                    <p><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> 10</p>
                 </div>
 
                 <h3 className="text-lg">Constraints:</h3>
                 <ul className="list-disc pl-5 space-y-1">
-                    <li>Input will be a valid integer <code>n</code>.</li>
-                    <li><code>-10^9 &lt;= n &lt;= 10^9</code></li>
+                    <li>Input will be three valid integers <code>a</code>, <code>b</code>, and <code>c</code>.</li>
+                    <li><code>-10^9 &lt;= a, b, c &lt;= 10^9</code></li>
                 </ul>
             </>
         ),
-        starterCode: '#include <stdio.h>\n\nint main() {\n    // Read an integer and print Even or Odd\n    return 0;\n}',
+        starterCode: '',
         testCases: [
-            { input: '12', expected: 'Even' },
-            { input: '7', expected: 'Odd' },
-            { input: '0', expected: 'Even' },
+            { input: '10 20 30', expected: '30' },
+            { input: '-5 10 0', expected: '10' },
+            { input: '100 100 100', expected: '100' },
         ]
     },
     2: {
-        title: 'Sum of Digits',
+        title: 'Check Prime or Not',
         difficulty: 'Medium',
         description: (
             <>
                 <p>
-                    Write a C program that reads a <strong>positive integer</strong> and prints the <strong>sum of its digits</strong>.
+                    Write a C program that reads a positive integer and checks whether it is a <strong>prime number</strong> or not.
+                </p>
+                <p>
+                    Print <code>"Prime"</code> if it is prime, otherwise print <code>"Not Prime"</code>. (Note: 1 is not prime).
                 </p>
 
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example 1:</h3>
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
-                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 123</p>
-                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> 6</p>
-                    <p className="text-slate-600 dark:text-slate-400"><span className="font-bold text-slate-900 dark:text-slate-100">Explanation:</span> 1 + 2 + 3 = 6</p>
+                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 7</p>
+                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> Prime</p>
                 </div>
 
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example 2:</h3>
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
-                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 9999</p>
-                    <p><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> 36</p>
-                    <p className="text-slate-600 dark:text-slate-400"><span className="font-bold text-slate-900 dark:text-slate-100">Explanation:</span> 9 + 9 + 9 + 9 = 36</p>
+                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 10</p>
+                    <p><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> Not Prime</p>
                 </div>
 
                 <h3 className="text-lg">Constraints:</h3>
@@ -101,49 +99,50 @@ const LEVEL_PROBLEMS = {
                 </ul>
             </>
         ),
-        starterCode: '#include <stdio.h>\n\nint main() {\n    // Read an integer and print sum of its digits\n    return 0;\n}',
+        starterCode: '',
         testCases: [
-            { input: '123', expected: '6' },
-            { input: '9999', expected: '36' },
-            { input: '5', expected: '5' },
+            { input: '7', expected: 'Prime' },
+            { input: '10', expected: 'Not Prime' },
+            { input: '1', expected: 'Not Prime' },
+            { input: '2', expected: 'Prime' },
+            { input: '97', expected: 'Prime' },
         ]
     },
     3: {
-        title: 'Factorial',
+        title: 'Fibonacci Series',
         difficulty: 'Hard',
         description: (
             <>
                 <p>
-                    Write a C program that reads a <strong>non-negative integer</strong> <code>n</code> and prints its <strong>factorial</strong> (<code>n!</code>).
+                    Write a C program that reads an integer <code>n</code> and prints the first <code>n</code> terms of the <strong>Fibonacci sequence</strong>, separated by a space.
                 </p>
                 <p>
-                    Recall: <code>0! = 1</code>, <code>n! = n × (n-1) × ... × 2 × 1</code>.
+                    The sequence starts with <code>0</code> and <code>1</code>. (e.g., 0 1 1 2 3 5 8 ...).
                 </p>
 
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example 1:</h3>
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
                     <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 5</p>
-                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> 120</p>
-                    <p className="text-slate-600 dark:text-slate-400"><span className="font-bold text-slate-900 dark:text-slate-100">Explanation:</span> 5 × 4 × 3 × 2 × 1 = 120</p>
+                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> 0 1 1 2 3</p>
                 </div>
 
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Example 2:</h3>
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm my-4">
-                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 0</p>
-                    <p><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> 1</p>
+                    <p className="mb-2"><span className="font-bold text-slate-900 dark:text-slate-100">Input:</span> 1</p>
+                    <p><span className="font-bold text-slate-900 dark:text-slate-100">Output:</span> 0</p>
                 </div>
 
                 <h3 className="text-lg">Constraints:</h3>
                 <ul className="list-disc pl-5 space-y-1">
-                    <li><code>0 &lt;= n &lt;= 12</code></li>
+                    <li><code>1 &lt;= n &lt;= 46</code></li>
                 </ul>
             </>
         ),
-        starterCode: '#include <stdio.h>\n\nint main() {\n    // Read an integer and print its factorial\n    return 0;\n}',
+        starterCode: '',
         testCases: [
-            { input: '5', expected: '120' },
-            { input: '0', expected: '1' },
-            { input: '10', expected: '3628800' },
+            { input: '5', expected: '0 1 1 2 3' },
+            { input: '1', expected: '0' },
+            { input: '10', expected: '0 1 1 2 3 5 8 13 21 34' },
         ]
     }
 };
@@ -232,7 +231,7 @@ export default function ProblemSolverPage() {
     // Must be declared AFTER timeLeft to avoid ReferenceError
     const tabSwitchSocket = getSocket();
     const storedUserForTabSwitch = (() => {
-        try { return JSON.parse(localStorage.getItem('user')); } catch(e) { return null; }
+        try { return JSON.parse(localStorage.getItem('user')); } catch (e) { return null; }
     })();
     const {
         warnings: tabSwitchWarnings,
@@ -485,9 +484,25 @@ export default function ProblemSolverPage() {
             } else {
                 // Only count compile/runtime errors, NOT wrong answers
                 setCompileErrorCount(prev => prev + 1);
-                const errorHeadline = data.status === 'timeout' ? 'Time Limit Exceeded' : 'Compilation / Runtime Error';
+
+                const errorHeadline =
+                    data.status === 'timeout' ? 'Time Limit Exceeded' :
+                        data.status === 'compilation_error' ? 'Compilation Error' :
+                            data.status === 'runtime_error' ? 'Runtime Error' :
+                                'Execution Failed';
+
                 const errorMsg = data.stderr || data.output || data.message || data.error || 'Unknown error';
-                setOutput(`> ❌ ${errorHeadline}\n\n${errorMsg}`);
+
+                let hint = '';
+                if (errorMsg.includes('EOFError') || errorMsg.includes('EOF when reading a line')) {
+                    if (!stdinInput.trim()) {
+                        hint = '\n\n💡 HINT: Your code expects input, but the input box is empty! Click the "TESTCASE" tab above to provide input.';
+                    } else if (activeTestCaseTab === 0) {
+                        hint = '\n\n💡 HINT: Your custom input might be missing extra values or lines your code is trying to read.';
+                    }
+                }
+
+                setOutput(`> ❌ ${errorHeadline}\n\n${errorMsg}${hint}`);
             }
         } catch (error) {
             console.error('Run code error', error);
@@ -500,6 +515,7 @@ export default function ProblemSolverPage() {
     // === Competition Submit ===
     const handleCompetitionSubmit = async () => {
         if (hasSubmitted) return;
+        setHasSubmitted(true); // Set immediately to prevent duplicates
 
         setIsRunning(true);
         setOutput('⚡ Running all test cases...');
@@ -534,14 +550,43 @@ export default function ProblemSolverPage() {
                     const data = await response.json();
 
                     const isSuccess = data.success && response.ok;
+                    const isCompilationError = data.status === 'compilation_error';
+                    const isTimeout = data.status === 'timeout';
+                    const isRuntimeError = data.status === 'runtime_error';
+
                     const actualOut = (data.output || '').trim();
                     const expectedOut = tc.expected.trim();
 
                     // Strict comparison — exact match after trimming
                     const passed = isSuccess && actualOut === expectedOut;
 
-                    // Track compile/runtime errors (NOT wrong answers)
-                    if (!isSuccess && (data.stderr || data.status === 'timeout')) {
+                    // Track compile/runtime errors
+                    // If it's a compilation error, we stop and count it once
+                    if (isCompilationError) {
+                        setCompileErrorCount(prev => prev + 1);
+                        testResults.push({
+                            input: tc.input,
+                            expected: expectedOut,
+                            actual: 'Compilation Error',
+                            passed: false,
+                            error: data.stderr || 'Compilation Failed',
+                            executionTime: 0
+                        });
+
+                        // Fill remaining with Compilation Error and break
+                        for (let j = i + 1; j < levelProblem.testCases.length; j++) {
+                            testResults.push({
+                                input: levelProblem.testCases[j].input,
+                                expected: levelProblem.testCases[j].expected,
+                                actual: 'Skipped (Compilation Error)',
+                                passed: false,
+                                error: 'Code failed to compile'
+                            });
+                        }
+                        break;
+                    }
+
+                    if (!isSuccess && (isRuntimeError || isTimeout)) {
                         setCompileErrorCount(prev => prev + 1);
                     }
 
@@ -550,7 +595,7 @@ export default function ProblemSolverPage() {
                     testResults.push({
                         input: tc.input,
                         expected: expectedOut,
-                        actual: actualOut || (data.stderr ? 'Runtime Error' : 'No Output'),
+                        actual: actualOut || (isTimeout ? 'Time Limit Exceeded' : isRuntimeError ? 'Runtime Error' : 'No Output'),
                         passed,
                         error: !isSuccess ? (data.stderr || 'Execution Failed') : null,
                         executionTime: data.executionTime || 0
@@ -573,7 +618,7 @@ export default function ProblemSolverPage() {
             // ═══════════════════════════════════════════════════════════════
             // COMPREHENSIVE FAIR SCORING SYSTEM
             // ═══════════════════════════════════════════════════════════════
-            // Max possible per level: 50 + 1000 + 500 + 150 + 500 = 2200
+            // Max possible per level: 30 + 1000 + 500 + 150 = 1680
             //
             // DESIGN PRINCIPLES:
             //   1. Correctness is KING — more test cases passed = always higher
@@ -583,10 +628,10 @@ export default function ProblemSolverPage() {
             //   5. Server-side relative bonus prevents ties
             // ═══════════════════════════════════════════════════════════════
 
-            // ── 1. PARTICIPATION (50 pts) ──
+            // ── 1. PARTICIPATION (30 pts) ──
             // Awarded for manually submitting. Timeout auto-submit = 0.
             // Ensures manual submitters always rank above AFK timeouts.
-            const participationBonus = 50;
+            const participationBonus = 30;
 
             // ── 2. CORRECTNESS (0-1000 pts) ──
             // All passed: flat 1000 (perfect bonus for 100% completion)
@@ -680,10 +725,8 @@ export default function ProblemSolverPage() {
             outputStr += `  Correctness:    ${correctScore} / 1000 ${allPassed ? '(Perfect!)' : totalPassed > 0 ? `(${totalPassed}/${totalTests} passed)` : '(No tests passed)'}\n`;
             outputStr += `  Effort Bonus:   ${effortBonus} / 150${!hasMinimumEffort ? ' ⚠️ Below minimum effort!' : ''}\n`;
             outputStr += `  Speed Bonus:    ${speedBonus} / ${speedBonusMax} ${!hasMinimumEffort ? '(blocked: write more code!)' : allPassed ? '' : totalPassed > 0 ? '(partial tier)' : '(attempt tier)'}\n`;
-            const isSolo = totalPlayers <= 1;
-            outputStr += `  Relative Bonus: ${isSolo ? '0 (solo — no opponents to rank against)' : 'Calculated after all players submit (0-500)'}\n`;
             outputStr += `  ─────────────────────\n`;
-            outputStr += `  Base Total:     ${totalScore} pts${isSolo ? '' : ' (+ up to 500 relative bonus)'}\n`;
+            outputStr += `  Total:          ${totalScore} pts\n`;
             outputStr += `  Time Taken:     ${Math.floor(timeElapsed / 60)}m ${timeElapsed % 60}s\n`;
             outputStr += `  Compile Errors: ${compileErrorCount}`;
             setOutput(outputStr);
@@ -713,7 +756,7 @@ export default function ProblemSolverPage() {
                 level: currentLevel,
             });
 
-            setHasSubmitted(true);
+            // setHasSubmitted(true); // Already set at start
             setShowWaiting(true);
 
         } catch (error) {
@@ -918,13 +961,12 @@ export default function ProblemSolverPage() {
                                     </span>
                                     {/* Tab Switch Warning Counter Badge */}
                                     {isCompetitionMode && blindMode && tabSwitchWarnings > 0 && (
-                                        <div className={`flex items-center gap-1.5 ml-3 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${
-                                            isTabSwitchDQ
-                                                ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 animate-pulse'
-                                                : tabSwitchWarnings >= tabSwitchMaxWarnings - 1
-                                                    ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800'
-                                                    : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800'
-                                        }`}>
+                                        <div className={`flex items-center gap-1.5 ml-3 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${isTabSwitchDQ
+                                            ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 animate-pulse'
+                                            : tabSwitchWarnings >= tabSwitchMaxWarnings - 1
+                                                ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800'
+                                                : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800'
+                                            }`}>
                                             <ShieldAlert size={12} />
                                             <span>{isTabSwitchDQ ? 'DQ' : `${tabSwitchWarnings}/${tabSwitchMaxWarnings}`}</span>
                                         </div>
@@ -1405,8 +1447,8 @@ export default function ProblemSolverPage() {
 
                                                 {/* Detailed Points Breakdown */}
                                                 {player.breakdown && (
-                                                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 grid grid-cols-3 md:grid-cols-7 gap-3">
-                                                        <div className="flex flex-col" title="Points for submitting (50 for manual, 0 for timeout)">
+                                                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 grid grid-cols-3 md:grid-cols-6 gap-3">
+                                                        <div className="flex flex-col" title="Points for submitting (30 for manual, 0 for timeout)">
                                                             <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Participation</span>
                                                             <div className="flex items-center gap-2">
                                                                 <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
@@ -1432,13 +1474,6 @@ export default function ProblemSolverPage() {
                                                             <div className="flex items-center gap-2">
                                                                 <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
                                                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">+{player.breakdown.effortBonus || 0}</span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex flex-col" title="Server-calculated bonus based on relative ranking among all players">
-                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Ranking</span>
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
-                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">+{player.breakdown.relativeBonus || 0}</span>
                                                             </div>
                                                         </div>
                                                         <div className="flex flex-col" title="Total compiler/runtime errors encountered during this level">

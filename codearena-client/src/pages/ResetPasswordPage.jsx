@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Lock, ArrowRight, Terminal, CheckCircle2 } from "lucide-react";
 import { useNavigate, useParams, Link } from "react-router-dom";
+import API_BASE from "../config/api";
+
 
 export default function ResetPasswordPage() {
     const { token } = useParams();
@@ -28,7 +30,8 @@ export default function ResetPasswordPage() {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/resetpassword/${token}`, {
+            const response = await fetch(`${API_BASE}/api/auth/resetpassword/${token}`, {
+
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",

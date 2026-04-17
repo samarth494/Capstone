@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar({ items = [], user = null, onLogout }) {
   const navigate = useNavigate();
@@ -117,6 +118,9 @@ export default function Navbar({ items = [], user = null, onLogout }) {
                 </div>
               )}
 
+              {/* Notification Bell (logged-in only) */}
+              {user && <NotificationBell user={user} />}
+
               {/* Theme Toggle Button */}
               <button
                 onClick={toggleTheme}
@@ -183,6 +187,9 @@ export default function Navbar({ items = [], user = null, onLogout }) {
                     </div>
                   )}
                 </div>
+
+                {/* Notification Bell - only for logged in users */}
+                {user && <NotificationBell user={user} />}
               </div>
             </motion.div>
           )}

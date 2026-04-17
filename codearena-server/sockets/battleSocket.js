@@ -2,7 +2,9 @@ const socketIo = require("socket.io");
 const { executeSubmission } = require("../utils/executionHandler");
 const User = require("../models/User");
 const Battle = require("../models/Battle");
+const Message = require("../models/Message");
 const { calculateRank } = require("../utils/rankUtils");
+const { updateStreak } = require("../utils/streakUtils");
 const {
   initTabSwitchTracking,
   handleTabSwitchDetected,
@@ -12,9 +14,26 @@ const {
 const battleQueue = []; // Simple in-memory queue
 const activeBattles = {};
 const competitionRooms = {}; // Tracks players and host for each competition event
-const MAX_COMPETITION_PLAYERS = 10; // Maximum players per competition lobby
+const MAX_COMPETITION_PLAYERS = 30; // Maximum players per competition lobby
 const COUNTDOWN_SECONDS = 10; // Countdown duration before battle starts
 const TOTAL_LEVELS = 3; // Total levels in blind coding competition
+
+const BATTLE_PROBLEMS = [
+  "hello-world",
+  "sum-two-numbers",
+  "even-or-odd",
+  "reverse-string",
+  "find-maximum",
+  "blind-coding"
+];
+
+
+
+// Map: userId (string) -> socketId
+const onlineUsers = {};
+
+const getOnlineUsers = () => onlineUsers;
+module.exports.getOnlineUsers = getOnlineUsers;
 
 // Helper to persist results and update stats
 const addReplayEvent = (roomId, type, playerId, data) => {
@@ -87,6 +106,9 @@ const persistBattleResult = async (roomId, winnerSId = null) => {
 
       // Recalculate rank
       user.rank = calculateRank(user.wins);
+
+      // Update daily streak — any battle participation counts as an active day
+      updateStreak(user);
 
       await user.save();
     };
@@ -166,13 +188,15 @@ const socketHandler = (server) => {
         matchedIndices.add(bestMatchIndex);
 
         const roomId = `battle_${p1Data.id}_${p2Data.id}`;
+        const randomProblem = BATTLE_PROBLEMS[Math.floor(Math.random() * BATTLE_PROBLEMS.length)];
+
         activeBattles[roomId] = {
           players: [p1Data, p2Data],
           joinedPlayers: new Set(),
           status: "active",
           startTime: now,
-          timer: 60,
-          problemId: "hello-world",
+          timer: 600,
+          problemId: randomProblem,
           replayEvents: [],
         };
 
@@ -205,6 +229,22 @@ const socketHandler = (server) => {
         user: userData,
         joinedAt: Date.now(),
       });
+
+      // Broadcast to global activity stream that someone is looking for a match
+      io.emit('newGlobalActivity', {
+        type: 'QUEUE_JOIN',
+        username: userData.username,
+        rank: userData.rank || 'Bronze',
+        createdAt: new Date().toISOString()
+      });
+    });
+
+    socket.on("leave_queue", () => {
+      const existingIdx = battleQueue.findIndex((p) => p.id === socket.id);
+      if (existingIdx !== -1) {
+        battleQueue.splice(existingIdx, 1);
+        console.log(`Socket ${socket.id} left the matchmaking queue.`);
+      }
     });
 
     socket.on("join_room", (roomId, userData) => {
@@ -214,15 +254,38 @@ const socketHandler = (server) => {
       if (activeBattles[roomId]) {
         const battle = activeBattles[roomId];
 
-        if (userData && userData.username) {
-          battle.joinedPlayers.add(userData.username);
-          console.log(
-            `User [${userData.username}] joined room [${roomId}]. Joined: ${battle.joinedPlayers.size}/2`,
-          );
+        if (userData && (userData._id || userData.id)) {
+          const joinedUserId = (userData._id || userData.id).toString();
+
+          // Find which player this is (0 or 1)
+          // To support same-user testing, we find an UNASSIGNED player slot first, or match by socket if possible
+          let playerIndex = battle.players.findIndex(p => p.id === socket.id);
+
+          // If socket ID isn't matched yet (e.g. after refresh), find by user ID but check if already joined
+          if (playerIndex === -1) {
+            playerIndex = battle.players.findIndex((p, idx) =>
+              (p.user._id || p.user.id)?.toString() === joinedUserId && !battle.joinedPlayers.has(idx)
+            );
+          }
+
+          // Fallback to any slot that matches ID if still not found
+          if (playerIndex === -1) {
+            playerIndex = battle.players.findIndex(p => (p.user._id || p.user.id)?.toString() === joinedUserId);
+          }
+
+          if (playerIndex !== -1) {
+            const player = battle.players[playerIndex];
+            player.id = socket.id;
+            battle.joinedPlayers.add(playerIndex); // Track by player INDEX (0 or 1) instead of user ID
+
+            console.log(
+              `[Battle] User [${userData.username}] (Slot ${playerIndex}) joined room [${roomId}]. Joined: ${battle.joinedPlayers.size}/2`,
+            );
+          } else {
+            console.warn(`[Battle] User ${userData.username} (${joinedUserId}) not found in battle.players!`);
+          }
         } else {
-          console.log(
-            `Socket [${socket.id}] joined room [${roomId}] without username.`,
-          );
+          console.warn(`[Battle] Socket [${socket.id}] joined room [${roomId}] without user ID!`);
         }
 
         socket.emit("battle:timerUpdate", {
@@ -231,12 +294,22 @@ const socketHandler = (server) => {
         });
 
         // Start timer when both players have joined
-        if (battle.joinedPlayers.size === 2 && !battle.intervalId) {
+        if (battle.joinedPlayers.size >= 2 && !battle.intervalId) {
           console.log(
             `Both players joined ${roomId}. Starting timer for real now.`,
           );
 
           io.to(roomId).emit("battle:startTimer", { duration: battle.timer });
+
+          // Broadcast to global activity stream that a battle has started
+          if (battle.players && battle.players.length >= 2) {
+            io.emit('newGlobalActivity', {
+              type: 'BATTLE_START',
+              player1: battle.players[0].user.username,
+              player2: battle.players[1].user.username,
+              createdAt: new Date().toISOString()
+            });
+          }
 
           battle.intervalId = setInterval(() => {
             if (battle.timer > 0) {
@@ -258,14 +331,20 @@ const socketHandler = (server) => {
           }, 1000);
         }
 
-        // Identify Opponent
-        if (userData && userData.username) {
-          const opponent = battle.players.find(
-            (p) => p.user.username !== userData.username,
-          );
-          if (opponent) {
+        // Identify Opponent using robust ID comparison
+        if (userData && (userData._id || userData.id)) {
+          const joinedUserId = (userData._id || userData.id).toString();
+
+          // Find the player index again or use the one we have
+          const myIdx = battle.players.findIndex(p => p.id === socket.id);
+          const opponentIdx = myIdx === 0 ? 1 : 0;
+          const opponent = battle.players[opponentIdx];
+
+          if (opponent && opponent.user) {
+            console.log(`[Battle] Identified opponent for ${userData.username}: ${opponent.user.username}`);
             socket.emit("battle:opponentInfo", {
               username: opponent.user.username,
+              rank: opponent.user.rank || 'Bronze'
             });
           }
         }
@@ -352,6 +431,7 @@ const socketHandler = (server) => {
 
           io.to(roomId).emit("battle:result", {
             winnerId: socket.id,
+            winnerUserId: player ? (player.user._id || player.user.id) : null,
             winnerName: username,
             reason: "solved",
           });
@@ -361,7 +441,237 @@ const socketHandler = (server) => {
       },
     );
 
-    // --- Competition Lobby Logic ---
+    // --- Friend Challenge Logic ---
+    socket.on("challenge:friend", ({ friendId, challenger }) => {
+      console.log(`[Challenge] ${challenger.username} challenged ${friendId}`);
+      io.to(`user_${friendId}`).emit("challenge:received", {
+        challenger,
+        gameType: "battle"
+      });
+      // Also send as a real-time notification
+      io.to(`user_${friendId}`).emit('notification', {
+        type: 'challenge',
+        message: `${challenger.username} challenged you to a battle!`,
+        from: challenger,
+        createdAt: new Date().toISOString()
+      });
+    });
+
+    socket.on("challenge:respond", async ({ challengerId, accepted, friend }) => {
+      if (accepted) {
+        const challenger = await User.findById(challengerId);
+        const responder = await User.findById(friend._id || friend.id);
+
+        if (!challenger || !responder) {
+          console.error("[Challenge] Could not find users in DB for response");
+          return;
+        }
+
+        const roomId = `battle_${challengerId}_${socket.id}`;
+
+        // pData objects for battle initialization
+        const p1Data = { id: null, user: challenger, joinedAt: Date.now() };
+        const p2Data = { id: socket.id, user: responder, joinedAt: Date.now() };
+
+        // Initialize the room state
+        const randomProblem = BATTLE_PROBLEMS[Math.floor(Math.random() * BATTLE_PROBLEMS.length)];
+
+        activeBattles[roomId] = {
+          players: [p1Data, p2Data],
+          joinedPlayers: new Set(),
+          status: "active",
+          startTime: Date.now(),
+          timer: 600,
+          problemId: randomProblem,
+          replayEvents: [],
+        };
+
+        // Notify both players using the standard match_found event
+        // This is more reliable as both use the same listener on the frontend
+        io.to(`user_${challengerId}`).emit("match_found", {
+          roomId,
+          opponent: responder
+        });
+
+        socket.emit("match_found", {
+          roomId,
+          opponent: challenger
+        });
+      } else {
+        io.to(`user_${challengerId}`).emit("challenge:rejected", {
+          friendName: friend.username
+        });
+      }
+    });
+
+    // --- Real-Time Peer-to-Peer Chat ---
+    socket.on("message:send", async ({ receiverId, senderId, senderUsername, content }) => {
+      try {
+        if (!receiverId || !content) return;
+
+        const message = await Message.create({
+          sender: senderId,
+          receiver: receiverId,
+          content
+        });
+
+        // Emit to receiver's private room
+        io.to(`user_${receiverId}`).emit("message:received", {
+          ...message.toObject(),
+          senderUsername
+        });
+
+        // Notify sender of success
+        socket.emit("message:sent", message);
+
+        // Real-time notification for the receiver
+        io.to(`user_${receiverId}`).emit('notification', {
+          type: 'new_message',
+          message: `New message from ${senderUsername}: "${content.length > 30 ? content.substring(0, 30) + '...' : content}"`,
+          fromId: senderId,
+          fromUsername: senderUsername,
+          createdAt: new Date().toISOString()
+        });
+
+      } catch (error) {
+        console.error("[Socket] Message send failed:", error);
+      }
+    });
+
+    // ── Forfeit / Withdraw ────────────────────────────────────────────────────
+    const handleForfeit = (socketId) => {
+      // Find any active battle this socket is part of
+      for (const [roomId, battle] of Object.entries(activeBattles)) {
+        if (battle.status !== "active") continue;
+        const forfeiter = battle.players.find((p) => p.id === socketId);
+        if (!forfeiter) continue;
+
+        // REFRESH PROTECTION: If the user is still online via a DIFFERENT socket, 
+        // they probably just refreshed. Don't forfeit yet.
+        const userId = (forfeiter.user._id || forfeiter.user.id).toString();
+        if (onlineUsers[userId] && onlineUsers[userId] !== socketId) {
+          console.log(`[Forfeit-Skip] ${forfeiter.user.username} disconnected but is still online via another socket. Not forfeiting.`);
+          continue;
+        }
+
+        const winner = battle.players.find((p) => p.id !== socketId);
+        if (!winner) continue;
+
+        console.log(
+          `[Forfeit] ${forfeiter.user.username} forfeited room ${roomId}. Winner: ${winner.user.username}`
+        );
+
+        clearInterval(battle.intervalId);
+        battle.status = "ended";
+        battle.winner = winner.id;
+
+        // Tell everyone in the room
+        io.to(roomId).emit("battle:result", {
+          winnerId: winner.id,
+          winnerUserId: (winner.user._id || winner.user.id),
+          winnerName: winner.user.username,
+          reason: "forfeit",
+          forfeiterName: forfeiter.user.username,
+        });
+
+        persistBattleResult(roomId, winner.id);
+        break; // A player can only be in one battle
+      }
+    };
+
+    socket.on("battle:forfeit", ({ roomId }) => {
+      handleForfeit(socket.id);
+    });
+
+    socket.on("disconnect", async () => {
+      console.log(`[Socket] Disconnected: ${socket.id}`);
+      // Remove from matchmaking queue
+      const idx = battleQueue.findIndex((p) => p.id === socket.id);
+      if (idx !== -1) battleQueue.splice(idx, 1);
+      // Award win to opponent if mid-battle
+      handleForfeit(socket.id);
+
+      // Mark user offline and notify friends
+      const offlineUserId = Object.keys(onlineUsers).find(uid => onlineUsers[uid] === socket.id);
+      if (offlineUserId) {
+        delete onlineUsers[offlineUserId];
+        try {
+          const dbUser = await User.findById(offlineUserId).select('username friends').lean();
+          if (dbUser && dbUser.friends) {
+            dbUser.friends.forEach(friendId => {
+              const friendSocket = onlineUsers[friendId.toString()];
+              if (friendSocket) {
+                io.to(friendSocket).emit('friend:offline', { userId: offlineUserId, username: dbUser.username });
+                io.to(friendSocket).emit('notification', {
+                  type: 'friend_offline',
+                  message: `${dbUser.username} is now offline`,
+                  userId: offlineUserId,
+                  username: dbUser.username,
+                  createdAt: new Date().toISOString()
+                });
+              }
+            });
+          }
+        } catch (e) { /* non-critical */ }
+      }
+    });
+
+    const lastBroadcasts = {}; // userId -> timestamp to prevent spam
+
+    socket.on("user:join_self", async (userId) => {
+      if (!userId) return;
+
+      const isAlreadyOnline = !!onlineUsers[userId];
+      socket.join(`user_${userId}`);
+      onlineUsers[userId] = socket.id;
+
+      const now = Date.now();
+      const lastBroadcast = lastBroadcasts[userId] || 0;
+      const cooldown = 120000; // 2 minutes cooldown for login broadcasts
+
+      // Only broadcast if not already online OR if cooldown has passed
+      if (!isAlreadyOnline || (now - lastBroadcast > cooldown)) {
+        lastBroadcasts[userId] = now;
+        console.log(`[Online] ${userId} connected (Broadcast triggered). Total online: ${Object.keys(onlineUsers).length}`);
+
+        try {
+          const dbUser = await User.findById(userId).select('username friends').lean();
+          if (dbUser) {
+            console.log(`[Online] Broadcasting login for ${dbUser.username} (${userId})`);
+            // Broadcast to global activity stream that someone logged in
+            io.emit('newGlobalActivity', {
+              type: 'LOGIN',
+              username: dbUser.username,
+              createdAt: new Date().toISOString()
+            });
+
+            if (dbUser.friends && dbUser.friends.length > 0) {
+              console.log(`[Online] Notifying ${dbUser.friends.length} friends of ${dbUser.username}`);
+              dbUser.friends.forEach(friendId => {
+                const friendSocket = onlineUsers[friendId.toString()];
+                if (friendSocket) {
+                  console.log(`[Online] -> Notifying friend ${friendId} at socket ${friendSocket}`);
+                  io.to(friendSocket).emit('friend:online', { userId: userId.toString(), username: dbUser.username });
+                  io.to(friendSocket).emit('notification', {
+                    type: 'friend_online',
+                    message: `${dbUser.username} is now online`,
+                    userId: userId.toString(),
+                    username: dbUser.username,
+                    createdAt: new Date().toISOString(),
+                    from: { _id: userId, username: dbUser.username } // Added from field for consistency
+                  });
+                }
+              });
+            } else {
+              console.log(`[Online] User ${dbUser.username} has no friends to notify.`);
+            }
+          }
+        } catch (e) { console.error('[user:join_self] friend notify failed:', e.message); }
+      } else {
+        console.log(`[Online] ${userId} joined (Broadcast skipped - already online/cooldown)`);
+      }
+    });
+
 
     socket.on("competition:join", ({ eventId, user }) => {
       if (!eventId || !user) return;
@@ -437,7 +747,7 @@ const socketHandler = (server) => {
       // If lobby is full, reject
       if (room.players.length >= MAX_COMPETITION_PLAYERS) {
         socket.emit("competition:error", {
-          message: "Lobby is full (max 10 players).",
+          message: "Lobby is full (max 30 players).",
         });
         return;
       }
@@ -619,7 +929,7 @@ const socketHandler = (server) => {
         const bd = sub.breakdown;
 
         // 1. Enforce participation based on status (not client claim)
-        bd.participationBonus = sub.status === "timeout" ? 0 : 50;
+        bd.participationBonus = sub.status === "timeout" ? 0 : 30;
 
         // 2. Cap all bonus values to their allowed maximums
         bd.correctCode = Math.min(Math.max(0, bd.correctCode || 0), 1000);
@@ -644,7 +954,7 @@ const socketHandler = (server) => {
             // 5s buffer for network latency
             console.log(
               `[Competition ${eventId}] TIME MANIPULATION detected for ${username}: ` +
-                `claimed ${claimedTime}s but server says ${serverElapsed}s elapsed. Correcting.`,
+              `claimed ${claimedTime}s but server says ${serverElapsed}s elapsed. Correcting.`,
             );
             sub.timeTaken = serverElapsed;
           }
@@ -671,7 +981,7 @@ const socketHandler = (server) => {
           if (bd.speedBonus > serverSpeedBonus) {
             console.log(
               `[Competition ${eventId}] SPEED BONUS adjusted for ${username}: ` +
-                `client claimed ${bd.speedBonus}, server computed ${serverSpeedBonus}`,
+              `client claimed ${bd.speedBonus}, server computed ${serverSpeedBonus}`,
             );
             bd.speedBonus = serverSpeedBonus;
           }
@@ -690,6 +1000,15 @@ const socketHandler = (server) => {
           );
           sub.score = validatedScore;
         }
+
+        // 5. Update Real-Time Streak
+        // Participation in a competition level counts as an active day.
+        User.findById(userId).then(user => {
+          if (user) {
+            updateStreak(user);
+            user.save().catch(e => console.error("[Streak] Save failed:", e.message));
+          }
+        });
 
         // Update cumulative scores
         if (!room.cumulativeScores[userId]) {
@@ -782,36 +1101,17 @@ const socketHandler = (server) => {
             return (a.timeTaken || Infinity) - (b.timeTaken || Infinity);
           });
 
-          // Assign relative bonus based on ranking position
           rankedSubmissions.forEach((sub, index) => {
-            let relativeBonus;
-            if (numPlayers <= 1) {
-              relativeBonus = 0; // Solo player: no one to rank against = no bonus
-            } else {
-              relativeBonus = Math.floor(
-                ((numPlayers - 1 - index) / (numPlayers - 1)) * 500,
-              );
-            }
-
-            // Update submission data
+            // Ranking logic kept for ordering but no longer awards relative points
             const originalSub = room.levelSubmissions[currentLevel][sub.userId];
-            originalSub.breakdown.relativeBonus = relativeBonus;
-            originalSub.score += relativeBonus;
-
-            // Update cumulative score
-            if (room.cumulativeScores[sub.userId]) {
-              room.cumulativeScores[sub.userId].totalScore += relativeBonus;
-              room.cumulativeScores[sub.userId].levelScores[currentLevel] =
-                originalSub.score;
-            }
+            originalSub.breakdown.relativeBonus = 0;
 
             console.log(
-              `[Competition] Relative Bonus: ${sub.username} | ` +
-                `Rank ${index + 1}/${numPlayers} | ` +
-                `Tests: ${sub.breakdown?.testsPassed || 0}/${sub.breakdown?.testsTotal || "?"} | ` +
-                `Errors: ${sub.breakdown?.errorCount || 0} | ` +
-                `Status: ${sub.status} | ` +
-                `Bonus: +${relativeBonus}`,
+              `[Competition] Rank: ${sub.username} | ` +
+              `Rank ${index + 1}/${numPlayers} | ` +
+              `Tests: ${sub.breakdown?.testsPassed || 0}/${sub.breakdown?.testsTotal || "?"} | ` +
+              `Errors: ${sub.breakdown?.errorCount || 0} | ` +
+              `Status: ${sub.status}`,
             );
           });
 
@@ -1102,4 +1402,4 @@ const socketHandler = (server) => {
   return io; // Expose io for socketManager registration in server.js
 };
 
-module.exports = socketHandler;
+module.exports = { socketHandler, getOnlineUsers };

@@ -72,7 +72,8 @@ class ExecutionService {
                 result.stderr,
                 result.exitCode,
                 result.executionTime,
-                jobId
+                jobId,
+                result
             );
 
         } catch (error) {
@@ -98,7 +99,7 @@ class ExecutionService {
     }
 
     // ── Private: Build uniform response object ────────────────────────────────
-    _buildResult(stdout, stderr, exitCode, executionTime, jobId) {
+    _buildResult(stdout, stderr, exitCode, executionTime, jobId, result = {}) {
         const isTLE = stderr === 'Time Limit Exceeded';
         const isSuccess = exitCode === 0;
 
@@ -107,7 +108,7 @@ class ExecutionService {
             stderr,
             // 'output' = what the frontend console shows (stdout preferred, fall back to stderr)
             output: stdout || stderr || 'No output produced.',
-            status: isTLE ? 'timeout' : isSuccess ? 'success' : 'runtime_error',
+            status: isTLE ? 'timeout' : isSuccess ? 'success' : (result.isCompilationError ? 'compilation_error' : 'runtime_error'),
             exitCode,
             executionTime,
             // Alias: frontend reads both 'runtime' and 'executionTime'

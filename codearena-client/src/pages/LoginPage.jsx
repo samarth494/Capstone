@@ -189,17 +189,10 @@ export default function LoginPage() {
 
             {/* Password */}
             <div className="relative group">
-              <div className="flex justify-between items-center mb-1.5 ml-1">
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  Password
-                </label>
-                <Link
-                  to="/forgot-password"
-                  className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
-                >
-                  Forgot Password?
-                </Link>
-              </div>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
+                Password
+              </label>
+
               <div
                 className={`relative flex items-center bg-slate-50 dark:bg-slate-800/50 border rounded-lg transition-all duration-300 ${focusedField === "password" ? "border-blue-600 dark:border-blue-500 ring-1 ring-blue-600 dark:ring-blue-500 bg-white dark:bg-slate-800" : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"}`}
               >

@@ -7,7 +7,7 @@ const http = require('http');
 dotenv.config();
 
 const connectDB = require('./config/db');
-const socketHandler = require('./sockets/battleSocket');
+const { socketHandler } = require('./sockets/battleSocket');
 const socketManager = require('./sockets/socketManager');
 const fileUtility = require('./utils/fileUtility');
 
@@ -16,7 +16,7 @@ const server = http.createServer(app);
 
 // ── Global error guards ───────────────────────────────────────────────────────
 process.on('uncaughtException', (err) => {
-  console.error('[Server] Uncaught Exception:', err.name, err.message);
+  console.error('[Server] Uncaught Exception:', err);
   // Do NOT shut down — keeps the server alive for other requests
 });
 
@@ -49,6 +49,7 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/battles', require('./routes/battleRoutes'));
 app.use('/api/events', require('./routes/eventRoutes'));
 app.use('/api/problems', require('./routes/problemRoutes'));
+app.use('/api/chat', require('./routes/chatRoutes'));
 
 // ── Health-check ──────────────────────────────────────────────────────────────
 app.get('/', (_req, res) => res.json({ status: 'ok', service: 'CodeArena API' }));

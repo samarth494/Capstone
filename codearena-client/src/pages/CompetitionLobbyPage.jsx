@@ -256,7 +256,7 @@ export default function CompetitionLobbyPage() {
                                 </div>
                                 <div className="px-4 py-1.5 bg-slate-900 dark:bg-slate-800 rounded-xl">
                                     <span className="text-[10px] font-bold text-white tracking-widest uppercase">
-                                        {players.length || 1}/10 Ready
+                                        {players.length || 1}/30 Ready
                                     </span>
                                 </div>
                             </div>
@@ -320,7 +320,7 @@ export default function CompetitionLobbyPage() {
                                         <div className="h-3 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-800">
                                             <motion.div
                                                 className="h-full bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-[0_0_15px_rgba(37,99,235,0.3)]"
-                                                animate={{ width: `${(players.length / 10) * 100}%` }}
+                                                animate={{ width: `${(players.length / 30) * 100}%` }}
                                                 transition={{ duration: 1.5, ease: "anticipate" }}
                                             />
                                         </div>

@@ -34,12 +34,28 @@ export const joinQueue = (userData) => {
   if (socket) socket.emit("join_queue", userData);
 };
 
+export const leaveQueue = () => {
+  if (socket) socket.emit("leave_queue");
+};
+
 export const subscribeToMatchFound = (cb) => {
   if (!socket) return;
   socket.on("match_found", (data) => {
     console.log("Match found!", data);
     cb(data);
   });
+};
+
+export const challengeFriend = (friendId, challenger) => {
+  if (socket) socket.emit("challenge:friend", { friendId, challenger });
+};
+
+export const respondToChallenge = (challengerId, accepted, friend) => {
+  if (socket) socket.emit("challenge:respond", { challengerId, accepted, friend });
+};
+
+export const joinPersonalRoom = (userId) => {
+  if (socket) socket.emit("user:join_self", userId);
 };
 
 export const getSocket = () => socket;

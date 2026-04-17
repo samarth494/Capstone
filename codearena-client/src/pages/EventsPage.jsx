@@ -192,6 +192,7 @@ export default function EventsPage() {
         <Navbar
           items={[
             { label: './Dashboard', path: '/dashboard', action: () => navigate('/dashboard') },
+            { label: './Messages', path: '/messages', action: () => navigate('/messages') },
             { label: './Events', path: '/dashboard/events', action: () => navigate('/dashboard/events') },
             { label: './Profile', path: user ? `/profile/${user._id}` : '#', action: () => user && navigate(`/profile/${user._id}`) },
             { label: './Leaderboard', path: '/leaderboard', action: () => navigate('/leaderboard') }

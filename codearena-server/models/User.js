@@ -41,27 +41,46 @@ const userSchema = mongoose.Schema({
         type: String,
         default: 'Bronze'
     },
-    resetPasswordToken: String,
-    resetPasswordExpire: Date
+    xp: {
+        type: Number,
+        default: 0
+    },
+    solvedProblems: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Problem'
+    }],
+    currentStreak: {
+        type: Number,
+        default: 0
+    },
+    lastActiveDate: {
+        type: Date,
+        default: null
+    },
+    friends: [{
+
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    friendRequests: [{
+        from: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        status: {
+            type: String,
+            enum: ['pending', 'accepted', 'rejected'],
+            default: 'pending'
+        },
+        createdAt: {
+            type: Date,
+            default: Date.now
+        }
+    }]
 }, {
     timestamps: true
 });
 
-// Generate and hash password token
-userSchema.methods.getResetPasswordToken = function () {
-    // Generate token
-    const resetToken = crypto.randomBytes(20).toString('hex');
-
-    // Hash token and set to resetPasswordToken field
-    this.resetPasswordToken = crypto
-        .createHash('sha256')
-        .update(resetToken)
-        .digest('hex');
-
-    // Set expire (10 minutes)
-    this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
-
-    return resetToken;
-};
 
 module.exports = mongoose.model('User', userSchema);
+

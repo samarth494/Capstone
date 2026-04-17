@@ -3,6 +3,8 @@ const Submission = require("../models/Submission");
 const User = require("../models/User");
 const executionService = require("../services/executionService");
 const leaderboardService = require("../services/leaderboardService");
+const { getIo } = require("../sockets/socketManager");
+const { updateStreak } = require("../utils/streakUtils");
 
 const SUPPORTED_LANGS = ["python", "c", "cpp", "java", "javascript"];
 
@@ -156,7 +158,7 @@ const submitSolution = async (req, res) => {
         const totalTests = testCases.length || 1;
 
         // ── 3. Persist Submission ─────────────────────────────────────────────
-        await Submission.create({
+        const savedSubmission = await Submission.create({
             user: userId,
             problem: problem._id,
             language: lang,
@@ -168,12 +170,39 @@ const submitSolution = async (req, res) => {
             error: firstError || undefined,
         });
 
+        // ── Broadcast to live Activity Stream ─────────────────────────────────
+        try {
+            const io = getIo();
+            if (io) {
+                const populatedSub = await Submission.findById(savedSubmission._id)
+                    .populate('user', 'username rank')
+                    .populate('problem', 'title difficulty')
+                    .select('status language createdAt executionTime user problem')
+                    .lean();
+                if (populatedSub) {
+                    io.emit('newGlobalActivity', populatedSub);
+                }
+            }
+        } catch (e) {
+            console.error("[Socket] Failed to broadcast activity:", e.message);
+        }
+
         // ── 4. On Accepted — update user & leaderboard ────────────────────────
         if (verdict === "Accepted") {
-            await User.findByIdAndUpdate(userId, {
-                $addToSet: { solvedProblems: problem._id },
-                $inc: { xp: problem.xpReward || 10 },
-            });
+            // Fetch full user doc to update streak
+            const userDoc = await User.findById(userId);
+            if (userDoc) {
+                userDoc.solvedProblems.addToSet(problem._id);
+                userDoc.xp = (userDoc.xp || 0) + (problem.xpReward || 10);
+                updateStreak(userDoc);
+                await userDoc.save();
+            } else {
+                // Fallback atomic update (no streak update possible without doc)
+                await User.findByIdAndUpdate(userId, {
+                    $addToSet: { solvedProblems: problem._id },
+                    $inc: { xp: problem.xpReward || 10 },
+                });
+            }
 
             // Fire-and-forget (non-blocking — never crash submission flow)
             leaderboardService
@@ -237,9 +266,27 @@ const getSubmissions = async (req, res) => {
     }
 };
 
+const getRecentActivity = async (req, res) => {
+    try {
+        const activities = await Submission.find({})
+            .sort({ createdAt: -1 })
+            .limit(15)
+            .populate('user', 'username rank')
+            .populate('problem', 'title difficulty')
+            .select('status language createdAt executionTime user problem')
+            .lean();
+
+        return res.json(activities);
+    } catch (err) {
+        console.error("[Problems] getRecentActivity:", err.message);
+        return res.status(500).json({ message: "Failed to fetch recent activity." });
+    }
+};
+
 module.exports = {
     getProblems,
     getProblemById,
     submitSolution,
     getSubmissions,
+    getRecentActivity,
 };

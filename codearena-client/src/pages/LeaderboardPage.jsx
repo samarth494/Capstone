@@ -11,12 +11,22 @@ import {
     Activity
 } from 'lucide-react';
 import API_BASE from '../config/api';
+import Navbar from '../components/Navbar';
 
 
 export default function LeaderboardPage() {
     const navigate = useNavigate();
     const [leaderboard, setLeaderboard] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    const loggedInUser = JSON.parse(localStorage.getItem('user'));
+
+    const navItems = [
+        { label: './Dashboard', path: '/dashboard', action: () => navigate('/dashboard') },
+        { label: './Messages', path: '/messages', action: () => navigate('/messages') },
+        { label: './Profile', path: `/profile/${loggedInUser?._id}`, action: () => navigate(`/profile/${loggedInUser?._id}`) },
+        { label: './Leaderboard', path: '/leaderboard', action: () => navigate('/leaderboard') }
+    ];
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
@@ -44,27 +54,7 @@ export default function LeaderboardPage() {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 font-['JetBrains_Mono'] transition-colors duration-300">
-            {/* Header */}
-            <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 transition-colors duration-300">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center space-x-2 cursor-pointer transition-all hover:scale-105" onClick={() => navigate('/dashboard')}>
-                            <Swords className="w-8 h-8 text-blue-600 dark:text-blue-500" />
-                            <h1 className="text-xl font-bold text-slate-900 dark:text-white font-mono tracking-tighter transition-colors">CodeArena_</h1>
-                        </div>
-
-                        <div className="flex items-center space-x-4">
-                            <button
-                                onClick={() => navigate('/dashboard')}
-                                className="flex items-center space-x-2 px-5 py-2.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all text-sm font-black tracking-widest border border-slate-200 dark:border-slate-700 shadow-sm"
-                            >
-                                <LayoutDashboard size={18} />
-                                <span>DASHBOARD</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <Navbar user={loggedInUser} items={navItems} />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 transition-colors duration-300">

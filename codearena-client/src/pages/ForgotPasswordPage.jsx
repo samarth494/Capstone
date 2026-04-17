@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Mail, ArrowRight, Terminal, Shield } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
+import API_BASE from "../config/api";
+
 
 export default function ForgotPasswordPage() {
     const navigate = useNavigate();
@@ -22,7 +24,8 @@ export default function ForgotPasswordPage() {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/forgotpassword`, {
+            const response = await fetch(`${API_BASE}/api/auth/forgotpassword`, {
+
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

@@ -61,7 +61,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
         };
         localStorage.setItem("user", JSON.stringify(userToSave));
         onClose(); // Close modal on success
-        navigate("/dashboard", { replace: true }); // Replace history so back button doesn't go to previous page
+        navigate("/dashboard", { replace: true });
       } else {
         setError(data.message || "Login failed");
       }
